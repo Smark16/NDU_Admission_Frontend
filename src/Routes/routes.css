@@ -1,0 +1,14 @@
+.window{
+    width:100%;
+    display: flex;
+    gap:5px;
+}
+
+.content{
+ height: 100vh;
+  overflow-y:scroll;
+}
+
+.content::-webkit-scrollbar{
+  width:0px;
+}
