@@ -91,7 +91,7 @@ export default function Navbar() {
           }}
         >
           {/* Logo */}
-          <Link href="/" style={{ textDecoration: "none" }}>
+          <Link to="/" style={{ textDecoration: "none" }}>
             <Typography
               variant="h6"
               sx={{

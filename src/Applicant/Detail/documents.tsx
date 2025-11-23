@@ -14,7 +14,7 @@ import {
   Chip,
 } from "@mui/material"
 import FileIcon from "@mui/icons-material/Description"
-import DownloadIcon from "@mui/icons-material/Download"
+// import DownloadIcon from "@mui/icons-material/Download"
 import OpenInNewIcon from "@mui/icons-material/OpenInNew"
 
 interface DocumentsSectionProps {
@@ -30,14 +30,14 @@ export default function DocumentsSection({ documents }: DocumentsSectionProps) {
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
-  const downloadDocument = (url: string, filename: string) => {
-    const link = document.createElement("a")
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+  // const downloadDocument = (url: string, filename: string) => {
+  //   const link = document.createElement("a")
+  //   link.href = url
+  //   link.download = filename
+  //   document.body.appendChild(link)
+  //   link.click()
+  //   document.body.removeChild(link)
+  // }
 
   return (
     <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
