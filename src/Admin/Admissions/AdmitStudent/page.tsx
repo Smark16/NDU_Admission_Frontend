@@ -23,6 +23,7 @@ import {
   DialogActions,
   Snackbar,
   type SelectChangeEvent,
+  CircularProgress,
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import PersonIcon from "@mui/icons-material/Person"
@@ -105,7 +106,7 @@ const FormSection = styled(Box)(({ theme }) => ({
 export default function AdmitStudentPage() {
   const { id } = useParams()
   const {batch} = useHook()
-  const {loggeduser} = useContext(AuthContext) || {}
+  const { loggeduser} = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
   const [application, setApplication] = useState<Application | null>(null)
   const [campus, setCampus] = useState<Campus[]>([])
@@ -125,7 +126,6 @@ export default function AdmitStudentPage() {
     type: "success",
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [ApplicantError, setApplicantError] = useState<string[]>([])
   const [isAdmitted, setIsAdmitted] = useState(false)
 
   // fetch campus
@@ -203,10 +203,7 @@ export default function AdmitStudentPage() {
     const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
 
     // 3. Faculty code from selected program
-    const selectedProgram = application.programs.find(p => p.id === Number(formData.program))
-    const facultyCode = selectedProgram?.faculty
-      ? (typeof selectedProgram.faculty === "object" ? selectedProgram.faculty.code : selectedProgram.faculty)
-      : "000"
+    const selectedProgramCode = application.programs.find(p => p.id === Number(formData.program))?.code
 
     // 4. Study mode (first letter)
     const studyMode = (application.study_mode?.[0]?.toUpperCase()) || "D"
@@ -215,7 +212,7 @@ export default function AdmitStudentPage() {
     const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
 
     // 6. Final Reg No
-    const regNo = `${year}/${campusNumber}/${facultyCode}/${studyMode}/${randomNumber}`
+    const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
     // Update form
     setFormData(prev => ({ ...prev, reg_no: regNo }))
@@ -225,11 +222,10 @@ export default function AdmitStudentPage() {
 
   const handleGeneratePayCode = () => {
     // Option 1: Random 10-digit number starting with 1 or 2
-    const prefix = Math.random() < 0.5 ? "1" : "2"  // 50% chance of 1 or 2
-    const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) // 100000000 – 999999999
-    const payCode = prefix + random9Digits  // e.g. "1" + "004567896" → "1004567896"
+    const prefix = Math.random() < 0.5 ? "1" : "2"  
+    const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
+    const payCode = prefix + random9Digits  
 
-    // Update form (you'll need a field for pay_code)
     setFormData(prev => ({ ...prev, student_id: payCode }))
   }
 
@@ -243,16 +239,16 @@ export default function AdmitStudentPage() {
         admitted_campus: formData.campus,
         admitted_program: formData.program,
         admission_notes: formData.notes,
-        admitted_batch:batch?.id,
+        admitted_batch: batch?.id,
         reg_no: formData.reg_no,
         study_mode: application?.study_mode || "",
         application: application?.id || 0,
-        is_admitted:true,
-        admitted_by:loggeduser?.user_id
+        is_admitted: true,
+        admitted_by: loggeduser?.user_id
       }
 
       const response = await AxiosInstance.post('/api/admissions/create_admissions', payload)
-      if(response.status === 201){
+      if (response.status === 201) {
         setIsAdmitted(response.data.is_admitted)
       }
       setSnackbar({
@@ -263,15 +259,26 @@ export default function AdmitStudentPage() {
       setIsLoading(false)
       setOpenDialog(false)
 
-    } catch (err:any) {
-      if(err.response?.data.application){
-        setApplicantError(err.response?.data.application)
-      }
-       setSnackbar({
+    } catch (err: any) {
+      if (err.response?.data.application) {
+        setSnackbar({
         open: true,
-        message: "Student admission failed!",
+        message: `${err.response?.data.application}`,
         type: "error",
       })
+      }else if(err.response?.data.detail){
+        setSnackbar({
+        open: true,
+        message: `${err.response?.data.detail}`,
+        type: "error",
+      })
+      }else{
+        setSnackbar({
+          open: true,
+          message: "Student admission failed!",
+          type: "error",
+        })
+      }
       setIsLoading(false)
     }
     setTimeout(() => {
@@ -280,14 +287,32 @@ export default function AdmitStudentPage() {
   }
 
   // send offer letter
-  const handleSendLetter = async()=>{
-    try{
+  const handleSendLetter = async () => {
+    try {
       setIsLoading(true)
-       const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
-       console.log(response.data)
-       setIsLoading(false)
-    }catch(err){
+      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
+      console.log(response.data)
+      setIsLoading(false)
+       setSnackbar({
+        open: true,
+        message: "Student offer letter sent successfully!",
+        type: "success",
+      })
+    } catch (err:any) {
       console.log(err)
+      if(err.response?.data.detail){
+         setSnackbar({
+        open: true,
+        message: `${err.response?.data.detail}`,
+        type: "error",
+      })
+      }else{
+        setSnackbar({
+         open: true,
+         message: "Failed to send offer letter to student",
+         type: "error",
+       })
+      }
       setIsLoading(false)
     }
   }
@@ -579,35 +604,63 @@ export default function AdmitStudentPage() {
           {/* Action Buttons */}
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
             {isAdmitted && (
-                <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<CheckCircleIcon />}
-              onClick={handleSendLetter}
-              sx={{ px: 2 }}
-            >
-              {isLoading ? 'sending letter....' : 'send offer letter to portal'}
-            </Button>
+              <Button
+                variant="contained"
+                size="medium"
+                startIcon={
+                  isLoading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <CheckCircleIcon />
+                  )
+                }
+                onClick={handleSendLetter}
+                disabled={isLoading} // Prevents double-click
+                sx={{
+                  background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                  color: "white",
+                  fontWeight: 600,
+                  textTransform: "none",           // No ugly ALL CAPS
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.1,
+                  boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+                  transition: "all 0.3s ease",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
+                    boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
+                    transform: "translateY(-1px)",
+                  },
+                  "&:active": {
+                    transform: "translateY(0)",
+                  },
+                  "&.Mui-disabled": {
+                    background: "#bbdefb",
+                    color: "#666",
+                  },
+                }}
+              >
+                {isLoading ? "Sending Offer Letter..." : "Send Offer Letter to Portal"}
+              </Button>
             )}
-             
-             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 4 }}>
-            <Button variant="outlined" onClick={() => window.history.back()} sx={{ px: 3 }}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              size="large"
-              startIcon={<CheckCircleIcon />}
-              onClick={handleSubmitClick}
-              sx={{ px: 4 }}
-            >
-              Admit Student
-            </Button>
+
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 4 }}>
+              <Button variant="outlined" onClick={() => window.history.back()} sx={{ px: 3 }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                size="large"
+                startIcon={<CheckCircleIcon />}
+                onClick={handleSubmitClick}
+                sx={{ px: 4 }}
+              >
+                Admit Student
+              </Button>
+            </Box>
           </Box>
-          </Box>
-          
+
         </CardContent>
       </StyledCard>
 

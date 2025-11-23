@@ -11,6 +11,7 @@ import {
   InputLabel,
   Typography,
   Divider,
+  FormHelperText,
 } from "@mui/material"
 import { CheckCircle as CheckCircleIcon } from "@mui/icons-material"
 import type { SelectChangeEvent } from "@mui/material/Select"
@@ -32,6 +33,7 @@ interface PersonalInfoProps {
     nextOfKinContact: string
     nextOfKinRelationship: string
   }
+  formErrors: Record<string, string> 
   setFormData: React.Dispatch<React.SetStateAction<any>> // ← Correct type
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   handleChange: (event: SelectChangeEvent<string>) => void
@@ -42,6 +44,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
   setFormData,
   handleInputChange,
   handleChange,
+  formErrors
 }) => {
   const options = useMemo(() => countryList().getData(), [])
 
@@ -76,6 +79,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               onChange={handleInputChange}
               required
               helperText="Pre-filled from profile"
+              error={!!formErrors.firstName}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -87,6 +91,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               onChange={handleInputChange}
               required
               helperText="Pre-filled from profile"
+              error={!!formErrors.lastName}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -116,11 +121,13 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               onChange={handleInputChange}
               required
               InputLabelProps={{ shrink: true }}
+              error={!!formErrors.dateOfBirth}
+              helperText={formErrors.dateOfBirth}
             />
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!formErrors.gender}>
               <InputLabel>Gender</InputLabel>
               <Select
                 name="gender"
@@ -131,11 +138,14 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 <MenuItem value="male">Male</MenuItem>
                 <MenuItem value="female">Female</MenuItem>
               </Select>
+               {formErrors.gender && (
+              <FormHelperText>{formErrors.gender}</FormHelperText>
+            )}
             </FormControl>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!formErrors.nationality}>
               {/* <InputLabel>Nationality</InputLabel> */}
               <ReactSelect
                 options={options}
@@ -151,6 +161,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   }),
                 }}
               />
+               {formErrors.nationality && (
+              <FormHelperText>{formErrors.nationality}</FormHelperText>
+            )}
             </FormControl>
           </Grid>
         </Grid>
@@ -170,6 +183,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               onChange={handleInputChange}
               required
               helperText="Pre-filled from profile"
+              error={!!formErrors.phone}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -182,6 +196,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               onChange={handleInputChange}
               required
               helperText="Pre-filled from profile"
+              error={!!formErrors.email}
             />
           </Grid>
         </Grid>
@@ -197,6 +212,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           required
           multiline
           rows={3}
+          error={!!formErrors.address}
+          helperText={formErrors.address}
         />
       </Box>
 
@@ -214,7 +231,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               name="nextOfKinName"
               value={formData.nextOfKinName}
               onChange={handleInputChange}
-              required
+              error={!!formErrors.nextOfKinName}
+              helperText={formErrors.nextOfKinName}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -224,11 +242,12 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               name="nextOfKinContact"
               value={formData.nextOfKinContact}
               onChange={handleInputChange}
-              required
+              error={!!formErrors.nextOfKinContact}
+              helperText={formErrors.nextOfKinContact}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={!!formErrors.nextOfKinRelationship}>
               <InputLabel>Relationship</InputLabel>
               <Select
                 name="nextOfKinRelationship"
@@ -241,6 +260,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 <MenuItem value="spouse">Spouse</MenuItem>
                 <MenuItem value="other">Other</MenuItem>
               </Select>
+                {formErrors.nextOfKinRelationship && (
+              <FormHelperText>{formErrors.nextOfKinRelationship}</FormHelperText>
+            )}
             </FormControl>
           </Grid>
         </Grid>

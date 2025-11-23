@@ -11,12 +11,7 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Button,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TablePagination,
   MenuItem,
   Select,
@@ -27,14 +22,12 @@ import {
   Typography,
   Container,
   Grid,
-  IconButton,
   InputAdornment,
   useTheme,
   useMediaQuery,
 } from "@mui/material"
 import SearchIcon from "@mui/icons-material/Search"
 import FilterListIcon from "@mui/icons-material/FilterList"
-import VisibilityIcon from "@mui/icons-material/Visibility"
 import SchoolIcon from "@mui/icons-material/School"
 import useAxios from "../../../AxiosInstance/UseAxios"
 
@@ -49,6 +42,8 @@ interface Admitted {
   faculty:string,
   admission_date:string;
   status:string;
+  is_admitted:Boolean
+  is_registered:Boolean
 }
 
 export default function AdmittedStudents() {
@@ -59,8 +54,6 @@ export default function AdmittedStudents() {
   const [registrationFilter, setRegistrationFilter] = useState("all")
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
-  const [selectedStudent, setSelectedStudent] = useState(null)
-  const [openDialog, setOpenDialog] = useState(false)
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([])
 
   // fetch admissions
@@ -89,8 +82,8 @@ export default function AdmittedStudents() {
 
       const matchesFilter =
         registrationFilter === "all" ||
-        (registrationFilter === "registered" && student.status) ||
-        (registrationFilter === "not-registered" && !student.status)
+        (registrationFilter === "registered" && student.is_registered) ||
+        (registrationFilter === "not-registered" && !student.is_registered)
 
       return matchesSearch && matchesFilter
     })
@@ -100,7 +93,7 @@ export default function AdmittedStudents() {
 
   const paginatedStudents = filteredStudents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
-  const handleChangePage = (event:any, newPage:number) => {
+  const handleChangePage = (_event:any, newPage:number) => {
     setPage(newPage)
   }
 
@@ -108,16 +101,6 @@ export default function AdmittedStudents() {
     setRowsPerPage(Number.parseInt(event.target.value, 10))
     setPage(0)
   }
-
-  // const handleViewDetails = (student) => {
-  //   setSelectedStudent(student)
-  //   setOpenDialog(true)
-  // }
-
-  // const handleCloseDialog = () => {
-  //   setOpenDialog(false)
-  //   setSelectedStudent(null)
-  // }
 
   const formatDate = (dateString:string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -211,7 +194,7 @@ export default function AdmittedStudents() {
                     {!isMobile && <TableCell>Batch</TableCell>}
                     {!isMobile && <TableCell>Admission Date</TableCell>}
                     <TableCell>Status</TableCell>
-                    <TableCell align="center">Action</TableCell>
+                    <TableCell align="center">Admission</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -236,22 +219,20 @@ export default function AdmittedStudents() {
                       {!isMobile && <TableCell>{formatDate(student.admission_date)}</TableCell>}
                       <TableCell>
                         <Chip
-                          label={student.status ? "Registered" : "Not Registered"}
-                          color={student.status ? "success" : "warning"}
+                          label={student.is_registered ? "Registered" : "Not Registered"}
+                          color={student.is_registered ? "success" : "warning"}
                           variant="filled"
                           size="small"
                         />
                       </TableCell>
-                      {/* <TableCell align="center">
-                        <IconButton
+                      <TableCell align="center">
+                         <Chip
+                          label={student.is_admitted ? "Admitted" : "Not Admitted"}
+                          color={student.is_admitted ? "success" : "warning"}
+                          variant="filled"
                           size="small"
-                          color="primary"
-                          onClick={() => handleViewDetails(student)}
-                          title="View Details"
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell> */}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

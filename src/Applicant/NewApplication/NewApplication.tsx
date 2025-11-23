@@ -59,8 +59,8 @@ interface SubjectResult {
 }
 
 interface Campus {
-  id:number;
-  name:string;
+  id: number;
+  name: string;
 }
 
 interface FormData {
@@ -80,7 +80,7 @@ interface FormData {
   nextOfKinRelationship: string
   campus: string
   programs: number[]
-  academic_level:string
+  academic_level: string
   oLevelYear: string
   oLevelIndexNumber: string
   oLevelSchool: string
@@ -89,8 +89,8 @@ interface FormData {
   aLevelIndexNumber: string
   aLevelSchool: string
   aLevelSubjects: SubjectResult[]
-  study_mode:string
-  alevel_combination:string
+  study_mode: string
+  alevel_combination: string
   additionalQualificationInstitution: string
   additionalQualificationType: string
   additionalQualificationYear: string
@@ -99,14 +99,14 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
-  status:string
+  status: string
 }
 
 export default function NewApplicationForm() {
   const AxiosInstance = useAxios()
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
-  const {batch} = useHook()
+  const { batch } = useHook()
   const { loggeduser } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
   const [campus, setCampus] = useState<Campus[]>([])
@@ -124,7 +124,7 @@ export default function NewApplicationForm() {
     address: "",
     nextOfKinName: "",
     class_of_award: "",
-    study_mode:'',
+    study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
     campus: "",
@@ -141,7 +141,7 @@ export default function NewApplicationForm() {
     aLevelIndexNumber: "",
     aLevelSchool: "",
     aLevelSubjects: [{ id: "1", subject: "", grade: "" }],
-    alevel_combination:"",
+    alevel_combination: "",
     additionalQualificationInstitution: "",
     additionalQualificationType: "",
     additionalQualificationYear: "",
@@ -149,17 +149,104 @@ export default function NewApplicationForm() {
     oLevelDocuments: null,
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
-    status:"submitted"
+    status: "submitted"
   })
-
-  console.log('form data', formData)
   const [openSummary, setOpenSummary] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [notification, setNotification] = useState<{
+    message: string
+    type: "success" | "error" | "info"
+  } | null>(null)
+
+  // === NOTIFICATION HELPER ===
+  const showNotification = (message: string, type: "success" | "error" | "info") => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 6000)
+  }
+
+  // Validate forms
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (step) {
+      case 0: // Personal Info
+        if (!formData.firstName.trim()) errors.firstName = "First name is required";
+        if (!formData.lastName.trim()) errors.lastName = "Last name is required";
+        if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
+        if (!formData.gender) errors.gender = "Please select gender";
+        if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
+        if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
+        if (!formData.email.includes("@")) errors.email = "Valid email required";
+        if (!formData.address.trim()) errors.address = "Address is required";
+        if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
+        if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
+        if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
+        break;
+
+      case 1: // Programs
+        if (formData.programs.length === 0) {
+          errors.programs = "Please select at least one program";
+        }
+        if (!formData.campus) errors.campus = "Please select a campus";
+        if (!formData.academic_level) errors.academic_level = "Academic level is required";
+        if (!formData.study_mode) errors.study_mode = "Study mode is required";
+        break;
+
+      case 2: // Academic Results
+        if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
+        if (!formData.oLevelIndexNumber.trim()) errors.oLevelIndexNumber = "O-Level index number required";
+        if (!formData.oLevelSchool.trim()) errors.oLevelSchool = "O-Level school required";
+
+        // Check at least one valid O-Level subject
+        const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
+        if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
+
+        // if(formData.oLevelSubjects.length < 8){
+        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        // }
+
+        // Only validate A-Level if applicant has A-Level
+
+        if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
+        if (!formData.aLevelIndexNumber.trim()) errors.aLevelIndexNumber = "A-Level index required";
+        if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
+        if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
+
+        // if(formData.aLevelSubjects.length < 5){
+        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        // }
+
+        break;
+
+      case 3: // Documents
+        if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
+        if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
+        // Only require A-Level doc if they have A-Level
+        if (!formData.aLevelDocuments) {
+          errors.aLevelDocuments = "A-Level certificate is required";
+        }
+        if (formData.additionalQualificationInstitution && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
+        break;
+
+      case 4:
+        return true;
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleNext = () => {
-    if (activeStep < steps.length - 1) {
-      setActiveStep(activeStep + 1)
+    if (!validateStep(activeStep)) {
+      return;
     }
-  }
+
+    setFormErrors({});
+
+    if (activeStep < steps.length - 1) {
+      setActiveStep(activeStep + 1);
+    }
+  };
 
   const handleBack = () => {
     if (activeStep > 0) {
@@ -168,25 +255,25 @@ export default function NewApplicationForm() {
   }
 
   // fetch campus
-const fetchCampus = async () => {
-  try {
-    const response = await AxiosInstance.get('/api/accounts/list_campus');
-    setCampus(response.data); // store all campuses
-  } catch (err) {
-    console.error('Error fetching campuses:', err);
-  }
-};
+  const fetchCampus = async () => {
+    try {
+      const response = await AxiosInstance.get('/api/accounts/list_campus');
+      setCampus(response.data);
+    } catch (err) {
+      console.error('Error fetching campuses:', err);
+    }
+  };
 
-const selectedCampus = formData.campus && campus.find(c => String(c.id) === String(formData.campus));
+  const selectedCampus = formData.campus && campus.find(c => String(c.id) === String(formData.campus));
 
-// programs
-const programs = formData.programs?.map((programId: number) => {
-  return batch?.programs.find((p: any) => p.id === programId);
-}).filter(Boolean); // remove undefined if any
+  // programs
+  const programs = formData.programs?.map((programId: number) => {
+    return batch?.programs.find((p: any) => p.id === programId);
+  }).filter(Boolean);
 
-useEffect(() =>{
- fetchCampus()
-}, [])
+  useEffect(() => {
+    fetchCampus()
+  }, [])
 
   // For text fields and textareas
   const handleInputChange = (
@@ -275,87 +362,91 @@ useEffect(() =>{
 
   console.log('formdata', formData)
 
-const handleSubmit = async () => {
-  try {
-    setSubmitLoader(true);
+  const handleSubmit = async () => {
+    try {
+      setSubmitLoader(true);
 
-    const formDataToSend = new FormData();
+      const formDataToSend = new FormData();
 
-    // Personal & Program Info
-    formDataToSend.append("applicant", String(loggeduser?.user_id));
-    formDataToSend.append("batch", String(batch?.id));
-    formDataToSend.append("first_name", formData.firstName);
-    formDataToSend.append("last_name", formData.lastName);
-    formDataToSend.append("middle_name", formData.middleName || "");
-    formDataToSend.append("date_of_birth", formData.dateOfBirth);
-    formDataToSend.append("gender", formData.gender);
-    formDataToSend.append("nationality", formData.nationality);
-    formDataToSend.append("phone", String(formData.phone));
-    formDataToSend.append("email", formData.email);
-    formDataToSend.append("address", formData.address || "");
-    formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
-    formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
-    formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
-    formDataToSend.append("campus", formData.campus);
-    formDataToSend.append("academic_level", formData.academic_level);
-    formDataToSend.append("study_mode", formData.study_mode);
-    formDataToSend.append("status", "submitted");
+      // Personal & Program Info
+      formDataToSend.append("applicant", String(loggeduser?.user_id));
+      formDataToSend.append("batch", String(batch?.id));
+      formDataToSend.append("first_name", formData.firstName);
+      formDataToSend.append("last_name", formData.lastName);
+      formDataToSend.append("middle_name", formData.middleName || "");
+      formDataToSend.append("date_of_birth", formData.dateOfBirth);
+      formDataToSend.append("gender", formData.gender);
+      formDataToSend.append("nationality", formData.nationality);
+      formDataToSend.append("phone", String(formData.phone));
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("address", formData.address || "");
+      formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
+      formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
+      formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
+      formDataToSend.append("campus", formData.campus);
+      formDataToSend.append("academic_level", formData.academic_level);
+      formDataToSend.append("study_mode", formData.study_mode);
+      formDataToSend.append("status", "submitted");
 
-    // Programs
-    formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
+      // Programs
+      formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
 
-    // Academic Details
-    formDataToSend.append("olevel_year", formData.oLevelYear || "");
-    formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
-    formDataToSend.append("olevel_school", formData.oLevelSchool || "");
-    formDataToSend.append("alevel_year", formData.aLevelYear || "");
-    formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
-    formDataToSend.append("alevel_school", formData.aLevelSchool || "");
-    formDataToSend.append("alevel_combination", formData.alevel_combination || "");
-    formDataToSend.append("additional_qualification_institution", formData.additionalQualificationInstitution || "");
-    formDataToSend.append("additional_qualification_type", formData.additionalQualificationType || "");
-    formDataToSend.append("additional_qualification_year", formData.additionalQualificationYear || "");
-    formDataToSend.append("class_of_award", formData.class_of_award || "");
+      // Academic Details
+      formDataToSend.append("olevel_year", formData.oLevelYear || "");
+      formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
+      formDataToSend.append("olevel_school", formData.oLevelSchool || "");
+      formDataToSend.append("alevel_year", formData.aLevelYear || "");
+      formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
+      formDataToSend.append("alevel_school", formData.aLevelSchool || "");
+      formDataToSend.append("alevel_combination", formData.alevel_combination || "");
+      formDataToSend.append("additional_qualification_institution", formData.additionalQualificationInstitution || "");
+      formDataToSend.append("additional_qualification_type", formData.additionalQualificationType || "");
+      formDataToSend.append("additional_qualification_year", formData.additionalQualificationYear || "");
+      formDataToSend.append("class_of_award", formData.class_of_award || "");
 
-    // Results as JSON strings
-    formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
-    formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
+      // Results as JSON strings
+      formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
+      formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
 
-    // Passport Photo (optional)
-    if (formData.passportPhoto) {
-      formDataToSend.append("passport_photo", formData.passportPhoto);
+      // Passport Photo (optional)
+      if (formData.passportPhoto) {
+        formDataToSend.append("passport_photo", formData.passportPhoto);
+      }
+
+      // Documents — ONLY if file exists + send type
+      if (formData.oLevelDocuments) {
+        formDataToSend.append("documents", formData.oLevelDocuments);
+        formDataToSend.append("document_types", "OLevel");
+      }
+      if (formData.aLevelDocuments) {
+        formDataToSend.append("documents", formData.aLevelDocuments);
+        formDataToSend.append("document_types", "ALevel");
+      }
+      if (formData.otherInstitutionDocuments) {
+        formDataToSend.append("documents", formData.otherInstitutionDocuments);
+        formDataToSend.append("document_types", "Others");
+      }
+
+      // ONE SINGLE REQUEST – FAST & RELIABLE
+      await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+
+      setSubmitLoader(false);
+      setOpenSummary(true);
+
+      setTimeout(() => {
+        navigate("/applicant/dashboard");
+      }, 2000);
+
+    } catch (err: any) {
+      if(err.response?.data.detail){
+        showNotification(`${err.response?.data.detail}`, "error")
+      }else{
+        showNotification("Submission failed. Please check your connection and try again.", "error")
+      }
+      console.error("Submission failed:", err);
+      setSubmitLoader(false);
     }
-
-    // Documents — ONLY if file exists + send type
-    if (formData.oLevelDocuments) {
-      formDataToSend.append("documents", formData.oLevelDocuments);
-      formDataToSend.append("document_types", "OLevel");
-    }
-    if (formData.aLevelDocuments) {
-      formDataToSend.append("documents", formData.aLevelDocuments);
-      formDataToSend.append("document_types", "ALevel");
-    }
-    if (formData.otherInstitutionDocuments) {
-      formDataToSend.append("documents", formData.otherInstitutionDocuments);
-      formDataToSend.append("document_types", "Others");
-    }
-
-    // ONE SINGLE REQUEST – FAST & RELIABLE
-    await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
-
-    setSubmitLoader(false);
-    setOpenSummary(true);
-
-    setTimeout(() => {
-      navigate("/applicant/dashboard");
-    }, 2000);
-
-  } catch (err: any) {
-    console.error("Submission failed:", err);
-    alert("Submission failed. Please check your connection and try again.");
-    setSubmitLoader(false);
-  }
-};
+  };
 
   // personal details
   const renderPersonalDetails = () => (
@@ -364,6 +455,7 @@ const handleSubmit = async () => {
       handleInputChange={handleInputChange}
       handleChange={handleChange}
       setFormData={setFormData}
+      formErrors={formErrors}
     />
   )
 
@@ -373,6 +465,7 @@ const handleSubmit = async () => {
       formData={formData}
       handleChange={handleChange}
       setFormData={setFormData}
+      formErrors={formErrors}
     />
   )
 
@@ -388,7 +481,7 @@ const handleSubmit = async () => {
       removeALevelSubject={removeALevelSubject}
       handleInputChange={handleInputChange}
       handleChange={handleChange}
-
+      formErrors={formErrors}
     />
   )
 
@@ -398,11 +491,22 @@ const handleSubmit = async () => {
       formData={formData}
       handleFileChange={handleFileChange}
       setFormData={setFormData}
+      formErrors={formErrors}
     />
   )
 
   const renderReview = () => (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {notification && (
+        <Alert
+          severity={notification.type}
+          onClose={() => setNotification(null)}
+          sx={{ mb: 3 }}
+        >
+          {notification.message}
+        </Alert>
+      )}
+
       <Alert severity="info" icon={<InfoIcon />}>
         Please review all your information carefully before submitting. Once submitted, you cannot make changes.
       </Alert>
@@ -441,7 +545,7 @@ const handleSubmit = async () => {
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           {programs && programs.length > 0 ? (
-            programs.map((program:any) => (
+            programs.map((program: any) => (
               <Chip key={program.id} label={program.name} color="primary" variant="outlined" />
             ))
           ) : (
@@ -571,9 +675,9 @@ const handleSubmit = async () => {
                 }}
                 endIcon={<CheckCircleIcon />}
               >
-                  {submitLoader? <CircularProgress size={24} sx={{ color: "#ffffff" }} /> : "Submit Application"}
+                {submitLoader ? <CircularProgress size={24} sx={{ color: "#ffffff" }} /> : "Submit Application"}
               </Button>
-      
+
             ) : (
               <Button
                 variant="contained"

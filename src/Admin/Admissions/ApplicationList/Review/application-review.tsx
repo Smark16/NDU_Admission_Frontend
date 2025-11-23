@@ -16,6 +16,7 @@ import {
   Paper,
   Alert,
   Divider,
+  CircularProgress,
 } from "@mui/material"
 import {
   FileDownload as FileDownloadIcon,
@@ -28,7 +29,8 @@ import {
 } from "@mui/icons-material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import useAxios from "../../../../AxiosInstance/UseAxios"
 
 interface ApplicationReviewProps {
   application: any
@@ -38,9 +40,21 @@ interface ApplicationReviewProps {
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults }) => {
-  // const [openDialog, setOpenDialog] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
-  // const [selectedDocument, setSelectedDocument] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
+  const AxiosInstance = useAxios()
+
+  const [notification, setNotification] = useState<{
+      message: string
+      type: "success" | "error" | "info"
+    } | null>(null)
+
+  
+     // === NOTIFICATION HELPER ===
+  const showNotification = (message: string, type: "success" | "error" | "info") => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 4000)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -60,6 +74,22 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     return <WarningIcon />
   }
 
+  const handleReject = async ()=>{
+     try{
+        setIsLoading(true)
+        await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, {status:"rejected"})
+        setIsLoading(false)
+        showNotification("Application has been rejected", "success")
+
+        setTimeout(()=>{
+          navigate('/admin/application_list')
+        } ,500)
+     }catch(err){
+      console.log(err)
+      setIsLoading(false)
+     }
+  }
+
   // const getGradeColor = (grade: string) => {
   //   switch (grade) {
   //     case "A":
@@ -75,9 +105,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage("")}>
-          {successMessage}
+     {notification && (
+        <Alert
+          severity={notification.type}
+          onClose={() => setNotification(null)}
+          sx={{ mb: 3 }}
+        >
+          {notification.message}
         </Alert>
       )}
 
@@ -103,7 +137,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.first_name} {application.last_name}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Application ID: #{application.id} • {application.batch.name}
+                    Application ID: #{application.id} • {application.batch}
                   </Typography>
                 </Box>
               </Box>
@@ -187,17 +221,17 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     Batch
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.batch.name}
+                    {application.batch}
                   </Typography>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                {/* <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Campus
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {application.campus.name}
                   </Typography>
-                </Grid>
+                </Grid> */}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Address
@@ -338,9 +372,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                       Reviewed By
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                      {application.reviewed_by?.first_name && application.reviewed_by?.last_name ?
-                        `${application.reviewed_by?.first_name} ${application.reviewed_by?.first_name}`
-                        : application.reviewed_by?.username}
+                      {application.reviewed_by}
                     </Typography>
                   </Box>
                   <Box>
@@ -350,8 +382,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
                       {new Date(application.reviewed_at).toLocaleDateString()}
                     </Typography>
-
+       
                     <Box sx={{ display: "flex", gap: 1 }}>
+                      {application.status === 'accepted' ? (
+                         <Button
+                        variant="contained"
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          borderColor: "#1976d2",
+                        }}
+                      >
+                        Send offer letter to portal
+                      </Button>
+                      ) : application.status === 'Admitted' ? (
+                        ""
+                      ) : (
+                        <>
                       <Button
                         component={Link}
                         to={`/admin/admit_student/${application.id}`}
@@ -372,9 +419,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           textTransform: "none",
                           borderColor: "#1976d2",
                         }}
+                        onClick={handleReject}
                       >
-                        Reject Student
+                        {isLoading ? <CircularProgress size={15}/> : "Reject Student"}
                       </Button>
+                        </>
+                      )}
                     </Box>
                   </Box>
                 </>

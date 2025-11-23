@@ -91,6 +91,7 @@ const ApplicantDashboard: React.FC = () => {
     }
   };
 
+  console.log(application)
   useEffect(() => {
     fetchApplication();
   }, []);
@@ -256,7 +257,7 @@ const ApplicantDashboard: React.FC = () => {
               </Button>
             </Link>
 
-            {(application.application_status === "accepted" || application.has_admission) && (
+            {(application.has_admission && application.admission_letter_pdf) && (
               <Button
                 component="a"
                 href={`${import.meta.env.VITE_API_BASE_URL}${application.admission_letter_pdf}`}

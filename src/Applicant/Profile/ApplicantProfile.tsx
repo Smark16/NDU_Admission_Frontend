@@ -161,10 +161,6 @@ export default function ApplicantProfile() {
       reader.readAsDataURL(file)
 
       const formdata = new FormData()
-      // formdata.append("first_name", formData.firstName)
-      // formdata.append("last_name", formData.lastName)
-      // formdata.append("email", formData.email)
-      // formdata.append("phone", String(Number(formData.phone)))
       if(file && file instanceof File){
         formdata.append('profile_photo', file)
       }
@@ -382,7 +378,7 @@ export default function ApplicantProfile() {
                       selectedFile
                     ? URL.createObjectURL(selectedFile) 
                     : typeof userData?.profile_photo === "string"
-                      ? `http://127.0.0.1:8000${userData?.profile_photo}` 
+                      ? `${import.meta.env.VITE_API_BASE_URL}${userData?.profile_photo}` 
                       : undefined
                     }
                     sx={{

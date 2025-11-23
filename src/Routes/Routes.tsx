@@ -129,7 +129,7 @@ function AppRoutes() {
                   <Route path='/campus_management' element={<Suspense fallback={<LoadingSpinner />}><CampusManagement /></Suspense>} />
                   <Route path='/admission_dashboard' element={<Suspense fallback={<LoadingSpinner />}><AdmissionDashboard /></Suspense>} />
                   <Route path='/admit_student/:id' element={<Suspense fallback={<LoadingSpinner />}><AdmitStudentPage /></Suspense>} />
-                  <Route path='/admited-students' element={<Suspense fallback={<LoadingSpinner />}><AdmittedStudents /></Suspense>} />
+                  <Route path='/admited_students' element={<Suspense fallback={<LoadingSpinner />}><AdmittedStudents /></Suspense>} />
                   <Route path='/application_list' element={<Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>} />
                   <Route path='/intake' element={<Suspense fallback={<LoadingSpinner />}><BatchManagement /></Suspense>} />
                   <Route path='/faculty-management' element={<Suspense fallback={<LoadingSpinner />}><FacultyManagement /></Suspense>} />

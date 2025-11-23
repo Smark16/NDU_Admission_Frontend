@@ -70,7 +70,7 @@ interface FormData {
 interface Program {
   id: number;
   name: string
-  faculty: Faculty | number
+  faculty: Faculty | string
 }
 
 const initialFormData: FormData = {
@@ -408,7 +408,7 @@ export default function FacultyManagement() {
                       </Box>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={`${programs.filter(p => p.faculty === faculty.id).length} programs`} size="small" variant="outlined" color="info" />
+                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined" color="info" />
                     </TableCell>
                     <TableCell align="center">
                       <Switch

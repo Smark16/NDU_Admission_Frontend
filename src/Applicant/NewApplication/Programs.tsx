@@ -11,6 +11,7 @@ import {
   Autocomplete,
   TextField,
   Chip,
+  FormHelperText,
 } from "@mui/material";
 import { Info as InfoIcon } from "@mui/icons-material";
 import type { SelectChangeEvent } from '@mui/material/Select';
@@ -43,6 +44,7 @@ interface ProgramProps {
     study_mode: string;
     academic_level: string;
   };
+  formErrors: Record<string, string> 
   handleChange: (event: SelectChangeEvent<string>) => void;
   setFormData: React.Dispatch<React.SetStateAction<any>>; // From parent
 }
@@ -51,6 +53,7 @@ const Programs: React.FC<ProgramProps> = ({
   formData,
   handleChange,
   setFormData,
+  formErrors
 }) => {
   const AxiosInstance = useAxios();
   const { batch } = useHook();
@@ -116,7 +119,7 @@ const Programs: React.FC<ProgramProps> = ({
 
       {/* Preferred Campus */}
       <Box>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required error={!!formErrors.campus}>
           <InputLabel>Preferred Campus</InputLabel>
           <Select
             name="campus"
@@ -130,6 +133,9 @@ const Programs: React.FC<ProgramProps> = ({
               </MenuItem>
             ))}
           </Select>
+           {formErrors.campus && (
+              <FormHelperText>{formErrors.campus}</FormHelperText>
+            )}
         </FormControl>
         <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
           Select your preferred campus location
@@ -138,7 +144,7 @@ const Programs: React.FC<ProgramProps> = ({
 
       {/* Academic Level */}
       <Box>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required error={!!formErrors.academic_level}>
           <InputLabel>Preferred Academic Level</InputLabel>
           <Select
             name="academic_level"
@@ -152,6 +158,9 @@ const Programs: React.FC<ProgramProps> = ({
               </MenuItem>
             ))}
           </Select>
+            {formErrors.academic_level && (
+              <FormHelperText>{formErrors.academic_level}</FormHelperText>
+            )}
         </FormControl>
         <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
           Select your preferred academic level
@@ -160,7 +169,7 @@ const Programs: React.FC<ProgramProps> = ({
 
       {/* Study Mode */}
       <Box>
-        <FormControl fullWidth required>
+        <FormControl fullWidth required error={!!formErrors.study_mode}>
           <InputLabel>Study Mode</InputLabel>
           <Select
             name="study_mode"
@@ -172,6 +181,9 @@ const Programs: React.FC<ProgramProps> = ({
             <MenuItem value="D">Day</MenuItem>
             <MenuItem value="DL">Distance Learning</MenuItem>
           </Select>
+            {formErrors.study_mode && (
+              <FormHelperText>{formErrors.study_mode}</FormHelperText>
+            )}
         </FormControl>
         <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
           Select your preferred study mode
@@ -179,11 +191,12 @@ const Programs: React.FC<ProgramProps> = ({
       </Box>
 
       {/* Programs Autocomplete */}
-      <Box>
+      {formData.campus && formData.academic_level && (
+        <Box>
         <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: "#5ba3f5" }}>
           Preferred Programs (Select 1–3)
         </Typography>
-
+        <FormControl fullWidth required error={!!formErrors.programs}>
         <Autocomplete
           multiple
           options={filteredPrograms}
@@ -236,11 +249,13 @@ const Programs: React.FC<ProgramProps> = ({
             ))
           }
         />
-
+        {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
+        </FormControl>
         <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
           You must select at least one and at most three programs.
         </Typography>
       </Box>
+      )}
     </Box>
   );
 };

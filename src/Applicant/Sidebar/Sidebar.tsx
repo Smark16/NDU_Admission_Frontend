@@ -38,6 +38,7 @@ import useHook from "../../Hooks/useHook"
 import { AuthContext } from "../../Context/AuthContext"
 import useAxios from "../../AxiosInstance/UseAxios"
 import moment from "moment";
+import logo from '../../Images/Ndejje_University_Logo.jpg'
 
 interface Notification {
   id: number
@@ -94,11 +95,9 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
   ]
 
   const quickLinks = [
-    { id: "edit", label: "Edit Profile", icon: EditIcon, path: "/profile/edit" },
+    { id: "edit", label: "Edit Profile", icon: EditIcon, path: "/applicant/profile" },
     { id: "logout", label: "Logout", icon: LogoutIcon, path: "/logout" },
   ]
-
-  // const activeItem = menuItems.find(item => location.pathname.startsWith(item.path))?.id || ""
 
   const handleClick = (path: string) => {
     navigate(path)
@@ -116,30 +115,47 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
         textAlign: "center",
         borderRadius: 0,
       }}>
-        <Badge
-          overlap="circular"
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          badgeContent=" "
-          color="success"
-          variant="dot"
-          sx={{ "& .MuiBadge-badge": { width: 14, height: 14, border: "3px solid white" } }}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,                   
+            px: 3,                   
+            py: 2.5,                
+            borderBottom: "1px solid", 
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+          }}
         >
-          <Avatar
+          {/* Professional small logo */}
+          <Box
+            component="img"
+            src={logo}
+            alt="Ndejje University Logo"
             sx={{
-              width: 80,
-              height: 80,
-              mx: "auto",
-              mb: 1.5,
-              fontSize: "2rem",
+              width: 38,        
+              height: 38,
+              borderRadius: 1.5, 
+              objectFit: "contain",
+              boxShadow: 1,    
+              backgroundColor: "white", 
+              p: 0.5,          
+            }}
+          />
+
+          {/* Clean, bold title */}
+          <Typography
+            variant="h6"
+            sx={{
               fontWeight: 700,
-              backgroundColor: "white",
-              color: "#0066cc",
-              border: "4px solid rgba(255,255,255,0.3)",
+              fontSize: "12px",
+              color: "text.primary",
+              letterSpacing: "0.2px",
             }}
           >
-            {loggeduser?.first_name.charAt(0)}
-          </Avatar>
-        </Badge>
+            NDU Applications Portal
+          </Typography>
+        </Box>
         <Typography variant="h6" fontWeight={700} noWrap>{loggeduser?.first_name} {loggeduser?.last_name}</Typography>
         <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
           {loggeduser?.email}

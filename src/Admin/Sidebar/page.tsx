@@ -88,7 +88,7 @@ const navigationItems: NavItem[] = [
             id: "admitted",
             label: "Admitted Students",
             icon: <CheckCircle size={20} />,
-            path: "/admin/admited-students",
+            path: "/admin/admited_students",
           },
         ],
       },

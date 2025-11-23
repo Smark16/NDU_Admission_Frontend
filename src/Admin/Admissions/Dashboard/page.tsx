@@ -166,14 +166,6 @@ const AdmissionDashboard = () => {
     })
   }
 
-  const handleReviewApplication = (appId: number) => {
-    setSnackbar({
-      open: true,
-      message: `Started reviewing application #${appId}`,
-      type: "success",
-    })
-  }
-
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }))
   }
@@ -286,7 +278,7 @@ const AdmissionDashboard = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {applications.map((app) => (
+                        {applications.slice(0, 5).map((app) => (
                           <TableRow
                             key={app.id}
                             hover

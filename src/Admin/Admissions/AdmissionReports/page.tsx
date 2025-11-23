@@ -12,12 +12,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
   Alert,
+  LinearProgress,
 } from "@mui/material";
 import { FileDownload as FileDownloadIcon } from "@mui/icons-material";
 import ApplicantsDB from "./applicants_db";
@@ -55,6 +52,7 @@ export default function AdmissionsReport() {
   const [openExportDialog, setOpenExportDialog] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showSnackbar, setShowSnackbar] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
 
   /* filters that are passed down to the table */
   const [academicYear, setAcademicYear] = useState("");
@@ -67,14 +65,18 @@ export default function AdmissionsReport() {
   /* ------------------- API calls ----------------------------------- */
   const fetchStats = async () => {
     try {
+      setIsLoading(true)
       const { data } = await AxiosInstance.get<ReportStats[]>("/api/admission_reports/general_overview");
       setStats(data);
+      setIsLoading(false)
     } catch (e) { console.error(e); }
   };
   const fetchFacultyChart = async () => {
     try {
+      setIsLoading(true)
       const { data } = await AxiosInstance.get<FacultyStudents[]>("/api/admission_reports/Admitted_students_by_Faculty");
       setFacultyStudents(data);
+      setIsLoading(false)
     } catch (e) { console.error(e); }
   };
   useEffect(() => {
@@ -160,7 +162,9 @@ export default function AdmissionsReport() {
             <Card sx={{ background: `linear-gradient(${c.grad})` }}>
               <CardContent>
                 <Typography sx={{ color: "white", mb: 1, fontSize: 12, fontWeight: 600 }}>{c.label}</Typography>
-                <Typography sx={{ color: "white", fontSize: 28, fontWeight: 700, mb: 1 }}>{c.value}</Typography>
+                {isLoading ? <LinearProgress/> : (
+                  <Typography sx={{ color: "white", fontSize: 28, fontWeight: 700, mb: 1 }}>{c.value}</Typography>
+                )}
                 <Chip label={i < 5 ? "↑ 12%" : "61%"} size="small"
                   sx={{ background: "rgba(255,255,255,0.2)", color: "white", fontSize: 11 }} />
               </CardContent>
