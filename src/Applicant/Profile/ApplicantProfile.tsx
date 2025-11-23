@@ -85,10 +85,10 @@ export default function ApplicantProfile() {
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [userData, setUserData] = useState<UserData | null>(null)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
+  // const [profileImage, setProfileImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
-  const [userInfo, setUserInfo] = useState<User | null>(null)
+  // const [userInfo, setUserInfo] = useState<User | null>(null)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -108,7 +108,7 @@ export default function ApplicantProfile() {
         // campuses: [{ name: "Main Campus" }, { name: "Downtown Campus" }],
       }
       setUserData(data)
-      setProfileImage(data.profile_photo || null)
+      // setProfileImage(data.profile_photo || null)
       setIsLoading(false)
     } catch (err) {
       console.log(err)
@@ -126,7 +126,7 @@ export default function ApplicantProfile() {
         email: response.data.email,
         phone: response.data.phone,
       }
-      setUserInfo(data)
+      // setUserInfo(data)
       setFormData({
         firstName: data.first_name,
         lastName: data.last_name,
@@ -155,9 +155,9 @@ export default function ApplicantProfile() {
     if (file) {
       setSelectedFile(file)
       const reader = new FileReader()
-      reader.onload = (event) => {
-        setProfileImage(event.target?.result as string)
-      }
+      // reader.onload = (event) => {
+      //   setProfileImage(event.target?.result as string)
+      // }
       reader.readAsDataURL(file)
 
       const formdata = new FormData()

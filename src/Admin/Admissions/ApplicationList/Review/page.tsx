@@ -6,13 +6,6 @@ import { useParams } from "react-router-dom";
 import useAxios from "../../../../AxiosInstance/UseAxios";
 import { Box, CircularProgress } from "@mui/material";
 
-interface Reviewer {
-  id:number;
-  first_name:string;
-  last_name:string;
-  username:string
-}
-
 interface Application {
   id: number;
   first_name: string;
@@ -22,14 +15,13 @@ interface Application {
   nationality: string;
   phone: string;
   email: string;
-  is_left_handed: boolean;
-  next_of_kin_name: string;
-  next_of_kin_contact: string;
-  next_of_kin_relationship: string;
-
-  program: { name: string; code: string };
-  batch: { name: string };
-  campus: { name: string };
+  
+ // next_of_kin_name: string;
+  // next_of_kin_contact: string;
+  // next_of_kin_relationship: string;
+//  program: { name: string; code: string };
+  batch: string;
+  // campus: { name: string };
 
   olevel_school: string;
   olevel_year: number;
@@ -40,7 +32,7 @@ interface Application {
   status: string;
   application_fee_amount: string;
   created_at: string;
-  reviewed_by: Reviewer | number;
+  reviewed_by: string;
   reviewed_at: string | null;
   passport_photo: File | null;
 }

@@ -7,8 +7,6 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Avatar,
-  Badge,
   Typography,
   List,
   ListItem,
