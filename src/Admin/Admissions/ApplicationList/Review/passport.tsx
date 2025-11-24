@@ -13,15 +13,31 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
 
   if (!application.passport_photo) return null
 
-  const downloadPhoto = () => {
-    const link = document.createElement("a")
-    link.href = `http://127.0.0.1:8000${application.passport_photo}`
-    link.download = "passport-photo"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+  const downloadPhoto = async () => {
+  if (!application?.passport_photo) return;
 
+  const url = `${import.meta.env.VITE_API_BASE_URL}${application.passport_photo}`;
+  
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) throw new Error("Network response was not ok");
+    
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = "passport-photo.jpg"; // give proper extension
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Failed to download photo:", error);
+  }
+};
   return (
     <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
       <CardHeader
@@ -53,7 +69,7 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
             }}
           >
             <img
-              src={`http://127.0.0.1:8000${application?.passport_photo}` || "/placeholder.svg"}
+              src={`${import.meta.env.VITE_API_BASE_URL}${application?.passport_photo}` || "/placeholder.svg"}
               alt="Passport Photo"
               style={{
                 width: "100%",

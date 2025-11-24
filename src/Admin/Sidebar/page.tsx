@@ -33,6 +33,7 @@ import {
   Banknote,
   FileBarChart,
   CheckCircle,
+  Logs,
 } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
@@ -178,6 +179,12 @@ const navigationItems: NavItem[] = [
     label: "Settings",
     icon: <Settings size={20} />,
     path: "/settings",
+  },
+   {
+    id: "auditlogs",
+    label: "Audit Logs",
+    icon: <Logs size={20} />,
+    path: "/admin/logs",
   },
 ]
 

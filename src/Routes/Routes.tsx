@@ -31,6 +31,7 @@ const AdmissionsReport = lazy(() => import('../Admin/Admissions/AdmissionReports
 const AddGroupDialog = lazy(() => import('../Admin/UserManagement/roles_permissions'))
 const FeeManagement = lazy(() => import('../Admin/Admissions/FeeManagement/page'))
 const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/page'))
+const AuditLogs = lazy(()=>import('../Admin/AuditLogs/page'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -140,6 +141,7 @@ function AppRoutes() {
                   <Route path='/roles-permissions' element={<Suspense fallback={<LoadingSpinner />}><AddGroupDialog /></Suspense>} />
                   <Route path='/fee-management' element={<Suspense fallback={<LoadingSpinner />}><FeeManagement /></Suspense>} />
                   <Route path='/academic-levels' element={<Suspense fallback={<LoadingSpinner />}><AcademicLevels /></Suspense>} />
+                  <Route path='/logs' element={<Suspense fallback={<LoadingSpinner />}><AuditLogs/></Suspense>}/>
                 </Routes>
               </Box>
             </Box>

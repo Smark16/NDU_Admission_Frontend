@@ -262,8 +262,9 @@ export default function UserManagement() {
         setRegisterErrors(err.response?.data.email)
       } else if (err.response?.data.password) {
         setRegisterErrors(err.response?.data.password)
+      }else{
+        setErrorMessage(err.response?.data?.detail || "Failed to save user.")
       }
-      setErrorMessage(err.response?.data?.detail || "Failed to save user.")
       showErrorAlert("Failed to register user")
       setIsLoading(false)
     }
@@ -473,9 +474,9 @@ export default function UserManagement() {
         {registerErrors.length > 0 && (
           <Box sx={{ mb: 3 }}>
             {registerErrors.map((err, index) => (
-              <Typography key={index} color="error" variant="body2">
-                {err}
-              </Typography>
+              <Alert severity="error" sx={{ mb: 3 }}>
+              {err}
+            </Alert>
             ))}
           </Box>
         )}

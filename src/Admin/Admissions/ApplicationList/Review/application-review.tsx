@@ -90,18 +90,50 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
      }
   }
 
-  // const getGradeColor = (grade: string) => {
-  //   switch (grade) {
-  //     case "A":
-  //       return "#4caf50"
-  //     case "B":
-  //       return "#2196f3"
-  //     case "C":
-  //       return "#ff9800"
-  //     default:
-  //       return "#9e9e9e"
-  //   }
-  // }
+  const downloadDocument = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) throw new Error("Network response was not ok");
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Failed to download document:", error);
+    showNotification("Failed to download document:", "error")
+  }
+};
+
+   const handleSendLetter = async () => {
+    try {
+      setIsLoading(true)
+      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
+      console.log(response.data)
+      setIsLoading(false)
+      showNotification(`${response.data?.detail}`, "success")
+
+      setTimeout(()=>{
+       navigate('/admin/application_list')
+      }, 700)
+    } catch (err:any) {
+      console.log(err)
+      if(err.response?.data.detail){
+       showNotification(`${err.response?.data.detail}`, "error")
+      }else{
+        showNotification("Failed to send offer letter to student", "error")
+      }
+      setIsLoading(false)
+    }
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -296,11 +328,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                             size="small"
                             variant="outlined"
                             startIcon={<OpenInNewIcon />}
-                            onClick={() => window.open(doc.file_url, "_blank")}
+                            onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
                           >
                             View
                           </Button>
-                          <Button size="small" variant="outlined" startIcon={<FileDownloadIcon />}>
+                          <Button 
+                          size="small" 
+                          variant="outlined" 
+                          startIcon={<FileDownloadIcon />}
+                          onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
+                          >
                             Download
                           </Button>
                         </Box>
@@ -392,8 +429,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           textTransform: "none",
                           borderColor: "#1976d2",
                         }}
+                        disabled={isLoading}
+                        onClick={handleSendLetter}
                       >
-                        Send offer letter to portal
+                        {isLoading ? <CircularProgress size={15}/> : "Send offer letter to portal"}
                       </Button>
                       ) : application.status === 'Admitted' ? (
                         ""

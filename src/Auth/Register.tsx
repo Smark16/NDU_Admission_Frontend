@@ -49,6 +49,7 @@ export default function Register() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [registerErrors, setRegisterErrors] = useState<string[]>([])
 
   const navigate = useNavigate()
 
@@ -119,8 +120,14 @@ export default function Register() {
       })
        navigate('/')
       }
-     }catch(err){
+     }catch(err:any){
       console.log(err)
+      if (err.response?.data.email) {
+        setRegisterErrors(err.response?.data.email)
+      } else if (err.response?.data.password) {
+        setRegisterErrors(err.response?.data.password)
+      }
+      
       setLoading(false)
       setSuccess(false)
      }
@@ -174,6 +181,17 @@ export default function Register() {
               Join us today and get started
             </Typography>
           </Box>
+
+          {/* errors */}
+           {registerErrors.length > 0 && (
+          <Box sx={{ mb: 3, justifyContent:'center' }}>
+            {registerErrors.map((err, index) => (
+              <Alert severity="error" sx={{ mb: 3 }}>
+              {err}
+            </Alert>
+            ))}
+          </Box>
+        )}
 
           {/* Success Message */}
           {success && (

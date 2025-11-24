@@ -1,7 +1,7 @@
 "use client"
 
 import { useContext, useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import {
   Container,
   TextField,
@@ -106,6 +106,7 @@ const FormSection = styled(Box)(({ theme }) => ({
 export default function AdmitStudentPage() {
   const { id } = useParams()
   const {batch} = useHook()
+  const navigate = useNavigate()
   const { loggeduser} = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
   const [application, setApplication] = useState<Application | null>(null)
@@ -295,9 +296,13 @@ export default function AdmitStudentPage() {
       setIsLoading(false)
        setSnackbar({
         open: true,
-        message: "Student offer letter sent successfully!",
+        message: `${response.data?.detail}`,
         type: "success",
       })
+
+      setTimeout(()=>{
+       navigate('/admin/application_list')
+      }, 700)
     } catch (err:any) {
       console.log(err)
       if(err.response?.data.detail){
