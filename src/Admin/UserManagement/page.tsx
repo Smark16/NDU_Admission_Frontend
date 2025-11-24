@@ -473,7 +473,7 @@ export default function UserManagement() {
 
         {registerErrors.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            {registerErrors.map((err, index) => (
+            {registerErrors.map((err) => (
               <Alert severity="error" sx={{ mb: 3 }}>
               {err}
             </Alert>

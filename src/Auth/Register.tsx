@@ -187,7 +187,7 @@ export default function Register() {
           <Box sx={{ mb: 3, justifyContent:'center' }}>
             {registerErrors.map((err, index) => (
               <Alert severity="error" sx={{ mb: 3 }}>
-              {err}
+              {index + 1}: {err}
             </Alert>
             ))}
           </Box>
