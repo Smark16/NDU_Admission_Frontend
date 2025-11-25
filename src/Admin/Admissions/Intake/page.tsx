@@ -238,7 +238,7 @@ export default function BatchManagement() {
     return Object.keys(errors).length === 0;
   };
 
-  console.log('formdata', formData)
+  console.log('formdata', new Date())
   // === SAVE (POST / PUT) ===
   const handleSave = async () => {
 

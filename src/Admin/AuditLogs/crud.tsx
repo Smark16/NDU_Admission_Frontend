@@ -207,8 +207,8 @@ export default function Crud({
                         label={log.action.toUpperCase()}
                         size="small"
                         sx={{
-                          bgcolor: actionTypeStyles[log?.action].bg,
-                          color: actionTypeStyles[log?.action].color,
+                          bgcolor: actionTypeStyles[log?.action]?.bg,
+                          color: actionTypeStyles[log?.action]?.color,
                           fontWeight: 600,
                           fontSize: "0.75rem",
                         }}

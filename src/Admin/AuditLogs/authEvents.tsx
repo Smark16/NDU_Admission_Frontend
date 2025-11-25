@@ -207,8 +207,8 @@ export default function AuthEvents({
                         label={log.action.toUpperCase()}
                         size="small"
                         sx={{
-                          bgcolor: actionTypeStyles[log.action]?.bg || "#e5e7eb",
-                          color: actionTypeStyles[log.action]?.color || "#374151",
+                          bgcolor: actionTypeStyles[log?.action]?.bg || "#e5e7eb",
+                          color: actionTypeStyles[log?.action]?.color || "#374151",
                           fontWeight: 600,
                           fontSize: "0.75rem",
                         }}
