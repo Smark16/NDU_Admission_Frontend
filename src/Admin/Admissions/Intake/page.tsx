@@ -39,7 +39,7 @@ import { AuthContext } from "../../../Context/AuthContext"
 interface Program {
   id: number
   name: string
-  short_form:string
+  short_form: string
 }
 
 interface Batch {
@@ -47,12 +47,12 @@ interface Batch {
   name: string
   code: string
   programs: Program[]
-  academic_year:string
+  academic_year: string
   application_start_date: string
   application_end_date: string
   admission_start_date: string
   admission_end_date: string
-  created_by:string
+  created_by: string
   is_active: boolean
 }
 
@@ -64,7 +64,7 @@ interface FormData {
   application_end_date: string
   admission_start_date: string
   admission_end_date: string
-  created_by:string 
+  created_by: string
   is_active: boolean
 }
 
@@ -82,7 +82,7 @@ const INITIAL_FORM_DATA: FormData = {
 
 export default function BatchManagement() {
   const AxiosInstance = useAxios()
-  const {loggeduser} = useContext(AuthContext) || {}
+  const { loggeduser } = useContext(AuthContext) || {}
   const [batches, setBatches] = useState<Batch[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
   const [openDialog, setOpenDialog] = useState(false)
@@ -152,7 +152,7 @@ export default function BatchManagement() {
   const handleOpenDialog = (batch?: Batch) => {
     if (batch) {
       setEditingId(batch.id)
-      
+
       setFormData({
         name: batch.name,
         code: batch.code,
@@ -161,7 +161,7 @@ export default function BatchManagement() {
         application_end_date: batch.application_end_date,
         admission_start_date: batch.admission_start_date,
         admission_end_date: batch.admission_end_date,
-        created_by:batch.created_by,
+        created_by: batch.created_by,
         is_active: batch.is_active,
       })
     } else {
@@ -186,13 +186,13 @@ export default function BatchManagement() {
 
     if (!formData.name.trim()) {
       errors.name = "Intake name is required";
-    } 
+    }
 
     if (!formData.code) {
       errors.code = "Intake code is required";
     }
 
-     if (formData.programs.length===0) {
+    if (formData.programs.length === 0) {
       errors.programs = "Intake programs are required";
     }
 
@@ -213,13 +213,24 @@ export default function BatchManagement() {
     }
 
     if (formData.application_start_date && formData.application_end_date) {
-      const start = new Date(formData.application_start_date);
-      const end = new Date(formData.application_end_date);
+    
+      const parseLocalDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day); 
+      };
+
+      const start = parseLocalDate(formData.application_start_date);
+      const end = parseLocalDate(formData.application_end_date);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (start < today) {
+        errors.application_start_date = "Start date cannot be in the past";
+      }
+
       if (start >= end) {
         errors.application_end_date = "End date must be after start date";
-      }
-      if (start < new Date()) {
-        errors.application_start_date = "Start date cannot be in the past";
       }
     }
 
@@ -238,20 +249,19 @@ export default function BatchManagement() {
     return Object.keys(errors).length === 0;
   };
 
-  console.log('formdata', new Date())
   // === SAVE (POST / PUT) ===
   const handleSave = async () => {
 
-    if(!validateForm()){
-       showNotification("Please fill all required fields and select at least one program", "error")
-       return
+    if (!validateForm()) {
+      showNotification("Please fill all required fields and select at least one program", "error")
+      return
     }
 
     setIsSubmitting(true)
     try {
       const payload = {
         ...formData,
-        created_by:Number(loggeduser?.user_id),
+        created_by: Number(loggeduser?.user_id),
         programs: formData.programs,
       }
 
@@ -287,9 +297,9 @@ export default function BatchManagement() {
       setBatches((prev) => prev.filter((b) => b.id !== batchToDelete))
       showNotification("Batch deleted successfully", "success")
     } catch (error: any) {
-      if(error.response?.data.detail){
+      if (error.response?.data.detail) {
         showNotification(`${error.response?.data.detail}`, "error")
-      }else{
+      } else {
         showNotification("Failed to delete batch", "error")
       }
     } finally {
@@ -424,7 +434,7 @@ export default function BatchManagement() {
                   <TableCell>
                     <Chip label={batch.code} size="small" />
                   </TableCell>
-                   <TableCell>
+                  <TableCell>
                     <Chip label={batch.academic_year} size="small" />
                   </TableCell>
                   <TableCell>
@@ -514,38 +524,38 @@ export default function BatchManagement() {
             />
 
             {/* === SEARCHABLE PROGRAM SELECT === */}
-             <FormControl fullWidth required error={!!formErrors.programs}>
-            <Autocomplete
-              multiple
-              options={programs}
-              getOptionLabel={(option) => option.name}
-              value={programs.filter((p) => formData.programs.includes(p.id))}
-              onChange={(_, newValue) => {
-                handleFormChange("programs", newValue.map((v) => v.id))
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Programs"
-                  placeholder="Search and select programs..."
-                  required={formData.programs.length === 0}
-                />
-              )}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    label={option.name}
-                    size="small"
-                    {...getTagProps({ index })}
-                    key={option.id}
+            <FormControl fullWidth required error={!!formErrors.programs}>
+              <Autocomplete
+                multiple
+                options={programs}
+                getOptionLabel={(option) => option.name}
+                value={programs.filter((p) => formData.programs.includes(p.id))}
+                onChange={(_, newValue) => {
+                  handleFormChange("programs", newValue.map((v) => v.id))
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Programs"
+                    placeholder="Search and select programs..."
+                    required={formData.programs.length === 0}
                   />
-                ))
-              }
-              loading={programs.length === 0}
-              noOptionsText="No programs found"
-            />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      label={option.name}
+                      size="small"
+                      {...getTagProps({ index })}
+                      key={option.id}
+                    />
+                  ))
+                }
+                loading={programs.length === 0}
+                noOptionsText="No programs found"
+              />
               {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
-             </FormControl>
+            </FormControl>
 
             <TextField
               label="Application Start"
