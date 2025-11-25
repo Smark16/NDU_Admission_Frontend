@@ -30,15 +30,6 @@ export default function DocumentsSection({ documents }: DocumentsSectionProps) {
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
-  // const downloadDocument = (url: string, filename: string) => {
-  //   const link = document.createElement("a")
-  //   link.href = url
-  //   link.download = filename
-  //   document.body.appendChild(link)
-  //   link.click()
-  //   document.body.removeChild(link)
-  // }
-
   return (
     <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
       <CardHeader
@@ -109,22 +100,13 @@ export default function DocumentsSection({ documents }: DocumentsSectionProps) {
                       variant="contained"
                       color="primary"
                       startIcon={<OpenInNewIcon />}
-                      onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}
+                      // onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}
+                      onClick={() => openInNewTab(`${doc.file_url}`)}
                       fullWidth={isMobile}
                       sx={{ flex: 1 }}
                     >
                       View File
                     </Button>
-                    {/* <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<DownloadIcon />}
-                      onClick={() => downloadDocument(doc.file_url, doc.file_name)}
-                      fullWidth={isMobile}
-                      sx={{ flex: 1 }}
-                    >
-                      View File
-                    </Button> */}
                   </Stack>
                 </Paper>
               </Grid>

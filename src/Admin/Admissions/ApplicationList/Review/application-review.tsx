@@ -240,14 +240,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             <Divider />
             <CardContent>
               <Grid container spacing={2}>
-                {/* <Grid size={{xs:12, sm:6}}>
-                  <Typography variant="caption" color="textSecondary">
-                    Program
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.program.name} ({application.program.code})
-                  </Typography>
-                </Grid> */}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Batch
@@ -256,14 +248,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.batch}
                   </Typography>
                 </Grid>
-                {/* <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    Campus
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.campus.name}
-                  </Typography>
-                </Grid> */}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Address
@@ -328,7 +312,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                             size="small"
                             variant="outlined"
                             startIcon={<OpenInNewIcon />}
-                            onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
+                            // onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
+                            onClick={() => window.open(`${doc.file_url}`, "_blank")}
                           >
                             View
                           </Button>
@@ -336,7 +321,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           size="small" 
                           variant="outlined" 
                           startIcon={<FileDownloadIcon />}
-                          onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
+                          // onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
+                          onClick={() => downloadDocument(`${doc.file_url}`, doc.name)}
+
                           >
                             Download
                           </Button>

@@ -17,7 +17,7 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
   if (!application?.passport_photo) return;
 
   const url = `${import.meta.env.VITE_API_BASE_URL}${application.passport_photo}`;
-  
+  // const url = `https://res.cloudinary.com/dnsx36nia/${application.passport_photo}`
   try {
     const response = await fetch(url, { mode: "cors" });
     if (!response.ok) throw new Error("Network response was not ok");
@@ -70,7 +70,7 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
             }}
           >
             <img
-              src={`http://127.0.0.1:8000${application?.passport_photo}` || "/placeholder.svg"}
+              src={`${import.meta.env.VITE_API_BASE_URL}${application?.passport_photo}` || "/placeholder.svg"}
               alt="Passport Photo"
               style={{
                 width: "100%",

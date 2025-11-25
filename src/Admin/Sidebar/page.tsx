@@ -39,6 +39,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
   School as SchoolIcon,
 } from '@mui/icons-material';
+import logo from '../../Images/Ndejje_University_Logo.jpg'
 
 interface NavItem {
   id: string
@@ -105,13 +106,13 @@ const navigationItems: NavItem[] = [
         icon: <FileBarChart size={20} />,
         path: "/admin/admission-reports",
       },
-       {
+      {
         id: "subjets and Templates",
         label: "Subjects and Templates",
         icon: <BookOpen size={20} />,
         path: "/admin/set_up",
       },
-       {
+      {
         id: "Fee Management",
         label: "Fee Management",
         icon: <Banknote size={20} />,
@@ -123,7 +124,7 @@ const navigationItems: NavItem[] = [
         icon: <SchoolIcon sx={{ color: '#1976d2', fontSize: 20 }} />,
         path: "/admin/academic-levels",
       },
-      
+
     ],
   },
 
@@ -180,7 +181,7 @@ const navigationItems: NavItem[] = [
     icon: <Settings size={20} />,
     path: "/settings",
   },
-   {
+  {
     id: "auditlogs",
     label: "Audit Logs",
     icon: <Logs size={20} />,
@@ -292,6 +293,9 @@ export default function Sidebar() {
         }}
       >
         <Box
+          component="img"
+          src={logo}
+          alt="Ndejje University Logo"
           sx={{
             width: 40,
             height: 40,
@@ -304,9 +308,8 @@ export default function Sidebar() {
             fontWeight: "bold",
             fontSize: "1.2rem",
           }}
-        >
-          A
-        </Box>
+        />
+         
         <Box>
           <Box sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#1976d2" }}>Admissions</Box>
           <Box sx={{ fontSize: "0.75rem", color: "#757575" }}>System</Box>
@@ -343,29 +346,29 @@ export default function Sidebar() {
       <Box sx={{ p: 2 }}>
 
         <Link to='/logout'>
-         <ListItemButton
-          sx={{
-            borderRadius: "8px",
-            "&:hover": {
-              backgroundColor: "rgba(211, 47, 47, 0.08)",
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 40, color: "#d32f2f" }}>
-            <LogOut size={20} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Logout"
+          <ListItemButton
             sx={{
-              "& .MuiTypography-root": {
-                color: "#d32f2f",
-                fontWeight: 500,
+              borderRadius: "8px",
+              "&:hover": {
+                backgroundColor: "rgba(211, 47, 47, 0.08)",
               },
             }}
-          />
-        </ListItemButton>
+          >
+            <ListItemIcon sx={{ minWidth: 40, color: "#d32f2f" }}>
+              <LogOut size={20} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Logout"
+              sx={{
+                "& .MuiTypography-root": {
+                  color: "#d32f2f",
+                  fontWeight: 500,
+                },
+              }}
+            />
+          </ListItemButton>
         </Link>
-       
+
       </Box>
     </Box>
   )
