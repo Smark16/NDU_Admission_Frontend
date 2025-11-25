@@ -231,7 +231,6 @@ export default function SetUpPage() {
             try {
                 if (editingId) {
                     const response = await AxiosInstance.put(`/api/offer_letter/edit_template/${editingId}`, formData)
-                    console.log('edit template', response.data)
                     if (response.status === 200 || response.status === 201) {
                         setIsLoading(false)
                         // Update (mock)
@@ -269,12 +268,14 @@ export default function SetUpPage() {
                         message: `${error.response?.data.detail}`,
                         severity: "error",
                     });
+                }else{
+                    setSnackbar({
+                        open: true,
+                        message: 'Failed to upload Template, check connection',
+                        severity: "error",
+                    });
+
                 }
-                setSnackbar({
-                    open: true,
-                    message: 'Failed to upload Template',
-                    severity: "error",
-                });
 
                 setIsLoading(false)
             }
@@ -303,14 +304,15 @@ export default function SetUpPage() {
                     }
                     setSuccessMessage("Subject updated successfully!")
                 } else {
-                    setIsLoading(true)
                     const newSubject = { name: subjectForm.name, code: subjectForm.code }
 
                     if (tabValue === 0) {
                         const response = await AxiosInstance.post('/api/admissions/create_olevel_subjects', newSubject)
+                        setIsLoading(false)
                         setOLevelSubjects((prev) => [...prev, response.data])
                     } else {
                         const response = await AxiosInstance.post('/api/admissions/create_alevel_subjects', newSubject)
+                        setIsLoading(false)
                         setALevelSubjects((prev) => [...prev, response.data])
                     }
                     setSuccessMessage("Subject added successfully!")
@@ -322,12 +324,14 @@ export default function SetUpPage() {
                         message: `${err.response?.data.detail}`,
                         severity: "error",
                     });
+                }else{
+                    setSnackbar({
+                        open: true,
+                        message: 'An error has occured, check connection',
+                        severity: "error",
+                    });
                 }
-                setSnackbar({
-                    open: true,
-                    message: 'An error has occured',
-                    severity: "error",
-                });
+                setIsLoading(false)
             }
         }
         setTimeout(() => setSuccessMessage(""), 3000)
