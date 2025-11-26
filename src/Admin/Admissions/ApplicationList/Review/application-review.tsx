@@ -312,8 +312,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                             size="small"
                             variant="outlined"
                             startIcon={<OpenInNewIcon />}
-                            // onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
-                            onClick={() => window.open(`${doc.file_url}`, "_blank")}
+                            onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
                           >
                             View
                           </Button>
@@ -321,9 +320,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           size="small" 
                           variant="outlined" 
                           startIcon={<FileDownloadIcon />}
-                          // onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
-                          onClick={() => downloadDocument(`${doc.file_url}`, doc.name)}
-
+                          onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
                           >
                             Download
                           </Button>

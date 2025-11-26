@@ -100,8 +100,7 @@ export default function DocumentsSection({ documents }: DocumentsSectionProps) {
                       variant="contained"
                       color="primary"
                       startIcon={<OpenInNewIcon />}
-                      // onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}
-                      onClick={() => openInNewTab(`${doc.file_url}`)}
+                      onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}
                       fullWidth={isMobile}
                       sx={{ flex: 1 }}
                     >

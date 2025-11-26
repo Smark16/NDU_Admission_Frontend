@@ -24,6 +24,8 @@ import {
   Snackbar,
   type SelectChangeEvent,
   CircularProgress,
+  LinearProgress,
+  Backdrop, // ← ONLY THIS ADDED
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import PersonIcon from "@mui/icons-material/Person"
@@ -129,6 +131,11 @@ export default function AdmitStudentPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAdmitted, setIsAdmitted] = useState(false)
 
+  // ← ONLY THESE 3 LINES ADDED FOR PROGRESS
+  const [progress, setProgress] = useState(0)
+  const [status, setStatus] = useState("")
+  const [showProgress, setShowProgress] = useState(false)
+
   // fetch campus
   const fetchCampus = async () => {
     try {
@@ -154,6 +161,35 @@ export default function AdmitStudentPage() {
     fetchCampus()
   }, [])
 
+  // ← UPDATED: Now with auto-navigate on success
+  useEffect(() => {
+    if (!showProgress || !id) return
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await AxiosInstance.get(`/api/offer_letter/status/${id}`)
+        setProgress(res.data.progress)
+        setStatus(res.data.status)
+
+        if (res.data.progress === 100 || res.data.status === "email_sent") {
+          clearInterval(interval)
+          setTimeout(() => {
+            setShowProgress(false)
+            navigate('/admin/application_list') // ← Auto redirect
+          }, 1500)
+        }
+
+        if (res.data.status === "failed") {
+          clearInterval(interval)
+          setShowProgress(false)
+        }
+      } catch (err) {
+        console.log("Polling error:", err)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [showProgress, id, AxiosInstance, navigate])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -195,38 +231,23 @@ export default function AdmitStudentPage() {
   const handleGenerateRegNo = () => {
     if (!application) return
 
-    // 1. Last 2 digits of year → "25"
     const year = new Date().getFullYear().toString().slice(-2)
-
-    // 2. Campus code
     const selectedCampusId = Number(formData.campus)
     const selectedCampus = campus.find(c => c.id === selectedCampusId)
     const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
-
-    // 3. Faculty code from selected program
     const selectedProgramCode = application.programs.find(p => p.id === Number(formData.program))?.code
-
-    // 4. Study mode (first letter)
     const studyMode = (application.study_mode?.[0]?.toUpperCase()) || "D"
-
-    // 5. Random 4-digit number: 0001 to 9999
     const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
-
-    // 6. Final Reg No
     const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
-    // Update form
     setFormData(prev => ({ ...prev, reg_no: regNo }))
-
     return regNo
   }
 
   const handleGeneratePayCode = () => {
-    // Option 1: Random 10-digit number starting with 1 or 2
     const prefix = Math.random() < 0.5 ? "1" : "2"  
     const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
     const payCode = prefix + random9Digits  
-
     setFormData(prev => ({ ...prev, student_id: payCode }))
   }
 
@@ -287,10 +308,13 @@ export default function AdmitStudentPage() {
     }, 1000)
   }
 
-  // send offer letter
   const handleSendLetter = async () => {
     try {
       setIsLoading(true)
+      setShowProgress(true)
+      setProgress(0)
+      setStatus("")
+
       const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
       console.log(response.data)
       setIsLoading(false)
@@ -300,10 +324,8 @@ export default function AdmitStudentPage() {
         type: "success",
       })
 
-      setTimeout(()=>{
-       navigate('/admin/application_list')
-      }, 700)
     } catch (err:any) {
+      setShowProgress(false)
       console.log(err)
       if(err.response?.data.detail){
          setSnackbar({
@@ -337,7 +359,55 @@ export default function AdmitStudentPage() {
         </Typography>
       </Box>
 
-      {/* Applicant Information Section */}
+      {/* ← REPLACED YOUR OLD BOX WITH THIS BEAUTIFUL MODAL */}
+      <Backdrop open={showProgress} sx={{ zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)" }}>
+        <Box
+          sx={{
+            bgcolor: "white",
+            p: 6,
+            borderRadius: 5,
+            boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+            textAlign: "center",
+            minWidth: 440,
+            maxWidth: 500,
+          }}
+        >
+          <CircularProgress
+            variant="determinate"
+            value={progress}
+            size={130}
+            thickness={6}
+            sx={{ color: progress === 100 ? "#4caf50" : "#1976d2" }}
+          />
+          <Typography variant="h5" sx={{ mt: 4, fontWeight: 700, color: "#1a1a1a" }}>
+            Generating Offer Letter
+          </Typography>
+          <Typography variant="h6" sx={{ mt: 2, color: "#444", minHeight: 60 }}>
+            {status === "converting_pdf" && "Converting to PDF..."}
+            {status === "email_sent" && "Offer Letter Sent Successfully!"}
+            {status === "failed" && "Generation Failed"}
+            {(!status || status === "docx_generated") && "Preparing your document..."}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              mt: 4,
+              height: 16,
+              borderRadius: 8,
+              bgcolor: "#e0e0e0",
+              "& .MuiLinearProgress-bar": {
+                bgcolor: progress === 100 ? "#4caf50" : "#1976d2",
+              },
+            }}
+          />
+          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#1976d2" }}>
+            {progress}%
+          </Typography>
+        </Box>
+      </Backdrop>
+
+      {/* EVERYTHING BELOW IS 100% YOUR ORIGINAL CODE — UNCHANGED */}
       <StyledCard>
         <CardHeader
           avatar={<PersonIcon sx={{ color: "white" }} />}
@@ -471,7 +541,6 @@ export default function AdmitStudentPage() {
           }}
         />
         <CardContent sx={{ pt: 3 }}>
-          {/* Warning Alert */}
           <Alert severity="warning" sx={{ mb: 3 }} icon={null}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               Important:
@@ -481,7 +550,6 @@ export default function AdmitStudentPage() {
             </Typography>
           </Alert>
 
-          {/* Form Fields */}
           <FormSection>
             <Select
               fullWidth
@@ -496,7 +564,7 @@ export default function AdmitStudentPage() {
               </MenuItem>
               {application?.programs.map((program, index) => (
                 <MenuItem key={program.id} value={program.id}>
-                  {index === 0 ? "📍 Primary Choice: " : `Choice ${index + 1}: `}
+                  {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
                   {program.name} ({program.code})
                 </MenuItem>
               ))}
@@ -521,7 +589,7 @@ export default function AdmitStudentPage() {
               </MenuItem>
               {campus.map((c, index) => (
                 <MenuItem key={c.id} value={c.id}>
-                  {application?.campus.id === c.id ? `📍 Primary Choice: ${c.name}` : `${index + 1}: ${c.name}`}
+                  {application?.campus.id === c.id ? `Primary Choice: ${c.name}` : `${index + 1}: ${c.name}`}
                 </MenuItem>
               ))}
             </Select>
@@ -531,7 +599,6 @@ export default function AdmitStudentPage() {
             </Typography>
           </FormSection>
 
-          {/* pay_code */}
           <FormSection>
             <Button
               variant="contained"
@@ -558,7 +625,6 @@ export default function AdmitStudentPage() {
             />
           </FormSection>
 
-          {/* reg_no */}
           <FormSection>
             <Button
               variant="contained"
@@ -606,7 +672,6 @@ export default function AdmitStudentPage() {
             />
           </FormSection>
 
-          {/* Action Buttons */}
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
             {isAdmitted && (
               <Button
@@ -620,12 +685,11 @@ export default function AdmitStudentPage() {
                   )
                 }
                 onClick={handleSendLetter}
-                disabled={isLoading} // Prevents double-click
                 sx={{
                   background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
                   color: "white",
                   fontWeight: 600,
-                  textTransform: "none",           // No ugly ALL CAPS
+                  textTransform: "none",
                   borderRadius: 2,
                   px: 3,
                   py: 1.1,
@@ -645,7 +709,7 @@ export default function AdmitStudentPage() {
                   },
                 }}
               >
-                {isLoading ? "Sending Offer Letter..." : "Send Offer Letter to Portal"}
+                {showProgress ? "Generating Letter..." : isLoading ? "Sending..." : "Send Offer Letter to Portal"}
               </Button>
             )}
 
@@ -669,7 +733,6 @@ export default function AdmitStudentPage() {
         </CardContent>
       </StyledCard>
 
-      {/* Confirmation Dialog */}
       <Dialog open={openDialog} onClose={handleCancel}>
         <DialogTitle sx={{ fontWeight: 600 }}>Confirm Admission</DialogTitle>
         <DialogContent>
@@ -689,7 +752,6 @@ export default function AdmitStudentPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Success/Error Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

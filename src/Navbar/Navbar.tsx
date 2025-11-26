@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {Link} from "react-router-dom"
+import { Link } from "react-router-dom"
 import {
   AppBar,
   Toolbar,
@@ -14,9 +14,13 @@ import {
   ListItemButton,
   ListItemText,
   Typography,
+  Divider,
 } from "@mui/material"
 import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
+import LoginIcon from "@mui/icons-material/Login"
+import PersonAddIcon from "@mui/icons-material/PersonAdd"
+import logo from '../Images/Ndejje_University_Logo.jpg'
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -26,43 +30,48 @@ export default function Navbar() {
   }
 
   const navItems = [
-    { label: "Login", href: "/" },
-    { label: "Register", href: "/register" },
+    { label: "Login", href: "/", icon: <LoginIcon fontSize="small" /> },
+    { label: "Register", href: "/register", icon: <PersonAddIcon fontSize="small" /> },
   ]
 
   const drawer = (
-    <Box sx={{ width: 250, p: 2 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Menu
-        </Typography>
-        <IconButton onClick={handleDrawerToggle} size="small">
-          <CloseIcon />
-        </IconButton>
+    <Box sx={{ width: 280650, bgcolor: "background.paper", height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ p: 3, bgcolor: "#0d47a1", color: "white" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: "0.5px" }}>
+            Ndejje Portal
+          </Typography>
+          <IconButton onClick={handleDrawerToggle} sx={{ color: "white" }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
-      <List>
+
+      <List sx={{ px: 2, pt: 2 }}>
         {navItems.map((item) => (
-          <ListItem key={item.label} disablePadding>
+          <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
             <ListItemButton
               component={Link}
               to={item.href}
               onClick={handleDrawerToggle}
               sx={{
-                py: 1.5,
+                borderRadius: 2,
+                py: 1.8,
+                bgcolor: item.label === "Register" ? "#0d47a1" : "#f8f9fa",
+                color: item.label === "Register" ? "white" : "#0d47a1",
                 "&:hover": {
-                  backgroundColor: "#f5f5f5",
+                  bgcolor: item.label === "Register" ? "#1565c0" : "#e3f2fd",
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 },
+                transition: "all 0.3s ease",
+                fontWeight: 600,
               }}
             >
-              <ListItemText
-                primary={item.label}
-                sx={{
-                  "& .MuiTypography-root": {
-                    fontWeight: 500,
-                    color: "#1a1a1a",
-                  },
-                }}
-              />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {item.icon}
+                <ListItemText primary={item.label} />
+              </Box>
             </ListItemButton>
           </ListItem>
         ))}
@@ -76,71 +85,108 @@ export default function Navbar() {
         position="static"
         elevation={0}
         sx={{
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid #f0f0f0",
-          color: "#1a1a1a",
+          background: "linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)",
+          color: "white",
+          boxShadow: "0 4px 20px rgba(13, 71, 161, 0.25)",
         }}
       >
-        <Toolbar
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: { xs: 2, sm: 3 },
-            py: 1.5,
-          }}
-        >
-          {/* Logo */}
-          <Link to="/" style={{ textDecoration: "none" }}>
-            <Typography
-              variant="h6"
+        <Toolbar sx={{ minHeight: { xs: 70, sm: 80 }, px: { xs: 2, sm: 4 } }}>
+          {/* Logo & Title */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexGrow: 1 }}>
+            <Box
+              component="img"
+              src={logo}
+              alt="Ndejje University"
               sx={{
-                fontWeight: 700,
-                color: "#1a1a1a",
-                fontSize: "1.25rem",
-                letterSpacing: "-0.5px",
-                cursor: "pointer",
+                width: 52,
+                height: 52,
+                borderRadius: "12px",
+                objectFit: "contain",
+                border: "3px solid rgba(255,255,255,0.3)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
               }}
-            >
-              Ndejje
-            </Typography>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <Box sx={{ display: { xs: "none", sm: "flex" }, gap: 1 }}>
-            {navItems.map((item) => (
-              <Button
-                key={item.label}
-                component={Link}
-                to={item.href}
+            />
+            <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
+              <Typography
+                variant="h5"
                 sx={{
-                  color: "#1a1a1a",
-                  textTransform: "none",
-                  fontSize: "0.95rem",
-                  fontWeight: 500,
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1,
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    backgroundColor: "#f5f5f5",
-                  },
+                  fontWeight: 800,
+                  letterSpacing: "-0.5px",
+                  fontSize: { xs: "1.3rem", sm: "1.6rem" },
+                  textShadow: "1px 1px 3px rgba(0,0,0,0.3)",
                 }}
               >
-                {item.label}
-              </Button>
-            ))}
+                Ndejje Applications Portal
+              </Typography>
+            </Link>
           </Box>
 
-          {/* Mobile Menu Icon */}
+          {/* Desktop Buttons */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
+            <Button
+              component={Link}
+              to="/"
+              startIcon={<LoginIcon />}
+              sx={{
+                color: "white",
+                bgcolor: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                fontWeight: 600,
+                textTransform: "none",
+                fontSize: "1rem",
+                backdropFilter: "blur(10px)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+                },
+              }}
+            >
+              Login
+            </Button>
+
+            <Button
+              component={Link}
+              to="/register"
+              startIcon={<PersonAddIcon />}
+              variant="contained"
+              sx={{
+                bgcolor: "#ffb300",
+                color: "#0d47a1",
+                fontWeight: 700,
+                borderRadius: 3,
+                px: 5,
+                py: 1.5,
+                textTransform: "none",
+                fontSize: "1rem",
+                boxShadow: "0 6px 20px rgba(255, 179, 0, 0.4)",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  bgcolor: "#ffca28",
+                  transform: "translateY(-3px)",
+                  boxShadow: "0 12px 30px rgba(255, 179, 0, 0.5)",
+                },
+              }}
+            >
+              Register Now
+            </Button>
+          </Box>
+
+          {/* Mobile Menu */}
           <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="end"
             onClick={handleDrawerToggle}
-            sx={{ display: { xs: "flex", sm: "none" } }}
+            sx={{
+              display: { xs: "flex", md: "none" },
+              color: "white",
+              bgcolor: "rgba(255,255,255,0.1)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+            }}
           >
-            <MenuIcon sx={{ color: "#1a1a1a" }} />
+            <MenuIcon sx={{ fontSize: 30 }} />
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -150,8 +196,8 @@ export default function Navbar() {
         anchor="right"
         open={mobileOpen}
         onClose={handleDrawerToggle}
-        sx={{
-          display: { xs: "block", sm: "none" },
+        PaperProps={{
+          sx: { width: "85%", maxWidth: 350 }
         }}
       >
         {drawer}
