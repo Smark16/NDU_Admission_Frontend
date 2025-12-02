@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Grid,
@@ -20,6 +19,7 @@ import { FileDownload as FileDownloadIcon } from "@mui/icons-material";
 import ApplicantsDB from "./applicants_db";
 import Charts, { type FacultyAdmitted } from "./charts";
 import useAxios from "../../../AxiosInstance/UseAxios";
+import CustomButton from "../../../ReUsables/custombutton";
 
 interface ReportStats {
   admission_period: string;
@@ -154,9 +154,9 @@ export default function AdmissionsReport() {
           { label: "Pending", value: selectedStat?.pending ?? 0, grad: "135deg, #4facfe 0%, #00f2fe 100%" },
           { label: "Rejected", value: selectedStat?.rejected ?? 0, grad: "135deg, #fa709a 0%, #fee140 100%" },
           { label: "Total Admitted", value: selectedStat?.total_admitted ?? 0, grad: "135deg, #10b981 0%, #059669 100%" },
-          { label: "Fees Collected", value: "$46,700", grad: "135deg, #f59e0b 0%, #d97706 100%" },
-          { label: "Local Fees", value: "$28,500", grad: "135deg, #8b5cf6 0%, #7c3aed 100%" },
-          { label: "International Fees", value: "$18,200", grad: "135deg, #ec4899 0%, #be185d 100%" },
+          { label: "Fees Collected", value: "UGX 46,700", grad: "135deg, #f59e0b 0%, #d97706 100%" },
+          { label: "Local Fees", value: "UGX 28,500", grad: "135deg, #8b5cf6 0%, #7c3aed 100%" },
+          { label: "International Fees", value: "UGX 18,200", grad: "135deg, #ec4899 0%, #be185d 100%" },
         ].map((c, i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ background: `linear-gradient(${c.grad})` }}>
@@ -200,15 +200,7 @@ export default function AdmissionsReport() {
         <CardContent>
           <Grid container spacing={2} alignItems="flex-end">
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Button
-                variant="contained"
-                startIcon={<FileDownloadIcon />}
-                onClick={() => setOpenExportDialog(true)}
-                fullWidth
-                sx={{ textTransform: "none", fontWeight: 600 }}
-              >
-                Export to Excel
-              </Button>
+              <CustomButton icon={<FileDownloadIcon />} onClick={() => setOpenExportDialog(true)} fullWidth text="Export to Excel"/>
             </Grid>
           </Grid>
         </CardContent>

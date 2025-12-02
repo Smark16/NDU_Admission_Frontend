@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useContext } from "react";
 import {
   Box,
-  Button,
   TextField,
   Typography,
   Paper,
@@ -38,6 +37,7 @@ import {
 } from "@mui/icons-material";
 import useAxios from "../../AxiosInstance/UseAxios";
 import { AuthContext } from "../../Context/AuthContext";
+import CustomButton from "../../ReUsables/custombutton";
 
 interface Permission {
   id: string;
@@ -224,7 +224,7 @@ export default function GroupManagementDialog() {
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "primary.main" }}>
+                <TableRow sx={{ bgcolor: "#3e397b" }}>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }}>Permissions</TableCell>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }} align="right">Actions</TableCell>
@@ -267,7 +267,7 @@ export default function GroupManagementDialog() {
                         <TableCell align="right">
                           <IconButton
                             size="small"
-                            color="primary"
+                            sx={{color:"#3e397b"}}
                             onClick={() => handleEdit(group)}
                             title="Edit group"
                           >
@@ -321,7 +321,7 @@ export default function GroupManagementDialog() {
           variant="outlined"
           sx={{ flex: 1, p: 2, maxHeight: 420, overflow: "auto" }}
         >
-          <Typography variant="subtitle2" color="primary" gutterBottom>
+          <Typography variant="subtitle2" sx={{color:"#3e397b"}} gutterBottom>
             Available permissions
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
@@ -360,7 +360,6 @@ export default function GroupManagementDialog() {
                 label={perm.name}
                 size="small"
                 clickable
-                color={selectedLeft.includes(perm.id) ? "primary" : "default"}
                 onClick={() => {
                   setSelectedLeft((prev) =>
                     prev.includes(perm.id)
@@ -368,7 +367,10 @@ export default function GroupManagementDialog() {
                       : [...prev, perm.id]
                   );
                 }}
-                sx={{ m: 0.5, cursor: "pointer" }}
+                sx={{ 
+                  m: 0.5, cursor: "pointer", bgcolor:`${selectedLeft.includes(perm.id) ? "#3e397b" : "default"}`, 
+                color:`${selectedLeft.includes(perm.id) ? "white" : "default"}`
+              }}
               />
             ))}
             {leftPermissions.length === 0 && (
@@ -377,19 +379,7 @@ export default function GroupManagementDialog() {
               </Typography>
             )}
           </Box>
-
-          <Button
-            fullWidth
-            variant="text"
-            size="small"
-            startIcon={<ChooseAllIcon fontSize="small" />}
-            onClick={handleChooseAll}
-            disabled={leftPermissions.length === 0}
-            sx={{ mt: 1, textTransform: "none" }}
-          >
-            Choose all permissions
-          </Button>
-
+          <CustomButton fullWidth variant="text" icon={<ChooseAllIcon fontSize="small" />} disabled={leftPermissions.length === 0} text="Choose all permissions" onClick={handleChooseAll}/>
           <Typography variant="caption" color="text.secondary" display="block" mt={1}>
             Hold down "Control", or "Command" on a Mac, to select more than one.
           </Typography>
@@ -408,7 +398,7 @@ export default function GroupManagementDialog() {
           <IconButton
             onClick={handleChoose}
             disabled={selectedLeft.length === 0}
-            color="primary"
+            sx={{color:"#3e397b"}}
             size="large"
           >
             <ChooseIcon />
@@ -428,7 +418,7 @@ export default function GroupManagementDialog() {
           variant="outlined"
           sx={{ flex: 1, p: 2, maxHeight: 420, overflow: "auto" }}
         >
-          <Typography variant="subtitle2" sx={{ color: "background.paper", bgcolor: "primary.main", px: 1, py: 0.5, borderRadius: 1, display: "inline-block" }} gutterBottom>
+          <Typography variant="subtitle2" sx={{ color: "background.paper", bgcolor: "#3e397b", px: 1, py: 0.5, borderRadius: 1, display: "inline-block" }} gutterBottom>
             Chosen permissions
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
@@ -467,12 +457,11 @@ export default function GroupManagementDialog() {
                 label={perm.name}
                 size="small"
                 clickable
-                color="primary"
                 variant="outlined"
                 onClick={() => {
                   setSelectedRight((prev) => prev.filter((id) => id !== perm.id));
                 }}
-                sx={{ m: 0.5, cursor: "pointer" }}
+                sx={{ m: 0.5, cursor: "pointer", color:"#3e397b"}}
               />
             ))}
             {rightPermissions.length === 0 && (
@@ -481,32 +470,18 @@ export default function GroupManagementDialog() {
               </Typography>
             )}
           </Box>
-
-          <Button
-            fullWidth
-            variant="text"
-            size="small"
-            startIcon={<RemoveAllIcon fontSize="small" />}
-            onClick={handleRemoveAll}
-            disabled={selectedRight.length === 0}
-            sx={{ mt: 1, textTransform: "none" }}
-          >
-            Remove all permissions
-          </Button>
+          
+          <CustomButton fullWidth variant="text" icon={<RemoveAllIcon fontSize="small" />} onClick={handleRemoveAll} disabled={selectedRight.length === 0} text="Remove all permissions"/>
         </Paper>
       </Stack>
 
       <Divider sx={{ my: 3 }} />
 
       <Stack direction="row" spacing={1} justifyContent="flex-start">
-        <Button variant="contained" onClick={handleSave}>
-          {isLoading ? (editingId ? "updating..." : "Adding...")
-            : (editingId ? "UPDATE" : "SAVE")}
-        </Button>
+        <CustomButton onClick={handleSave} text= {isLoading ? (editingId ? "updating..." : "Adding...")
+            : (editingId ? "UPDATE" : "SAVE")}/>
         {editingId && (
-          <Button variant="outlined" color="warning" onClick={resetForm}>
-            Cancel Edit
-          </Button>
+          <CustomButton variant="outlined" onClick={resetForm} text="Cancel Edit"/>
         )}
       </Stack>
 
@@ -518,10 +493,8 @@ export default function GroupManagementDialog() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            {isLoading ? 'Deleting...' : 'Delete'}
-          </Button>
+          <CustomButton onClick={() => setDeleteDialogOpen(false)} variant="outlined" text="Cancel"/>
+          <CustomButton onClick={confirmDelete} text={isLoading ? 'Deleting...' : 'Delete'}/>
         </DialogActions>
       </Dialog>
     </Box>

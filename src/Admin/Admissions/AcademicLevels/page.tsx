@@ -34,6 +34,7 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import useAxios from '../../../AxiosInstance/UseAxios';
+import CustomButton from '../../../ReUsables/custombutton';
 
 interface AcademicLevel {
   id: string;
@@ -187,7 +188,7 @@ export default function AcademicLevels() {
                 justifyContent: 'center',
               }}
             >
-              <SchoolIcon sx={{ color: '#1976d2', fontSize: 28 }} />
+              <SchoolIcon sx={{ color: '#3e397b', fontSize: 28 }} />
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
@@ -225,18 +226,7 @@ export default function AcademicLevels() {
               </Typography>
             }
             action={
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleOpenDialog}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                }}
-              >
-                Add New Level
-              </Button>
+              <CustomButton icon={<AddIcon />} onClick={handleOpenDialog} text="Add New Level"/>
             }
             sx={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}
           />
@@ -328,7 +318,7 @@ export default function AcademicLevels() {
                               size="small"
                               onClick={() => handleEditLevel(level)}
                               sx={{
-                                color: '#1976d2',
+                                color: '#3e397b',
                                 '&:hover': { backgroundColor: '#e3f2fd' },
                               }}
                             >
@@ -387,17 +377,9 @@ export default function AcademicLevels() {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDialog} sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveLevel}
-            variant="contained"
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            {isLoading ? (editingId ? 'Updating...' : 'Adding...') :
-              (editingId ? 'Update' : 'Add')} level
-          </Button>
+          <CustomButton onClick={handleCloseDialog} text="cancel" sx={{ borderColor: "#7c1519", color: "#7c1519" }} variant='outlined'/>
+          <CustomButton onClick={handleSaveLevel} text={isLoading ? (editingId ? 'Updating...' : 'Adding...') :(editingId ? 'Update' : 'Add')}/>
+          
         </DialogActions>
       </Dialog>
 

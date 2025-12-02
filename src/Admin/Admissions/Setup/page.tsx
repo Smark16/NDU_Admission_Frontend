@@ -13,7 +13,6 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Button,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -41,6 +40,7 @@ import {
 } from "@mui/icons-material"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import FileUpload from "./file_upload"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Subject {
     id: number
@@ -424,7 +424,7 @@ export default function SetUpPage() {
                                 </TableCell>
                                 <TableCell align="right">
                                     <IconButton size="small" color="primary" onClick={() => handleOpenDialog(subject)} sx={{ mr: 1 }}>
-                                        <EditIcon fontSize="small" />
+                                        <EditIcon fontSize="small" sx={{color:"#7c1519"}} />
                                     </IconButton>
                                     <IconButton
                                         size="small"
@@ -497,7 +497,7 @@ export default function SetUpPage() {
                             </TableCell>
                             <TableCell align="right">
                                 <IconButton size="small" color="primary" onClick={() => handleOpenDialog(template)} sx={{ mr: 1 }}>
-                                    <EditIcon fontSize="small" />
+                                    <EditIcon fontSize="small" sx={{color:"#7c1519"}}/>
                                 </IconButton>
                                 <IconButton
                                     size="small"
@@ -528,7 +528,7 @@ export default function SetUpPage() {
                     sx={{
                         fontWeight: 700,
                         mb: 1,
-                        background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                        background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
                         backgroundClip: "text",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
@@ -574,9 +574,7 @@ export default function SetUpPage() {
             {/* Tab Panels */}
             <TabPanel value={tabValue} index={0}>
                 <Stack spacing={2}>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ alignSelf: "flex-start" }}>
-                        Add O-Level Subject
-                    </Button>
+                    <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text='Add O-Level Subject' sx={{alignSelf: "flex-start"}}/>
                     {isLoading && oLevelSubjects.length === 0 ? (
                         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                             <CircularProgress />
@@ -589,9 +587,7 @@ export default function SetUpPage() {
 
             <TabPanel value={tabValue} index={1}>
                 <Stack spacing={2}>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ alignSelf: "flex-start" }}>
-                        Add A-Level Subject
-                    </Button>
+                    <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text='Add A-Level Subject' sx={{alignSelf: "flex-start"}}/>
                     {isLoading && aLevelSubjects.length === 0 ? (
                         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                             <CircularProgress />
@@ -604,9 +600,7 @@ export default function SetUpPage() {
 
             <TabPanel value={tabValue} index={2}>
                 <Stack spacing={2}>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ alignSelf: "flex-start" }}>
-                        Add Template
-                    </Button>
+                    <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text='Add Template' sx={{alignSelf: "flex-start"}}/>
                     {isLoading && templates.length === 0 ? (
                         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                             <CircularProgress />
@@ -660,12 +654,8 @@ export default function SetUpPage() {
                     </Stack>
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button onClick={handleSave} variant="contained">
-                        {isLoading ? (editingId ? "Updating..." : "Saving....") :
-                            (editingId ? "Update" : "Save")}
-
-                    </Button>
+                    <CustomButton onClick={handleCloseDialog} text="Cancel" variant="outlined" sx={{borderColor:"#7c1519", color:"#7c1519"}}/>
+                    <CustomButton onClick={handleSave} text={isLoading ? (editingId ? "Updating..." : "Saving....") :(editingId ? "Update" : "Save")}/>
                 </DialogActions>
             </Dialog>
 

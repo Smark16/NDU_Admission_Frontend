@@ -5,7 +5,6 @@ import { type ChipProps } from "@mui/material"
 import {
   Container,
   Box,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -43,6 +42,7 @@ import {
 } from "@mui/icons-material"
 import useAxios from "../../AxiosInstance/UseAxios"
 import { AuthContext } from "../../Context/AuthContext"
+import CustomButton from "../../ReUsables/custombutton"
 
 interface Campus {
   id: number
@@ -320,9 +320,7 @@ export default function UserManagement() {
         <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
           User Management
         </Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          Add New User
-        </Button>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add New User"/>
       </Box>
 
       {/* Messages */}
@@ -442,7 +440,7 @@ export default function UserManagement() {
                     <Tooltip title="Edit User">
                       <IconButton
                         size="small"
-                        color="primary"
+                        sx={{color:"#3e397b"}}
                         onClick={() => handleOpenDialog(user)}
                       >
                         <EditIcon fontSize="small" />
@@ -610,19 +608,10 @@ export default function UserManagement() {
           </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={handleCloseDialog} variant="outlined">
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveUser}
-            variant="contained"
-            color="primary"
-            disabled={isLoading}
-          >
-            {isLoading
+          <CustomButton onClick={handleCloseDialog} variant="outlined" text="Cancel" />
+          <CustomButton onClick={handleSaveUser} disabled={isLoading} text={isLoading
               ? (selectedUser ? "Updating..." : "Creating...")
-              : (selectedUser ? "Update" : "Create")} User
-          </Button>
+              : (selectedUser ? "Update" : "Create")}/>
         </DialogActions>
       </Dialog>
 
@@ -633,12 +622,8 @@ export default function UserManagement() {
           <Typography>Are you sure you want to delete this user? This action cannot be undone.</Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error">
-            {isLoading ? "Deleting..." : "Delete"}
-          </Button>
+          <CustomButton onClick={() => setOpenDeleteDialog(false)} variant="outlined" text="Cancel"/>
+          <CustomButton onClick={handleConfirmDelete} text={isLoading ? "Deleting..." : "Delete"}/>
         </DialogActions>
       </Dialog>
     </Container>

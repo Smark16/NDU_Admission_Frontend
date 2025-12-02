@@ -29,6 +29,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import useAxios from "../../../AxiosInstance/UseAxios";
+import CustomButton from "../../../ReUsables/custombutton";
 
 interface Campus {
   id: number;
@@ -439,10 +440,8 @@ export default function ApplicantsDB({
           </Alert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenExportDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleExportExcel}>
-            Export
-          </Button>
+          <CustomButton onClick={() => setOpenExportDialog(false)} sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel" variant="outlined"/>
+          <CustomButton onClick={handleExportExcel} text="Export"/>
         </DialogActions>
       </Dialog>
     </>

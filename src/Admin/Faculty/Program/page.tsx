@@ -3,7 +3,6 @@
 import React, { useEffect, useState, type ChangeEvent } from "react"
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Container,
@@ -30,6 +29,7 @@ import BulkUpload from "./bulk_upload"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import ListPrograms from "./list_programs"
 import Manage from "./manage"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Campus {
   id: number
@@ -406,7 +406,7 @@ const ProgramManagement: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Program Management
           </Typography>
@@ -427,7 +427,7 @@ const ProgramManagement: React.FC = () => {
           </Card>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #f05f64ff 0%, #7c1519 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Active Programs</Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>{programs.filter((p) => p?.is_active).length}</Typography>
@@ -435,7 +435,7 @@ const ProgramManagement: React.FC = () => {
           </Card>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #8c85daff 0%, #3e397b 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Undergraduate</Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>{programs.filter((p) => p?.academic_level === "Undergraduate").length}</Typography>
@@ -443,10 +443,10 @@ const ProgramManagement: React.FC = () => {
           </Card>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #f07a7eff 0%, #7c1519 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Postgraduate</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>{programs.filter((p) => p?.academic_level === "Postgraduate").length}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>{programs.filter((p) => p?.academic_level === "Post Graduate").length}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -462,15 +462,9 @@ const ProgramManagement: React.FC = () => {
           sx={{ flex: 1 }}
           size="small"
         />
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          Add New Program
-        </Button>
-        <Button variant="outlined" startIcon={<CloudUploadIcon />} onClick={() => setOpenBulkDialog(true)}>
-          Bulk Upload
-        </Button>
-         <Button variant="outlined" startIcon={<FileDownloadIcon/>} onClick={handleExportExcel}>
-         {isLoading ? <CircularProgress size={20}/> : 'Download Excel/CSV'}
-        </Button>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add New Program"/>
+        <CustomButton icon={<CloudUploadIcon />} onClick={() => setOpenBulkDialog(true)} variant="outlined" text="Bulk Upload" sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+        <CustomButton variant="outlined" icon={<FileDownloadIcon/>} onClick={handleExportExcel} text={isLoading ? <CircularProgress size={20}/> : 'Download Excel/CSV'} sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
       </Box>
 
       {/* Table */}
@@ -514,14 +508,8 @@ const ProgramManagement: React.FC = () => {
           <Typography>Are you sure you want to delete this program? This action cannot be undone.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-          <Button
-            onClick={() => deleteConfirm !== null && handleDeleteProgram(deleteConfirm)}
-            variant="contained"
-            color="error"
-          >
-            {isLoading ? 'deleting...' : 'Delete'}
-          </Button>
+          <CustomButton sx={{ borderColor: "#7c1519", color: "#7c1519" }} variant="outlined" text="Cancel" onClick={() => setDeleteConfirm(null)}/>
+            <CustomButton  onClick={() => deleteConfirm !== null && handleDeleteProgram(deleteConfirm)} text={isLoading ? 'deleting...' : 'Delete'}/>
         </DialogActions>
       </Dialog>
 

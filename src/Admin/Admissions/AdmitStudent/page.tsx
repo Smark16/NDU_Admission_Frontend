@@ -25,7 +25,7 @@ import {
   type SelectChangeEvent,
   CircularProgress,
   LinearProgress,
-  Backdrop, // ← ONLY THIS ADDED
+  Backdrop, 
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import PersonIcon from "@mui/icons-material/Person"
@@ -40,6 +40,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import useHook from "../../../Hooks/useHook"
 import { AuthContext } from "../../../Context/AuthContext"
+import CustomButton from "../../../ReUsables/custombutton"
 
 const StyledCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(3),
@@ -175,7 +176,7 @@ export default function AdmitStudentPage() {
           clearInterval(interval)
           setTimeout(() => {
             setShowProgress(false)
-            navigate('/admin/application_list') // ← Auto redirect
+            navigate('/admin/application_list') 
           }, 1500)
         }
 
@@ -377,7 +378,7 @@ export default function AdmitStudentPage() {
             value={progress}
             size={130}
             thickness={6}
-            sx={{ color: progress === 100 ? "#4caf50" : "#1976d2" }}
+            sx={{ color: progress === 100 ? "#4caf50" : "#3e397b" }}
           />
           <Typography variant="h5" sx={{ mt: 4, fontWeight: 700, color: "#1a1a1a" }}>
             Generating Offer Letter
@@ -397,11 +398,11 @@ export default function AdmitStudentPage() {
               borderRadius: 8,
               bgcolor: "#e0e0e0",
               "& .MuiLinearProgress-bar": {
-                bgcolor: progress === 100 ? "#4caf50" : "#1976d2",
+                bgcolor: progress === 100 ? "#4caf50" : "#3e397b",
               },
             }}
           />
-          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#1976d2" }}>
+          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#3e397b" }}>
             {progress}%
           </Typography>
         </Box>
@@ -414,7 +415,7 @@ export default function AdmitStudentPage() {
           title="Applicant Information"
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
-            backgroundColor: "#1976d2",
+            backgroundColor: "#3e397b",
             color: "white",
             "& .MuiCardHeader-avatar": {
               backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -428,7 +429,7 @@ export default function AdmitStudentPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <InfoItem>
                 <IconWrapper>
-                  <PersonIcon sx={{ fontSize: 20 }} />
+                  <PersonIcon sx={{ fontSize: 20}} />
                 </IconWrapper>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="caption" color="text.secondary">
@@ -508,7 +509,7 @@ export default function AdmitStudentPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <InfoItem>
                 <IconWrapper>
-                  <LocationCityIcon sx={{ fontSize: 20 }} />
+                  <LocationCityIcon sx={{ fontSize: 20}} />
                 </IconWrapper>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="caption" color="text.secondary">
@@ -531,7 +532,7 @@ export default function AdmitStudentPage() {
           title="Admission Details"
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
-            backgroundColor: "#4caf50",
+            backgroundColor: "#958fd6ff",
             color: "white",
             "& .MuiCardHeader-avatar": {
               backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -600,17 +601,7 @@ export default function AdmitStudentPage() {
           </FormSection>
 
           <FormSection>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleGeneratePayCode}
-              sx={{
-                textTransform: "none",
-                borderColor: "#1976d2",
-              }}
-            >
-              Generate pay_code
-            </Button>
+            <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/>
             <TextField
               fullWidth
               label="Student Number"
@@ -626,17 +617,7 @@ export default function AdmitStudentPage() {
           </FormSection>
 
           <FormSection>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleGenerateRegNo}
-              sx={{
-                textTransform: "none",
-                borderColor: "#1976d2",
-              }}
-            >
-              Generate reg_no
-            </Button>
+            <CustomButton onClick={handleGenerateRegNo} text="Generate reg_no"/>
             <TextField
               fullWidth
               label="Reg No"
@@ -674,10 +655,8 @@ export default function AdmitStudentPage() {
 
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
             {isAdmitted && (
-              <Button
-                variant="contained"
-                size="medium"
-                startIcon={
+              <CustomButton 
+              icon={
                   isLoading ? (
                     <CircularProgress size={20} color="inherit" />
                   ) : (
@@ -685,48 +664,13 @@ export default function AdmitStudentPage() {
                   )
                 }
                 onClick={handleSendLetter}
-                sx={{
-                  background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-                  color: "white",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1.1,
-                  boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)",
-                    boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
-                    transform: "translateY(-1px)",
-                  },
-                  "&:active": {
-                    transform: "translateY(0)",
-                  },
-                  "&.Mui-disabled": {
-                    background: "#bbdefb",
-                    color: "#666",
-                  },
-                }}
-              >
-                {showProgress ? "Generating Letter..." : isLoading ? "Sending..." : "Send Offer Letter to Portal"}
-              </Button>
+                text={showProgress ? "Generating Letter..." : isLoading ? "Sending..." : "Send Offer Letter to Portal"}
+                />
             )}
 
             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 4 }}>
-              <Button variant="outlined" onClick={() => window.history.back()} sx={{ px: 3 }}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                size="large"
-                startIcon={<CheckCircleIcon />}
-                onClick={handleSubmitClick}
-                sx={{ px: 4 }}
-              >
-                Admit Student
-              </Button>
+              <CustomButton variant="outlined" onClick={() => window.history.back()} sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel"/>
+                <CustomButton icon={<CheckCircleIcon />} onClick={handleSubmitClick} text="Admit Student"/>
             </Box>
           </Box>
 
@@ -743,12 +687,8 @@ export default function AdmitStudentPage() {
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCancel} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmAdmit} variant="contained" color="success">
-            {isLoading ? 'Confirming...' : 'Confirm'}
-          </Button>
+          <CustomButton onClick={handleCancel} variant="outlined" sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel"/>
+          <CustomButton onClick={handleConfirmAdmit} text={isLoading ? 'Confirming...' : 'Confirm'}/>
         </DialogActions>
       </Dialog>
 

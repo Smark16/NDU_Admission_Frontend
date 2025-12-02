@@ -10,7 +10,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -30,6 +29,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import AddIcon from "@mui/icons-material/Add"
 import CloseIcon from "@mui/icons-material/Close"
 import useAxios from "../../AxiosInstance/UseAxios"
+import CustomButton from "../../ReUsables/custombutton"
 
 interface Campus {
   id: number
@@ -204,23 +204,7 @@ export default function CampusManagement() {
             Manage and organize all campus locations
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-          sx={{
-            backgroundColor: "#1976d2",
-            "&:hover": {
-              backgroundColor: "#1565c0",
-            },
-            textTransform: "none",
-            fontWeight: 600,
-            px: 3,
-            py: 1.5,
-          }}
-        >
-          Add New Campus
-        </Button>
+        <CustomButton icon={<AddIcon />} onClick={handleAddClick} text="Add New Campus"/>
       </Box>
 
       {/* Notification */}
@@ -335,8 +319,8 @@ export default function CampusManagement() {
                       size="small"
                       variant="outlined"
                       sx={{
-                        borderColor: "#1976d2",
-                        color: "#1976d2",
+                        borderColor: "#3e397b",
+                        color: "#3e397b",
                         fontWeight: 500,
                       }}
                     />
@@ -346,9 +330,9 @@ export default function CampusManagement() {
                     <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
                       <IconButton
                         size="small"
-                        color="primary"
                         onClick={() => handleEditClick(campus)}
                         sx={{
+                          color:"#3e397b",
                           "&:hover": {
                             backgroundColor: "#e3f2fd",
                           },
@@ -464,21 +448,8 @@ export default function CampusManagement() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            sx={{
-              backgroundColor: "#1976d2",
-              "&:hover": {
-                backgroundColor: "#1565c0",
-              },
-            }}
-          >
-            {isLoading ? (editingId ? "Updating...." : "Adding...")
-              : (editingId ? "Update" : "Add")} Campus
-
-          </Button>
+          <CustomButton onClick={handleDialogClose} text="Cancel" variant="outlined" sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+          <CustomButton  onClick={handleSave} text={isLoading ? (editingId ? "Updating...." : "Adding..."): (editingId ? "Update" : "Add")} />
         </DialogActions>
       </Dialog>
 
@@ -497,14 +468,8 @@ export default function CampusManagement() {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-          <Button
-            onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}
-            variant="contained"
-            color="error"
-          >
-            {isLoading ? 'Deleting...' : 'Delete'}
-          </Button>
+          <CustomButton onClick={() => setDeleteConfirm(null)} variant="outlined" text="Cancel" sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+          <CustomButton onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)} text={isLoading ? 'Deleting...' : 'Delete'}/>
         </DialogActions>
       </Dialog>
     </Container>

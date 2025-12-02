@@ -69,7 +69,7 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all") // default = show all
+  const [statusFilter, setStatusFilter] = useState<string>("all") 
 
   // ───── FETCH APPLICATIONS ON MOUNT ─────
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function ApplicationList() {
     <Box sx={{ p: 3, background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", minHeight: "100vh" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: "#1976d2", fontWeight: "bold" }}>
+        <Typography variant="h4" sx={{ color: "#3e397b", fontWeight: "bold" }}>
           Applications
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -140,27 +140,24 @@ export default function ApplicationList() {
       {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Total", value: filteredApplications.length, gradient: "667eea,764ba2" },
+          { label: "Total", value: filteredApplications.length},
           {
             label: "Accepted",
-            value: filteredApplications.filter((a) => a.status === "accepted").length,
-            gradient: "f093fb,f5576c",
+            value: filteredApplications.filter((a) => a.status === "accepted").length
           },
           {
             label: "Under Review",
-            value: filteredApplications.filter((a) => a.status === "under_review").length,
-            gradient: "4facfe,00f2fe",
+            value: filteredApplications.filter((a) => a.status === "under_review").length
           },
           {
             label: "Rejected",
-            value: filteredApplications.filter((a) => a.status === "rejected").length,
-            gradient: "fa709a,fee140",
+            value: filteredApplications.filter((a) => a.status === "rejected").length
           },
         ].map((stat, i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card
               sx={{
-                background: `linear-gradient(135deg, #${stat.gradient.split(",")[0]} 0%, #${stat.gradient.split(",")[1]} 100%)`,
+                background: 'linear-gradient(135deg, #958fceff 0%, #3e397b 100%)',
               }}
             >
               <CardContent>

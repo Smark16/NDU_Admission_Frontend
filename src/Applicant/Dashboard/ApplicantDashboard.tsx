@@ -23,6 +23,7 @@ import {
 import { Link } from "react-router-dom";
 import useHook from "../../Hooks/useHook";
 import useAxios from "../../AxiosInstance/UseAxios";
+import CustomButton from "../../ReUsables/custombutton";
 
 // Single application type (not array)
 interface Application {
@@ -135,25 +136,7 @@ const ApplicantDashboard: React.FC = () => {
 
         {batch?.is_active && (
           <Link to="/applicant/new_application">
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
-                textTransform: "none",
-                fontSize: "1rem",
-                fontWeight: 600,
-                px: 3,
-                py: 1.2,
-                borderRadius: "8px",
-                boxShadow: "0 4px 12px rgba(91, 163, 245, 0.3)",
-                "&:hover": {
-                  boxShadow: "0 6px 16px rgba(91, 163, 245, 0.4)",
-                },
-              }}
-            >
-              New Application
-            </Button>
+            <CustomButton text='New Application' icon={<AddIcon />} />
           </Link>
         )}
       </Box>

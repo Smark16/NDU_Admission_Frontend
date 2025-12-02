@@ -11,9 +11,11 @@ import {
   Link,
   Alert,
   CircularProgress,
+  Stack,
 } from "@mui/material";
 import Navbar from '../Navbar/Navbar';
 import { AuthContext } from '../Context/AuthContext';
+import cover_image from '../Images/cover_page.jpg'; 
 
 export default function Login() {
   const context = useContext(AuthContext);
@@ -27,7 +29,7 @@ export default function Login() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    if (!username.trim()) errors.username = "Username is required";
+    if (!username.trim()) errors.username = "Username or email is required";
     if (!password) errors.password = "Password is required";
     setError(errors);
     return Object.keys(errors).length === 0;
@@ -35,17 +37,11 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) {
       showErrorAlert("Please fix the form errors");
       return;
     }
-
-    try {
-      await loginUser(username, password);
-    } catch (err) {
-      // loginUser already handles errors
-    }
+    await loginUser(username, password);
   };
 
   return (
@@ -54,30 +50,66 @@ export default function Login() {
       <Box
         sx={{
           minHeight: "100vh",
+          backgroundImage: `url(${cover_image})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed", 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#ffffff",
+          position: "relative",
           py: 4,
         }}
       >
-        <Container maxWidth="sm">
-          <Paper elevation={1} sx={{ p: { xs: 3, sm: 4 }, borderRadius: 3, border: "1px solid #f0f0f0" }}>
-            <Box sx={{ textAlign: "center", mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1 }}>
-                Welcome Back
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#888888" }}>
-                Sign in to your account
-              </Typography>
-            </Box>
+        {/* Dark Overlay for Text Readability */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%)",
+            zIndex: 1,
+          }}
+        />
 
+        {/* Login Card */}
+        <Container maxWidth="sm" sx={{ position: "relative", zIndex: 2 }}>
+          <Paper
+            elevation={10}
+            sx={{
+              p: { xs: 4, sm: 6 },
+              borderRadius: 4,
+              backdropFilter: "blur(10px)",
+              background: "rgba(255, 255, 255, 0.92)",
+              border: "1px solid rgba(255, 255, 255, 0.3)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+            }}
+          >
+            {/* Header */}
+            <Stack spacing={1} textAlign="center" mb={4}>
+              <Typography
+                variant="h4"
+                fontWeight={700}
+                color="#1a1a1a"
+                letterSpacing="-0.5px"
+              >
+                Welcome to NDU Portal
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Sign in to access your student portal
+              </Typography>
+            </Stack>
+
+            {/* Error Alert */}
             {noAccount && (
-              <Alert severity="warning" sx={{ mb: 3 }}>
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                 {noAccount}
               </Alert>
             )}
 
+            {/* Form */}
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 fullWidth
@@ -87,7 +119,13 @@ export default function Login() {
                 error={!!error.username}
                 helperText={error.username}
                 autoComplete="username"
-                sx={{ mb: 2.5, "& .MuiOutlinedInput-root": { backgroundColor: "#fafafa" } }}
+                sx={{
+                  mb: 3,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "#fafafa",
+                    borderRadius: 2,
+                  },
+                }}
               />
 
               <TextField
@@ -99,11 +137,22 @@ export default function Login() {
                 error={!!error.password}
                 helperText={error.password}
                 autoComplete="current-password"
-                sx={{ mb: 2, "& .MuiOutlinedInput-root": { backgroundColor: "#fafafa" } }}
+                sx={{
+                  mb: 2,
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "#fafafa",
+                    borderRadius: 2,
+                  },
+                }}
               />
 
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 3 }}>
-                <Link href="/forgot-password" sx={{ fontSize: "0.9rem", color: "#1a1a1a" }}>
+              <Box textAlign="right" mb={3}>
+                <Link
+                  href="/forgot-password"
+                  underline="hover"
+                  color="primary"
+                  fontWeight={500}
+                >
                   Forgot Password?
                 </Link>
               </Box>
@@ -111,27 +160,44 @@ export default function Login() {
               <Button
                 fullWidth
                 type="submit"
+                size="large"
                 disabled={loginLoading}
                 sx={{
-                  background: "#1a1a1a",
+                  py: 1.8,
+                  fontSize: "1.1rem",
+                  fontWeight: 600,
+                  background: "linear-gradient(90deg, #1a1a1a 0%, #333 100%)",
                   color: "#fff",
-                  py: 1.5,
-                  mb: 2.5,
-                  "&:hover": { background: "#333" },
-                  "&:disabled": { background: "#ccc" },
+                  borderRadius: 3,
+                  textTransform: "none",
+                  boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+                  "&:hover": {
+                    background: "linear-gradient(90deg, #000 0%, #222 100%)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 8px 25px rgba(0,0,0,0.3)",
+                  },
+                  "&:disabled": {
+                    background: "#aaa",
+                  },
+                  transition: "all 0.3s ease",
                 }}
               >
-                {loginLoading ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
+                {loginLoading ? <CircularProgress size={26} color="inherit" /> : "Sign In"}
               </Button>
 
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="body2" sx={{ color: "#888" }}>
-                  Don't have an account?{" "}
-                  <Link href="/register" sx={{ color: "#1a1a1a", fontWeight: 600 }}>
-                    Register here
-                  </Link>
+              <Stack direction="row" justifyContent="center" spacing={1} mt={4}>
+                <Typography color="text.secondary">
+                  Don't have an account?
                 </Typography>
-              </Box>
+                <Link
+                  href="/register"
+                  underline="hover"
+                  fontWeight={600}
+                  color="#1a1a1a"
+                >
+                  Register here
+                </Link>
+              </Stack>
             </Box>
           </Paper>
         </Container>

@@ -2,7 +2,6 @@
 import React from "react"
 import {
   Box,
-  Button,
   Chip,
   Dialog,
   DialogActions,
@@ -18,6 +17,7 @@ import {
   Checkbox,
   type SelectChangeEvent,
 } from "@mui/material"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Campus {
   id: number
@@ -203,17 +203,14 @@ const Manage: React.FC<ManageProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={onSave} variant="contained" disabled={isLoading}>
-          {isLoading
+        <CustomButton onClick={onClose} text="Cancel" sx={{ borderColor: "#7c1519", color: "#7c1519" }} variant="outlined"/>
+        <CustomButton onClick={onSave} disabled={isLoading} text={isLoading
             ? editingId
               ? "Updating..."
               : "Adding..."
             : editingId
             ? "Update"
-            : "Add"}{" "}
-          Program
-        </Button>
+            : "Add"}/>
       </DialogActions>
     </Dialog>
   )

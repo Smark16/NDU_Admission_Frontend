@@ -108,7 +108,7 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
       {/* User Profile Card */}
       <Box sx={{
         p: 3,
-        background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
+        background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
         color: "white",
         textAlign: "center",
         borderRadius: 0,
@@ -212,8 +212,8 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
                 selected={isActive}
                 sx={{
                   borderRadius: 2,
-                  bgcolor: isActive ? "#e8f1ff" : "transparent",
-                  color: isActive ? "#0066cc" : "inherit",
+                  bgcolor: isActive ? "#cdcaf0ff" : "transparent",
+                  color: isActive ? "#655fa1ff" : "inherit",
                   "&:hover": { bgcolor: isActive ? "#e8f1ff" : "#f5f5f5" },
                 }}
               >

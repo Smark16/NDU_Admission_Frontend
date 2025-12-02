@@ -37,6 +37,7 @@ import {
 
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Stats {
   totalApplication: number
@@ -327,9 +328,10 @@ const AdmissionDashboard = () => {
                   </TableContainer>
                 )}
                 <Box textAlign="center" mt={3}>
-                  <Button variant="contained" startIcon={<FileText size={18} />}>
+                  <CustomButton icon={<FileText size={18} />} text='View All Applications'/>
+                  {/* <Button variant="contained" startIcon={<FileText size={18} />}>
                     View All Applications
-                  </Button>
+                  </Button> */}
                 </Box>
               </CardContent>
             </Card>
@@ -340,7 +342,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="Quick Actions"
-                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#1976d2" }} />}
+                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
               />
               <CardContent>
                 <Grid container spacing={2}>
@@ -351,16 +353,7 @@ const AdmissionDashboard = () => {
                     { label: "Audit Logs", icon: BarChart3, path:'' },
                   ].map((item, idx) => (
                     <Grid size={{xs:12}} key={idx}>
-                      <Button
-                        fullWidth
-                        component={Link}
-                        to={item.path}
-                        variant="outlined"
-                        startIcon={<item.icon size={18} />}
-                        sx={{ justifyContent: "flex-start", py: 1.5 }}
-                      >
-                        {item.label}
-                      </Button>
+                      <CustomButton component={Link} to={item.path} fullWidth variant="outlined" icon={<item.icon size={18} />} sx={{justifyContent: "flex-start"}} text={item.label}/>
                     </Grid>
                   ))}
                 </Grid>
@@ -373,7 +366,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="System Information"
-                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#1976d2" }} />}
+                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
               />
               <CardContent>
                 <Stack spacing={2}>

@@ -35,6 +35,7 @@ import {
 import { Edit, Delete, Add, Search, CalendarToday } from "@mui/icons-material"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { AuthContext } from "../../../Context/AuthContext"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Program {
   id: number
@@ -352,13 +353,7 @@ export default function BatchManagement() {
                 Manage admission intakes and periods
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => handleOpenDialog()}
-            >
-              Add New Intake
-            </Button>
+            <CustomButton icon={<Add />} onClick={() => handleOpenDialog()} text="Add New Intake"/>
           </Stack>
         </CardContent>
       </Card>
@@ -440,7 +435,7 @@ export default function BatchManagement() {
                   <TableCell>
                     <Stack direction="row" gap={0.5} flexWrap="wrap">
                       {batch.programs.map((p) => (
-                        <Chip key={p.id} label={p.short_form} size="small" color="info" variant="outlined" />
+                        <Chip key={p.id} label={p.short_form} size="small" sx={{color:"#7c1519"}} variant="outlined" />
                       ))}
                     </Stack>
                   </TableCell>
@@ -467,7 +462,7 @@ export default function BatchManagement() {
                       color="primary"
                       onClick={() => handleOpenDialog(batch)}
                     >
-                      <Edit fontSize="small" />
+                      <Edit fontSize="small" sx={{color:"#7c1519"}}/>
                     </IconButton>
                     <IconButton
                       size="small"
@@ -610,14 +605,8 @@ export default function BatchManagement() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <CircularProgress size={20} /> : editingId ? "Update" : "Create"}
-          </Button>
+          <CustomButton onClick={handleCloseDialog} sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel" variant="outlined"/>
+          <CustomButton onClick={handleSave} disabled={isSubmitting} text={isSubmitting ? <CircularProgress size={20} /> : editingId ? "Update" : "Create"}/>
         </DialogActions>
       </Dialog>
 
@@ -628,10 +617,8 @@ export default function BatchManagement() {
           <Typography>This action cannot be undone.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
-            Delete
-          </Button>
+          <CustomButton onClick={() => setDeleteDialogOpen(false)} text="cancel" variant="outlined" sx={{borderColor:"#7c1519", color:"#7c1519"}}/>
+          <CustomButton onClick={handleConfirmDelete} text="Delete"/>
         </DialogActions>
       </Dialog>
     </Box>

@@ -121,7 +121,7 @@ const navigationItems: NavItem[] = [
       {
         id: "Academic Levels",
         label: "Academic Levels",
-        icon: <SchoolIcon sx={{ color: '#1976d2', fontSize: 20 }} />,
+        icon: <SchoolIcon sx={{ color: '#3e397b', fontSize: 20 }} />,
         path: "/admin/academic-levels",
       },
 
@@ -228,7 +228,7 @@ export default function Sidebar() {
           sx={{
             pl: 2 + level * 2,
             backgroundColor: isActive(item.path) ? "rgba(25, 118, 210, 0.08)" : "transparent",
-            borderRight: isActive(item.path) ? `4px solid ${theme.palette.primary.main}` : "none",
+            borderRight: isActive(item.path) ? '4px solid #3e397b' : "none",
             "&:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.04)",
             },
@@ -238,7 +238,7 @@ export default function Sidebar() {
           <ListItemIcon
             sx={{
               minWidth: 40,
-              color: isActive(item.path) ? theme.palette.primary.main : "inherit",
+              color: isActive(item.path) ? "#3e397b" : "inherit",
               transition: "color 0.3s ease",
             }}
           >
@@ -250,7 +250,7 @@ export default function Sidebar() {
               "& .MuiTypography-root": {
                 fontWeight: isActive(item.path) ? 600 : 500,
                 fontSize: "0.95rem",
-                color: isActive(item.path) ? theme.palette.primary.main : "inherit",
+                color: isActive(item.path) ? "#3e397b" : "inherit",
                 transition: "all 0.3s ease",
               },
             }}
@@ -300,7 +300,7 @@ export default function Sidebar() {
             width: 40,
             height: 40,
             borderRadius: "8px",
-            background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -311,7 +311,7 @@ export default function Sidebar() {
         />
          
         <Box>
-          <Box sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#1976d2" }}>Admissions</Box>
+          <Box sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#3e397b" }}>Admissions</Box>
           <Box sx={{ fontSize: "0.75rem", color: "#757575" }}>System</Box>
         </Box>
       </Box>
@@ -327,10 +327,10 @@ export default function Sidebar() {
             width: "6px",
           },
           "&::-webkit-scrollbar-track": {
-            background: "#f1f1f1",
+            background: "#3e397b",
           },
           "&::-webkit-scrollbar-thumb": {
-            background: "#bdbdbd",
+            background: "#3e397b",
             borderRadius: "3px",
             "&:hover": {
               background: "#9e9e9e",

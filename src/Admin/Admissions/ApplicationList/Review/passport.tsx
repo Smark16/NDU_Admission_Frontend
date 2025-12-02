@@ -1,7 +1,8 @@
 "use client"
-import { Card, CardContent, CardHeader, Typography, Box, Button, useTheme, useMediaQuery } from "@mui/material"
+import { Card, CardContent, CardHeader, Typography, Box, useTheme, useMediaQuery } from "@mui/material"
 import ImageIcon from "@mui/icons-material/Image"
 import DownloadIcon from "@mui/icons-material/Download"
+import CustomButton from "../../../../ReUsables/custombutton"
 
 interface PassportPhotoSectionProps {
   application: any
@@ -78,15 +79,7 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
               }}
             />
           </Box>
-          <Button
-            fullWidth={isMobile}
-            variant="contained"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={downloadPhoto}
-          >
-            Download Photo
-          </Button>
+          <CustomButton fullWidth={isMobile} icon={<DownloadIcon />} onClick={downloadPhoto} text="Download Photo"/>
         </Box>
       </CardContent>
     </Card>

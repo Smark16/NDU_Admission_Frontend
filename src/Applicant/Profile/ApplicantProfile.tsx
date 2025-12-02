@@ -6,7 +6,6 @@ import {
   Container,
   Grid,
   TextField,
-  Button,
   Avatar,
   Box,
   Typography,
@@ -27,12 +26,12 @@ import {
   Person as PersonIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
-  // Business as BusinessIcon,
-  CalendarMonth as CalendarIcon,  // ✅ valid icon
+  CalendarMonth as CalendarIcon,  
   CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material"
 import { AuthContext } from "../../Context/AuthContext"
 import useAxios from "../../AxiosInstance/UseAxios"
+import CustomButton from "../../ReUsables/custombutton"
 
 interface User {
   first_name: string
@@ -44,7 +43,6 @@ interface UserData {
   id:number
   profile_photo?: string
   date_joined: string
-  // campuses: Array<{ name: string }>
 }
 
 function ProfileSkeleton() {
@@ -215,7 +213,7 @@ export default function ApplicantProfile() {
           sx={{
             fontWeight: 700,
             mb: 1,
-            background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
@@ -336,12 +334,8 @@ export default function ApplicantProfile() {
                 {/* Edit/Save/Cancel Buttons */}
                 {isEditing && (
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 3 }}>
-                    <Button type="submit" variant="contained" startIcon={<SaveIcon />} sx={{ flex: 1 }}>
-                      Save Changes
-                    </Button>
-                    <Button type="button" variant="outlined" onClick={handleCancel} sx={{ flex: 1 }}>
-                      Cancel
-                    </Button>
+                    <CustomButton icon={<SaveIcon />} type="submit" text='Save Changes' sx={{flex:1}}/>
+                    <CustomButton type="button" variant="outlined" onClick={handleCancel} text="Cancel" sx={{flex:1}}/>
                   </Stack>
                 )}
               </Box>
@@ -471,27 +465,6 @@ export default function ApplicantProfile() {
                       </Box>
                     </Stack>
                   </Box>
-
-                  {/* {userData?.campuses && userData.campuses.length > 0 && (
-                    <>
-                      <Divider />
-                      <Box>
-                        <Stack direction="row" spacing={1} alignItems="flex-start">
-                          <BusinessIcon sx={{ fontSize: 18, color: "action.active", mt: 0.3 }} />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 1 }}>
-                              Assigned Campuses
-                            </Typography>
-                            <Stack direction="row" spacing={1} flexWrap="wrap">
-                              {userData.campuses.map((campus, idx) => (
-                                <Chip key={idx} label={campus.name} size="small" variant="outlined" sx={{ mb: 0.5 }} />
-                              ))}
-                            </Stack>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    </>
-                  )} */}
                 </Stack>
               </CardContent>
             </Card>

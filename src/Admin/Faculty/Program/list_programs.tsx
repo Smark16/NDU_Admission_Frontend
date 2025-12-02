@@ -59,17 +59,17 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
     <TableContainer component={Paper} sx={{ boxShadow: 2, mt: 3 }}>
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "primary.light" }}>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Program Name</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Short Form</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Code</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Faculty</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Level</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>Campuses</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: "primary.main" }}>Min Years</TableCell>
-            <TableCell align="center" sx={{ fontWeight: 600, color: "primary.main" }}>Max Years</TableCell>
-            <TableCell align="center" sx={{ fontWeight: 600, color: "primary.main" }}>Status</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: "primary.main" }}>Actions</TableCell>
+          <TableRow sx={{ backgroundColor: "#3e397b"}}>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Program Name</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Short Form</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Code</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Faculty</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Level</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Campuses</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, color: "white"  }}>Min Years</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white"  }}>Max Years</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white"  }}>Status</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, color: "white"  }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -117,13 +117,13 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
                 <Switch
                   checked={program.is_active}
                   onChange={() => onToggleStatus(program.id)}
-                  color="primary"
+                  sx={{color:"#3e397b"}}
                 />
               </TableCell>
               <TableCell align="right">
                 <IconButton
                   size="small"
-                  color="primary"
+                  sx={{color:"#3e397b"}}
                   onClick={() => onEdit(program)}
                 >
                   <EditIcon fontSize="small" />

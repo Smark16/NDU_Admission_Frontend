@@ -2,7 +2,6 @@
 import React, { type ChangeEvent } from 'react'
 import {
   Box,
-  Button,
   Card,
   Dialog,
   DialogActions,
@@ -20,6 +19,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
 } from "@mui/icons-material"
+import CustomButton from '../../../ReUsables/custombutton'
 
 interface BulkUploadResult {
   success: number
@@ -32,7 +32,7 @@ interface BulkUploadProps {
   onClose: () => void
   isUploading: boolean
   // controls disabled state
-  uploadProgress?: number   // optional, if you don't track progress
+  uploadProgress?: number  
   result: BulkUploadResult | null
   onUpload: (e: ChangeEvent<HTMLInputElement>) => Promise<void> | void
   onResetResult: () => void
@@ -102,7 +102,7 @@ const BulkUpload: React.FC<BulkUploadProps> = ({
                 <CloudUploadIcon
                   sx={{
                     fontSize: 56,
-                    color: isUploading ? "action.disabled" : "primary.main",
+                    color: isUploading ? "action.disabled" : "#3e397b",
                     mb: 2,
                   }}
                 />
@@ -185,14 +185,7 @@ const BulkUpload: React.FC<BulkUploadProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button
-          onClick={handleClose}
-          disabled={isUploading}
-          variant={result ? "contained" : "text"}
-          color={result ? "primary" : "inherit"}
-        >
-          {result ? "Done" : "Cancel"}
-        </Button>
+        <CustomButton onClick={handleClose} disabled={isUploading} text={result ? "Done" : "Cancel"}/>
       </DialogActions>
     </Dialog>
   )

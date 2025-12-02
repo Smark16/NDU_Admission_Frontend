@@ -38,6 +38,7 @@ import {
 import type { SelectChangeEvent } from "@mui/material/Select";
 import useAxios from '../../../AxiosInstance/UseAxios';
 import useHook from '../../../Hooks/useHook';
+import CustomButton from '../../../ReUsables/custombutton';
 
 interface AcademicLevel {
     id: number;
@@ -259,13 +260,7 @@ export default function FeeManagement() {
                     title="Fee Management"
                     subheader="Manage university fees across different categories"
                     action={
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenDialog}
-                        >
-                            Add Fee
-                        </Button>
+                        <CustomButton icon={<AddIcon />} onClick={handleOpenDialog} text="Add Fee"/>
                     }
                 />
                 {notification && (
@@ -329,7 +324,7 @@ export default function FeeManagement() {
                                                     <TableCell>
                                                         <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
                                                             {fee.academic_level?.map((level) => (
-                                                                <Chip key={level.id} label={level.name} size="small" color="primary" />
+                                                                <Chip key={level.id} label={level.name} size="small" sx={{backgroundColor:"#3e397b", color:"white"}} />
                                                             ))}
                                                         </Stack>
                                                     </TableCell>
@@ -483,10 +478,8 @@ export default function FeeManagement() {
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button onClick={handleSaveFee} variant="contained" disabled={isLoading}>
-                        {isLoading ? <CircularProgress size={24} /> : editingId ? 'Update' : 'Create'}
-                    </Button>
+                    <CustomButton onClick={handleCloseDialog} text="Cancel" variant='outlined' sx={{borderColor:"#7c1519", color:"#7c1519"}}/>
+                    <CustomButton onClick={handleSaveFee} disabled={isLoading} text={isLoading ? <CircularProgress size={24} /> : editingId ? 'Update' : 'Create'}/>
                 </DialogActions>
             </Dialog>
 

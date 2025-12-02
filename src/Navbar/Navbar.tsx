@@ -29,13 +29,13 @@ export default function Navbar() {
   }
 
   const navItems = [
-    { label: "Login", href: "/", icon: <LoginIcon fontSize="small" /> },
-    { label: "Register", href: "/register", icon: <PersonAddIcon fontSize="small" /> },
+    { label: "Login", path: "/", icon: <LoginIcon fontSize="small" /> },
+    { label: "Register", path: "/register", icon: <PersonAddIcon fontSize="small" /> },
   ]
 
   const drawer = (
     <Box sx={{ width: 280650, bgcolor: "background.paper", height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ p: 3, bgcolor: "#0d47a1", color: "white" }}>
+      <Box sx={{ p: 3, bgcolor: "#7c1519", color: "white" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: "0.5px" }}>
             Ndejje Portal
@@ -51,15 +51,15 @@ export default function Navbar() {
           <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
             <ListItemButton
               component={Link}
-              to={item.href}
+              to={item.path}
               onClick={handleDrawerToggle}
               sx={{
                 borderRadius: 2,
                 py: 1.8,
-                bgcolor: item.label === "Register" ? "#0d47a1" : "#f8f9fa",
-                color: item.label === "Register" ? "white" : "#0d47a1",
+                bgcolor: item.label === "Register" ? "#3e397b" : "#f8f9fa",
+                color: item.label === "Register" ? "white" : "#3e397b",
                 "&:hover": {
-                  bgcolor: item.label === "Register" ? "#1565c0" : "#e3f2fd",
+                  bgcolor: item.label === "Register" ? "#7770c7ff" : "#e3f2fd",
                   transform: "translateY(-1px)",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 },
@@ -84,7 +84,7 @@ export default function Navbar() {
         position="static"
         elevation={0}
         sx={{
-          background: "linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)",
+          background: "linear-gradient(135deg, #7c1519 0%, #7c1519 100%)",
           color: "white",
           boxShadow: "0 4px 20px rgba(13, 71, 161, 0.25)",
         }}

@@ -10,7 +10,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  Button,
   Grid,
   Alert,
   Typography,
@@ -43,6 +42,7 @@ import { AuthContext } from "../../Context/AuthContext"
 import type { SelectChangeEvent } from '@mui/material/Select';
 import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
+import CustomButton from "../../ReUsables/custombutton"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -438,9 +438,9 @@ export default function NewApplicationForm() {
       }, 2000);
 
     } catch (err: any) {
-      if(err.response?.data.detail){
+      if (err.response?.data.detail) {
         showNotification(`${err.response?.data.detail}`, "error")
-      }else{
+      } else {
         showNotification("Submission failed. Please check your connection and try again.", "error")
       }
       console.error("Submission failed:", err);
@@ -613,7 +613,7 @@ export default function NewApplicationForm() {
           title="New Application"
           subheader="Complete all steps to submit your application"
           sx={{
-            background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
+            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
             color: "white",
             "& .MuiCardHeader-subheader": { color: "rgba(255,255,255,0.9)" },
           }}
@@ -636,7 +636,7 @@ export default function NewApplicationForm() {
                             width: 40,
                             height: 40,
                             borderRadius: "50%",
-                            bgcolor: index <= activeStep ? "#5ba3f5" : "#e0e0e0",
+                            bgcolor: index <= activeStep ? "#3e397b" : "#e0e0e0",
                             color: index <= activeStep ? "white" : "#999",
                             fontWeight: 600,
                           }}
@@ -656,47 +656,29 @@ export default function NewApplicationForm() {
           <Box sx={{ minHeight: 400, mb: 4 }}>{renderStepContent()}</Box>
 
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={handleBack}
-              disabled={activeStep === 0}
-              startIcon={<NavigateBeforeIcon />}
-            >
-              Previous
-            </Button>
-
+            <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
+              <CustomButton
                 onClick={handleSubmit}
-                sx={{
-                  background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
-                  color: "white",
-                }}
                 endIcon={<CheckCircleIcon />}
-              >
-                {submitLoader ? <CircularProgress size={24} sx={{ color: "#ffffff" }} /> : "Submit Application"}
-              </Button>
+                text={
+                  submitLoader ? (
+                    <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+                  ) : (
+                    "Submit Application"
+                  )
+                }
+              />
 
             ) : (
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                sx={{
-                  background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
-                  color: "white",
-                }}
-                endIcon={<NavigateNextIcon />}
-              >
-                Next
-              </Button>
+              <CustomButton onClick={handleNext} endIcon={<NavigateNextIcon />} text='Next'/>
             )}
           </Box>
         </CardContent>
       </Card>
 
       <Dialog open={openSummary} onClose={() => setOpenSummary(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)", color: "white" }}>
+        <DialogTitle sx={{ background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)", color: "white" }}>
           Application Submitted Successfully
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
@@ -711,13 +693,7 @@ export default function NewApplicationForm() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setOpenSummary(false)}
-            variant="contained"
-            sx={{ background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)" }}
-          >
-            Close
-          </Button>
+          <CustomButton onClick={() => setOpenSummary(false)} text='Close'/>
         </DialogActions>
       </Dialog>
     </Container>

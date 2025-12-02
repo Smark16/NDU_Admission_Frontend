@@ -31,6 +31,7 @@ import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
 import { Link, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
+import CustomButton from "../../../../ReUsables/custombutton"
 
 interface ApplicationReviewProps {
   application: any
@@ -151,7 +152,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         {/* Main Content - Left Side */}
         <Grid size={{ xs: 12, lg: 8 }}>
           {/* Applicant Header Card */}
-          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
+          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #3e397b 0%, #764ba2 100%)", color: "white" }}>
             <CardContent sx={{ py: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
                 <Avatar
@@ -308,22 +309,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           </Box>
                         </Box>
                         <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<OpenInNewIcon />}
-                            onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")}
-                          >
-                            View
-                          </Button>
-                          <Button 
+                          {/* view */}
+                          <CustomButton 
+                          variant="outlined" 
+                          icon={<OpenInNewIcon />} 
+                          onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")} 
+                          text="view" 
+                          sx={{
+                            borderColor:"#7c1519",
+                            color:"#7c1519"
+                          }}
+                          />
+                         
+                         {/* download */}
+                         <CustomButton 
+                         variant="outlined" 
+                         icon={<FileDownloadIcon />}
+                         onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
+                         text='Download'
+                         sx={{
+                            borderColor:"#7c1519",
+                            color:"#7c1519"
+                          }}
+                         />
+                          {/* <Button 
                           size="small" 
                           variant="outlined" 
                           startIcon={<FileDownloadIcon />}
                           onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
                           >
                             Download
-                          </Button>
+                          </Button> */}
                         </Box>
                       </Paper>
                     </Grid>
@@ -406,41 +422,28 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
        
                     <Box sx={{ display: "flex", gap: 1 }}>
                       {application.status === 'accepted' ? (
-                         <Button
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          textTransform: "none",
-                          borderColor: "#1976d2",
-                        }}
-                        disabled={isLoading}
-                        onClick={handleSendLetter}
-                      >
-                        {isLoading ? <CircularProgress size={15}/> : "Send offer letter to portal"}
-                      </Button>
+                        <CustomButton
+                          disabled={isLoading} 
+                          onClick={handleSendLetter} 
+                          text={
+                            isLoading ? <CircularProgress size={15}/> : "Send offer letter to portal"
+                          }
+                          />
                       ) : application.status === 'Admitted' ? (
                         ""
                       ) : (
                         <>
-                      <Button
-                        component={Link}
+                        <CustomButton component={Link} 
                         to={`/admin/admit_student/${application.id}`}
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          textTransform: "none",
-                          borderColor: "#1976d2",
-                        }}
-                      >
-                        Admit Student
-                      </Button>
-
+                         text='Admit Student'
+                        />
                       <Button
                         variant="outlined"
                         size="small"
                         sx={{
                           textTransform: "none",
-                          borderColor: "#1976d2",
+                          borderColor: "#7c1519",
+                          color:"#7c1519"
                         }}
                         onClick={handleReject}
                       >

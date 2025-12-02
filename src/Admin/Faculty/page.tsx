@@ -4,7 +4,6 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Dialog,
@@ -46,6 +45,7 @@ import {
 } from "@mui/icons-material"
 import useAxios from "../../AxiosInstance/UseAxios"
 import { type ChipProps } from "@mui/material"
+import CustomButton from "../../ReUsables/custombutton"
 
 interface Campus {
   id: number
@@ -314,19 +314,12 @@ export default function FacultyManagement() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
           <Typography variant="h4" sx={{ 30: 600 }}>
             Faculty Management
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ textTransform: "none", px: 3 }}
-        >
-          Add Faculty
-        </Button>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Faculty"/>
       </Box>
 
       {successMessage && (
@@ -393,7 +386,7 @@ export default function FacultyManagement() {
                     }}
                   >
                     <TableCell>
-                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600 }} color="primary" variant="outlined" />
+                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600, color:"#3e397b" }} variant="outlined" />
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{faculty.name}</TableCell>
                     <TableCell>
@@ -408,7 +401,7 @@ export default function FacultyManagement() {
                       </Box>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined" color="info" />
+                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined"  sx={{color:"#3e397b"}} />
                     </TableCell>
                     <TableCell align="center">
                       <Switch
@@ -423,7 +416,7 @@ export default function FacultyManagement() {
                         <IconButton
                           size="small"
                           onClick={() => handleOpenDialog(faculty)}
-                          sx={{ color: "primary.main", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
+                          sx={{ color: "#3e397b", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -458,9 +451,7 @@ export default function FacultyManagement() {
             <SchoolIcon sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
             <Typography variant="h6" sx={{ color: "text.secondary", mb: 1 }}>No Faculties Yet</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>Create your first faculty to get started.</Typography>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-              Create Faculty
-            </Button>
+            <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Create Faculty"/>
           </CardContent>
         </Card>
       )
@@ -527,11 +518,8 @@ export default function FacultyManagement() {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDialog} sx={{ textTransform: "none" }}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" sx={{ textTransform: "none" }}>
-            {isLoading ? (editingId ? "Updating..." : "Creating..")
-              : (editingId ? "Update" : "Create")} Faculty
-          </Button>
+          <CustomButton onClick={handleCloseDialog} text="Cancel" sx={{ borderColor: "#7c1519", color: "#7c1519" }} variant="outlined"/>
+          <CustomButton onClick={handleSave} text= {isLoading ? (editingId ? "Updating..." : "Creating.."): (editingId ? "Update" : "Create")}/>
         </DialogActions>
       </Dialog>
 
@@ -544,10 +532,8 @@ export default function FacultyManagement() {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ textTransform: "none" }}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error" sx={{ textTransform: "none" }}>
-            {isLoading ? "Deleting..." : "Delete"}
-          </Button>
+          <CustomButton onClick={() => setDeleteConfirmOpen(false)} text="Cancel" sx={{ borderColor: "#7c1519", color: "#7c1519" }} variant="outlined"/>
+          <CustomButton onClick={handleConfirmDelete} text={isLoading ? "Deleting..." : "Delete"}/>
         </DialogActions>
       </Dialog>
     </Container>
