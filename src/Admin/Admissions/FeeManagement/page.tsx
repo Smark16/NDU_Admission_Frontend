@@ -74,10 +74,10 @@ export default function FeeManagement() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
-     const [notification, setNotification] = useState<{
+    const [notification, setNotification] = useState<{
         message: string
         type: "success" | "error" | "info"
-      } | null>(null)
+    } | null>(null)
 
     // Always store admission_period as number (ID) in form
     const [formData, setFormData] = useState<Omit<Fee, 'id' | 'admission_period'> & { admission_period: number }>({
@@ -103,11 +103,11 @@ export default function FeeManagement() {
         }
     };
 
-     // === NOTIFICATION HELPER ===
-  const showNotification = (message: string, type: "success" | "error" | "info") => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 4000)
-  }
+    // === NOTIFICATION HELPER ===
+    const showNotification = (message: string, type: "success" | "error" | "info") => {
+        setNotification({ message, type })
+        setTimeout(() => setNotification(null), 4000)
+    }
 
 
     // Fetch academic levels
@@ -164,7 +164,7 @@ export default function FeeManagement() {
 
     const handleSaveFee = async () => {
         if (!formData.fee_type || formData.academic_level.length === 0 || formData.admission_period === 0) {
-           showNotification("Please fill all required fields", "error");
+            showNotification("Please fill all required fields", "error");
             return;
         }
 
@@ -183,22 +183,22 @@ export default function FeeManagement() {
 
             if (editingId) {
                 const { data } = await AxiosInstance.put(`/api/payments/update_fee_plan/${editingId}`, payload);
-                  setIsLoading(false)
+                setIsLoading(false)
                 setFees(prev => prev.map(f => (f.id === editingId ? data : f)));
                 showNotification("Fees Updated successfully", "success");
             } else {
                 const { data } = await AxiosInstance.post('/api/payments/create_fee_plan', payload);
-                  setIsLoading(false)
+                setIsLoading(false)
                 setFees(prev => [...prev, data]);
                 showNotification("Fees created successfully", "success");
             }
 
             handleCloseDialog();
         } catch (err: any) {
-            if(err.response?.data?.detail){
+            if (err.response?.data?.detail) {
                 showNotification(`${err.response?.data?.detail} || an error occured`, "error");
             }
-              setIsLoading(false)
+            setIsLoading(false)
         } finally {
             setIsLoading(false);
         }
@@ -218,16 +218,16 @@ export default function FeeManagement() {
             setIsLoading(false)
             setFees(prev => prev.filter(fee => fee.id !== deleteId));
             showNotification("Fee plan deleted Successfully", 'success')
-        } catch (err:any) {
-            if(err.response?.data.detail){
-              showNotification(`${err.response?.data.detail}`, 'error')
+        } catch (err: any) {
+            if (err.response?.data.detail) {
+                showNotification(`${err.response?.data.detail}`, 'error')
             }
             showNotification("Failed to delete fee plan", 'error')
-              setIsLoading(false)
+            setIsLoading(false)
         } finally {
             setDeleteDialogOpen(false);
             setDeleteId(null);
-              setIsLoading(false)
+            setIsLoading(false)
         }
     };
 
@@ -260,18 +260,18 @@ export default function FeeManagement() {
                     title="Fee Management"
                     subheader="Manage university fees across different categories"
                     action={
-                        <CustomButton icon={<AddIcon />} onClick={handleOpenDialog} text="Add Fee"/>
+                        <CustomButton icon={<AddIcon />} onClick={handleOpenDialog} text="Add Fee" />
                     }
                 />
                 {notification && (
-                        <Alert
-                          severity={notification.type}
-                          onClose={() => setNotification(null)}
-                          sx={{ mb: 3 }}
-                        >
-                          {notification.message}
-                        </Alert>
-                      )}
+                    <Alert
+                        severity={notification.type}
+                        onClose={() => setNotification(null)}
+                        sx={{ mb: 3 }}
+                    >
+                        {notification.message}
+                    </Alert>
+                )}
                 <CardContent>
                     {isLoading && fees.length === 0 ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -324,7 +324,7 @@ export default function FeeManagement() {
                                                     <TableCell>
                                                         <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
                                                             {fee.academic_level?.map((level) => (
-                                                                <Chip key={level.id} label={level.name} size="small" sx={{backgroundColor:"#3e397b", color:"white"}} />
+                                                                <Chip key={level.id} label={level.name} size="small" sx={{ backgroundColor: "#3e397b", color: "white" }} />
                                                             ))}
                                                         </Stack>
                                                     </TableCell>
@@ -478,8 +478,8 @@ export default function FeeManagement() {
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <CustomButton onClick={handleCloseDialog} text="Cancel" variant='outlined' sx={{borderColor:"#7c1519", color:"#7c1519"}}/>
-                    <CustomButton onClick={handleSaveFee} disabled={isLoading} text={isLoading ? <CircularProgress size={24} /> : editingId ? 'Update' : 'Create'}/>
+                    <CustomButton onClick={handleCloseDialog} text="Cancel" variant='outlined' sx={{ borderColor: "#7c1519", color: "#7c1519" }} />
+                    <CustomButton onClick={handleSaveFee} disabled={isLoading} text={isLoading ? <CircularProgress size={24} /> : editingId ? 'Update' : 'Create'} />
                 </DialogActions>
             </Dialog>
 
