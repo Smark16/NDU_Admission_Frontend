@@ -39,7 +39,7 @@ function Logout() {
         logoutUser();
     }, [authContext, navigate]);
 
-    return null; // This component handles an action and doesn't need to render UI
+    return null; 
 }
 
 export default Logout;
