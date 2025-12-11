@@ -31,7 +31,6 @@ function Logout() {
                 text: 'You have been logged out.',
                 confirmButtonText: 'OK'
             }).then(() => {
-                // Redirect to the login page after the user closes the alert
                 navigate('/');
             });
         };

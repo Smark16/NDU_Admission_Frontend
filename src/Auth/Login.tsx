@@ -97,9 +97,6 @@ export default function Login() {
               >
                 Welcome to NDU Portal
               </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Sign in to access your student portal
-              </Typography>
             </Stack>
 
             {/* Error Alert */}
