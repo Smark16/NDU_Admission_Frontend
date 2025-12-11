@@ -175,12 +175,12 @@ const navigationItems: NavItem[] = [
       },
     ],
   },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings size={20} />,
-    path: "/settings",
-  },
+  // {
+  //   id: "settings",
+  //   label: "Settings",
+  //   icon: <Settings size={20} />,
+  //   path: "/settings",
+  // },
   {
     id: "auditlogs",
     label: "Audit Logs",

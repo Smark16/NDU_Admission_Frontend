@@ -187,6 +187,7 @@ export default function SetUpPage() {
 
     // Dialog handlers
     const handleOpenDialog = (item?: Subject | Template) => {
+        console.log('item', item)
         if (item) {
             setEditingId(item.id)
             if ("code" in item) {
@@ -222,7 +223,10 @@ export default function SetUpPage() {
             setIsLoading(true)
             // Template logic
             const formData = new FormData()
-            if (templateForm.file) formData.append("file", templateForm.file)
+            if (templateForm.file instanceof File) {
+            formData.append("file", templateForm.file)
+            }
+
             formData.append("status", templateForm.status)
             templateForm.programs.forEach((id) => {
                 formData.append("programs", id.toString());
@@ -242,6 +246,7 @@ export default function SetUpPage() {
                                         name: response.data.name,
                                         file: response.data.file,
                                         status: response.data.status,
+                                        programs: response.data.programs || t.programs,
                                     }
                                     : t
                             )

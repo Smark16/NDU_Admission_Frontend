@@ -47,6 +47,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
     setTemplateForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  console.log('template file', templateForm)
   // === FETCH PROGRAMS ===
   const fetchPrograms = async () => {
     try {
