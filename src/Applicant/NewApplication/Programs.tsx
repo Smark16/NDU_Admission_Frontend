@@ -59,15 +59,19 @@ const Programs: React.FC<ProgramProps> = ({
   const { batch } = useHook();
 
   const [campuses, setCampuses] = useState<Campus[]>([]);
+  const [loadCampuses, setLoadCampuses] = useState(true);
   const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
 
   // Fetch campuses
   const fetchCampuses = async () => {
     try {
+      setLoadCampuses(true);
       const response = await AxiosInstance.get('/api/accounts/list_campus');
       setCampuses(response.data);
+      setLoadCampuses(false);
     } catch (err) {
       console.error('Error fetching campuses:', err);
+      setLoadCampuses(false);
     }
   };
 
@@ -127,7 +131,7 @@ const Programs: React.FC<ProgramProps> = ({
             onChange={handleChange}
             label="Preferred Campus"
           >
-            {campuses.map((campus) => (
+            {loadCampuses ? ("Fetching Campuses...") : campuses.map((campus) => (
               <MenuItem key={campus.id} value={campus.id}>
                 {campus.name}
               </MenuItem>

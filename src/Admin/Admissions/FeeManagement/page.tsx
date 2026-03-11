@@ -45,18 +45,14 @@ interface AcademicLevel {
     name: string;
 }
 
-interface Batch {
-    id: number;
-    name: string;
-    academic_year: string;
-}
-
 interface Fee {
     id: string;
     fee_type: string;
+    admission_period: string,
+    admission_id: number,
+    academic_year: string,
     nationality_type: string;
     academic_level: AcademicLevel[];
-    admission_period: Batch | number; // From API: sometimes object, sometimes ID
     amount: number;
     currency: string;
     is_active: boolean;
@@ -64,7 +60,7 @@ interface Fee {
 
 export default function FeeManagement() {
     const AxiosInstance = useAxios();
-    const { batch } = useHook(); // Assuming this returns the current active batch
+    const { batch } = useHook();
 
     const [fees, setFees] = useState<Fee[]>([]);
     const [academicLevel, setAcademicLevel] = useState<AcademicLevel[]>([]);
@@ -80,11 +76,13 @@ export default function FeeManagement() {
     } | null>(null)
 
     // Always store admission_period as number (ID) in form
-    const [formData, setFormData] = useState<Omit<Fee, 'id' | 'admission_period'> & { admission_period: number }>({
+    const [formData, setFormData] = useState<Omit<Fee, 'id' | 'admission_period'> & { admission_period: string }>({
         fee_type: '',
         nationality_type: '',
         academic_level: [],
-        admission_period: batch?.id || 0, // Default to current batch if available
+        admission_id: batch?.id || 0,
+        admission_period: "",
+        academic_year: "",
         amount: 0,
         currency: 'UGX',
         is_active: true,
@@ -130,7 +128,9 @@ export default function FeeManagement() {
             fee_type: '',
             nationality_type: '',
             academic_level: [],
-            admission_period: batch?.id || 0,
+            admission_id: batch?.id || 0,
+            admission_period: "",
+            academic_year: "",
             amount: 0,
             currency: 'UGX',
             is_active: true,
@@ -140,15 +140,13 @@ export default function FeeManagement() {
     };
 
     const handleEditFee = (fee: Fee) => {
-        const periodId = typeof fee.admission_period === 'object' && fee.admission_period
-            ? fee.admission_period.id
-            : (fee.admission_period as number) || 0;
-
         setFormData({
             fee_type: fee.fee_type,
             nationality_type: fee.nationality_type,
             academic_level: fee.academic_level || [],
-            admission_period: periodId,
+            admission_period: fee.admission_period,
+            admission_id: fee.admission_id,
+            academic_year:fee.academic_year,
             amount: fee.amount,
             currency: fee.currency,
             is_active: fee.is_active,
@@ -163,7 +161,7 @@ export default function FeeManagement() {
     };
 
     const handleSaveFee = async () => {
-        if (!formData.fee_type || formData.academic_level.length === 0 || formData.admission_period === 0) {
+        if (!formData.fee_type || formData.academic_level.length === 0 || formData.admission_id === 0) {
             showNotification("Please fill all required fields", "error");
             return;
         }
@@ -175,7 +173,7 @@ export default function FeeManagement() {
                 fee_type: formData.fee_type,
                 nationality_type: formData.nationality_type,
                 academic_level: formData.academic_level.map(level => level.id),
-                admission_period: formData.admission_period,
+                admission_period: formData.admission_id,
                 amount: formData.amount,
                 currency: formData.currency,
                 is_active: formData.is_active,
@@ -183,13 +181,16 @@ export default function FeeManagement() {
 
             if (editingId) {
                 const { data } = await AxiosInstance.put(`/api/payments/update_fee_plan/${editingId}`, payload);
+                console.log('data', data)
                 setIsLoading(false)
                 setFees(prev => prev.map(f => (f.id === editingId ? data : f)));
+                await fetchFeePlans()
                 showNotification("Fees Updated successfully", "success");
             } else {
                 const { data } = await AxiosInstance.post('/api/payments/create_fee_plan', payload);
                 setIsLoading(false)
                 setFees(prev => [...prev, data]);
+                await fetchFeePlans()
                 showNotification("Fees created successfully", "success");
             }
 
@@ -300,16 +301,6 @@ export default function FeeManagement() {
                                         </TableRow>
                                     ) : (
                                         fees.map((fee) => {
-                                            const isCurrentBatch = batch && typeof fee.admission_period === 'object'
-                                                ? fee.admission_period.id === batch.id
-                                                : false;
-
-                                            const periodDisplay = typeof fee.admission_period === 'object' && fee.admission_period
-                                                ? `${fee.admission_period.name} (${fee.admission_period.academic_year})`
-                                                : isCurrentBatch && batch
-                                                    ? `${batch.name} (${batch.academic_year})`
-                                                    : 'Not set';
-
                                             return (
                                                 <TableRow key={fee.id} hover>
                                                     <TableCell>{fee.fee_type}</TableCell>
@@ -317,7 +308,7 @@ export default function FeeManagement() {
                                                         <Chip
                                                             label={fee.nationality_type || 'N/A'}
                                                             size="small"
-                                                            color={fee.nationality_type === 'Uganda' ? 'success' : 'info'}
+                                                            color={fee.nationality_type === 'Local' ? 'success' : 'info'}
                                                             variant="outlined"
                                                         />
                                                     </TableCell>
@@ -328,7 +319,7 @@ export default function FeeManagement() {
                                                             ))}
                                                         </Stack>
                                                     </TableCell>
-                                                    <TableCell>{periodDisplay}</TableCell>
+                                                    <TableCell>{fee.admission_period}({fee.academic_year})</TableCell>
                                                     <TableCell align="right">
                                                         <strong>{fee.currency} {fee.amount.toLocaleString()}</strong>
                                                     </TableCell>
@@ -383,7 +374,7 @@ export default function FeeManagement() {
                                     onChange={handleSelectChange}
                                     label="Nationality"
                                 >
-                                    <MenuItem value="Uganda">Local (Uganda)</MenuItem>
+                                    <MenuItem value="Local">Local (Uganda)</MenuItem>
                                     <MenuItem value="International">International</MenuItem>
                                 </Select>
                             </FormControl>
@@ -432,8 +423,8 @@ export default function FeeManagement() {
                             <FormControl fullWidth>
                                 <InputLabel>Admission Period</InputLabel>
                                 <Select
-                                    name="admission_period"
-                                    value={formData.admission_period}
+                                    name="admission_id"
+                                    value={formData.admission_id}
                                     onChange={handleSelectChange}
                                     label="Admission Period"
                                     disabled={!batch}

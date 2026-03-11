@@ -396,7 +396,7 @@ const ProgramManagement: React.FC = () => {
       setSnackbar({
         open: true,
         message: "Export failed. Please try again.",
-        type: "success",
+        type: "error",
       })
     } 
   };

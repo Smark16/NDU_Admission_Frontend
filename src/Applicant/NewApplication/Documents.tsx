@@ -35,6 +35,7 @@ interface FormData {
   address: string
   nextOfKinName: string
   nextOfKinContact: string
+  application_fee_paid:boolean
   nextOfKinRelationship: string
   campus: string
   programs: number[]

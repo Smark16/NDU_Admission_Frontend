@@ -31,6 +31,7 @@ const AdmissionsReport = lazy(() => import('../Admin/Admissions/AdmissionReports
 const AddGroupDialog = lazy(() => import('../Admin/UserManagement/roles_permissions'))
 const FeeManagement = lazy(() => import('../Admin/Admissions/FeeManagement/page'))
 const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/page'))
+const EditAdmittedStudentPage = lazy(()=>import('../Admin/Admissions/AdmitStudent/edit_strudent'))
 const AuditLogs = lazy(()=>import('../Admin/AuditLogs/page'))
 
 function AppRoutes() {
@@ -55,6 +56,7 @@ function AppRoutes() {
       <CircularProgress
         size={50}
         thickness={4}
+        sx={{color:"#7c1519"}}
       />
     </Box>
   );
@@ -91,8 +93,8 @@ function AppRoutes() {
                   sx={{
                     flexGrow: 1,
                     width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
-                    ml: { xs: 0, md: `${drawerWidth}px` }, // Push content right on desktop
-                    mt: { xs: "64px", md: 0 },             // Offset for mobile top bar
+                    ml: { xs: 0, md: `${drawerWidth}px` }, 
+                    mt: { xs: "64px", md: 0 },       
                     transition: "margin 0.3s ease-in-out",
                   }}
                 >
@@ -130,6 +132,7 @@ function AppRoutes() {
                   <Route path='/campus_management' element={<Suspense fallback={<LoadingSpinner />}><CampusManagement /></Suspense>} />
                   <Route path='/admission_dashboard' element={<Suspense fallback={<LoadingSpinner />}><AdmissionDashboard /></Suspense>} />
                   <Route path='/admit_student/:id' element={<Suspense fallback={<LoadingSpinner />}><AdmitStudentPage /></Suspense>} />
+                  <Route path='/edit_admitted_student/:id' element={<Suspense fallback={<LoadingSpinner />}><EditAdmittedStudentPage /></Suspense>}/>
                   <Route path='/admited_students' element={<Suspense fallback={<LoadingSpinner />}><AdmittedStudents /></Suspense>} />
                   <Route path='/application_list' element={<Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>} />
                   <Route path='/intake' element={<Suspense fallback={<LoadingSpinner />}><BatchManagement /></Suspense>} />

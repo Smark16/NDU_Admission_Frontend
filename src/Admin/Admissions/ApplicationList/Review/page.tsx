@@ -31,6 +31,9 @@ interface Application {
   address: string;
   status: string;
   application_fee_amount: string;
+  nin: string;
+  passport_number: string;
+  disabled: boolean;
   created_at: string;
   reviewed_by: string;
   reviewed_at: string | null;

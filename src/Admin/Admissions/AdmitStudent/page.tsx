@@ -10,7 +10,6 @@ import {
   TextareaAutosize,
   Button,
   Box,
-  Grid,
   Typography,
   Card,
   CardContent,
@@ -28,12 +27,6 @@ import {
   Backdrop, 
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
-import PersonIcon from "@mui/icons-material/Person"
-import EmailIcon from "@mui/icons-material/Email"
-import PhoneIcon from "@mui/icons-material/Phone"
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday"
-import PublicIcon from "@mui/icons-material/Public"
-import LocationCityIcon from "@mui/icons-material/LocationCity"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 
@@ -81,26 +74,6 @@ interface Application {
   programs: Programs[]
   date_of_birth: string
 }
-
-const InfoItem = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  padding: theme.spacing(1.5),
-  backgroundColor: theme.palette.background.default,
-  borderRadius: theme.shape.borderRadius,
-}))
-
-const IconWrapper = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 40,
-  height: 40,
-  borderRadius: "50%",
-  backgroundColor: theme.palette.primary.main,
-  color: "white",
-}))
 
 const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
@@ -408,128 +381,11 @@ export default function AdmitStudentPage() {
         </Box>
       </Backdrop>
 
-      {/* EVERYTHING BELOW IS 100% YOUR ORIGINAL CODE — UNCHANGED */}
-      <StyledCard>
-        <CardHeader
-          avatar={<PersonIcon sx={{ color: "white" }} />}
-          title="Applicant Information"
-          titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
-          sx={{
-            backgroundColor: "#3e397b",
-            color: "white",
-            "& .MuiCardHeader-avatar": {
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
-              borderRadius: "8px",
-              padding: "8px",
-            },
-          }}
-        />
-        <CardContent sx={{ pt: 3 }}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <PersonIcon sx={{ fontSize: 20}} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Full Name
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.first_name} {application?.last_name}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <EmailIcon sx={{ fontSize: 20 }} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Email
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.email}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <PhoneIcon sx={{ fontSize: 20 }} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Phone
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.phone}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <CalendarTodayIcon sx={{ fontSize: 20 }} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Date of Birth
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.date_of_birth}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <PublicIcon sx={{ fontSize: 20 }} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Nationality
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.nationality}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <InfoItem>
-                <IconWrapper>
-                  <LocationCityIcon sx={{ fontSize: 20}} />
-                </IconWrapper>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Gender
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {application?.gender}
-                  </Typography>
-                </Box>
-              </InfoItem>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </StyledCard>
-
       {/* Admit Form Section */}
       <StyledCard>
         <CardHeader
           avatar={<CheckCircleIcon sx={{ color: "white" }} />}
-          title="Admission Details"
+          title={`Admission Details for ${application?.first_name} ${application?.last_name} (${application?.phone})`}
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
             backgroundColor: "#958fd6ff",
@@ -542,15 +398,6 @@ export default function AdmitStudentPage() {
           }}
         />
         <CardContent sx={{ pt: 3 }}>
-          <Alert severity="warning" sx={{ mb: 3 }} icon={null}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Important:
-            </Typography>
-            <Typography variant="body2">
-              Please verify all information is correct before admitting the student. This action cannot be undone.
-            </Typography>
-          </Alert>
-
           <FormSection>
             <Select
               fullWidth

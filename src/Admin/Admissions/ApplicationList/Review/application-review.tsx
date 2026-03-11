@@ -231,6 +231,22 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.phone}
                   </Typography>
                 </Grid>
+                 <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    {application.nin ? "NIN" : "PassPort Number"}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {application.nin ? application.nin : application.passport_number}
+                  </Typography>
+                </Grid>
+                 <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Disability Status
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {application.disabled}
+                  </Typography>
+                </Grid>
               </Grid>
             </CardContent>
           </Card>

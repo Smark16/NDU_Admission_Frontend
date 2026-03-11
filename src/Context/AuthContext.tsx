@@ -4,6 +4,8 @@ import Swal from "sweetalert2";
 import { api } from "../../lib/api";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
+import { Box } from "@mui/system";
+import { CircularProgress, Typography } from "@mui/material";
 
 // Types
 type AuthTokens = { access: string; refresh: string };
@@ -15,11 +17,11 @@ type DecodedUser = {
   first_name: string;
   last_name: string;
   last_login: string | null;
-  phone:number;
+  phone: number;
   role: string;
   is_staff: boolean;
   is_applicant: boolean;
-  date_joined:string;
+  date_joined: string;
   jti: string;
   token_type: string;
 };
@@ -54,7 +56,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loginLoading, setLoginLoading] = useState(false);
   const [noAccount, setNoAccount] = useState("");
 
-  
+
   const loginUser = async (username: string, password: string) => {
     setLoginLoading(true);
     setNoAccount("");
@@ -71,7 +73,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const decoded = jwtDecode<DecodedUser>(data.access);
         setLoggedUser(decoded);
 
-        {decoded?.is_staff ? navigate('/admin/admission_dashboard') : navigate('/applicant/dashboard')}
+        { decoded?.is_staff ? navigate('/admin/admission_dashboard') : navigate('/applicant/dashboard') }
 
         showSuccessAlert("Login successful!");
         // Navigation happens in useEffect
@@ -119,7 +121,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setLoggedUser(decoded);
 
         if (lastPath) {
-          navigate(lastPath);  
+          navigate(lastPath);
           localStorage.removeItem('lastPath');
         }
       } catch (err) {
@@ -147,7 +149,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider value={contextData}>
-      {loading ? <div>Loading...</div> : children}
+      {loading ? (<>
+        <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
+          <CircularProgress sx={{ color: "#7c1519" }} />
+          <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
+            loading...
+          </Typography>
+        </Box>
+      </>) : children}
     </AuthContext.Provider>
   );
 };

@@ -52,6 +52,18 @@ const steps = [
   { label: "Review", icon: CheckCircleIcon },
 ]
 
+interface Fee {
+  id: string;
+  fee_type: string;
+  admission_period: string,
+  admission_id: number,
+  academic_year: string,
+  nationality_type: string;
+  amount: number;
+  currency: string;
+  is_active: boolean;
+}
+
 interface SubjectResult {
   id: string
   subject: string
@@ -68,10 +80,13 @@ interface FormData {
   batch: number | undefined
   firstName: string
   lastName: string
+  application_fee_paid: boolean
   middleName: string
   dateOfBirth: string
   gender: string
   nationality: string
+  nin?: string
+  passportNumber?: string
   phone: number
   email: string
   address: string
@@ -84,6 +99,7 @@ interface FormData {
   oLevelYear: string
   oLevelIndexNumber: string
   oLevelSchool: string
+  disabled?: string
   oLevelSubjects: SubjectResult[]
   aLevelYear: string
   aLevelIndexNumber: string
@@ -109,6 +125,7 @@ export default function NewApplicationForm() {
   const { batch } = useHook()
   const { loggeduser } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
+  const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
   const [formData, setFormData] = useState<FormData>({
     applicant: loggeduser?.user_id ? Number(loggeduser?.user_id) : undefined,
@@ -116,9 +133,11 @@ export default function NewApplicationForm() {
     firstName: loggeduser?.first_name ?? '',
     lastName: loggeduser?.last_name ?? '',
     middleName: "",
+    application_fee_paid: false,
     dateOfBirth: "",
     gender: "",
     nationality: "",
+    disabled: "",
     phone: loggeduser?.phone ?? 0,
     email: loggeduser?.email ?? '',
     address: "",
@@ -164,8 +183,26 @@ export default function NewApplicationForm() {
     setTimeout(() => setNotification(null), 6000)
   }
 
+  // Fetch fee plans
+  const fetchFeePlans = async () => {
+    try {
+      const { data } = await AxiosInstance.get('/api/payments/list_fee_plan');
+      setFees(data);
+    } catch (err) {
+      console.error('Error fetching fees:', err);
+    }
+  };
+
+   // Uganda NIN validation function (14 alphanumeric chars, starts with CM or CF)
+  const isValidUgandaNIN = (nin: string): boolean => {
+    const regex = /^[C][MF][A-Z0-9]{12}$/;
+    return regex.test(nin.toUpperCase());
+  };
+
   // Validate forms
   const validateStep = (step: number): boolean => {
+    const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
+    const isLocal = LOCAL_COUNTRIES.includes(formData.nationality);
     const errors: Record<string, string> = {};
 
     switch (step) {
@@ -173,14 +210,29 @@ export default function NewApplicationForm() {
         if (!formData.firstName.trim()) errors.firstName = "First name is required";
         if (!formData.lastName.trim()) errors.lastName = "Last name is required";
         if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
+        if (!formData.disabled) errors.disabled = "Please select if you are disabled or not";
         if (!formData.gender) errors.gender = "Please select gender";
         if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
-        if (!formData.address.trim()) errors.address = "Address is required";
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
         if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
+
+        // Require nin or passportNumber based on nationality
+        if (isLocal && !formData.nin?.trim()) {
+          errors.nin = "NIN is required for local applicants";
+        }
+        if (!isLocal && !formData.passportNumber?.trim()) {
+          errors.passportNumber = "Passport number is required for international applicants";
+        }
+
+        // Validate Uganda NIN format if applicable
+        if (formData.nationality === "Uganda" && formData.nin?.trim()) {
+          if (!isValidUgandaNIN(formData.nin)) {
+            errors.nin = "Invalid Uganda NIN format (e.g., CM1234567890AB or CF1234567890AB)";
+          }
+        }
         break;
 
       case 1: // Programs
@@ -233,6 +285,7 @@ export default function NewApplicationForm() {
     }
 
     setFormErrors(errors);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     return Object.keys(errors).length === 0;
   };
 
@@ -273,6 +326,7 @@ export default function NewApplicationForm() {
 
   useEffect(() => {
     fetchCampus()
+    fetchFeePlans()
   }, [])
 
   // For text fields and textareas
@@ -360,7 +414,19 @@ export default function NewApplicationForm() {
     }
   }
 
-  console.log('formdata', formData)
+  // selected application amount
+  const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
+  const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
+    ? "Local" : "International";
+
+  const selectedFee = batch
+    ? fees.find(
+      fee =>
+        fee.admission_id === batch.id &&
+        fee.academic_year === batch.academic_year &&
+        fee.nationality_type === applicantType
+    )
+    : undefined;
 
   const handleSubmit = async () => {
     try {
@@ -379,6 +445,7 @@ export default function NewApplicationForm() {
       formDataToSend.append("nationality", formData.nationality);
       formDataToSend.append("phone", String(formData.phone));
       formDataToSend.append("email", formData.email);
+      formDataToSend.append("disabled", formData?.disabled || "no");
       formDataToSend.append("address", formData.address || "");
       formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
       formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
@@ -387,6 +454,10 @@ export default function NewApplicationForm() {
       formDataToSend.append("academic_level", formData.academic_level);
       formDataToSend.append("study_mode", formData.study_mode);
       formDataToSend.append("status", "submitted");
+
+       // Append nin or passportNumber if present (add these lines)
+      if (formData.nin) formDataToSend.append("nin", formData.nin);
+      if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
       // Programs
       formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
@@ -445,6 +516,8 @@ export default function NewApplicationForm() {
       }
       console.error("Submission failed:", err);
       setSubmitLoader(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
   };
 
@@ -586,6 +659,13 @@ export default function NewApplicationForm() {
           </Grid>
         </Grid>
       </Paper>
+
+      <Alert>
+        <Typography>
+          Note: Your Required to pay a unrefundable application fee of {" "}
+          <strong>UGX {selectedFee?.amount}</strong> before application submission
+        </Typography>
+      </Alert>
     </Box>
   )
 
@@ -658,21 +738,43 @@ export default function NewApplicationForm() {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
+              // !formData.application_fee_paid ? (
+              //   <CustomButton
+              //     icon={<CheckCircleIcon />}
+              //     text="Pay Application Fee"
+              //   />
+              // ) : (
+              //   <CustomButton
+              //     onClick={handleSubmit}
+              //     endIcon={<CheckCircleIcon />}
+              //     text={
+              //       submitLoader ? (
+              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+              //       ) : (
+              //         "Submit Application"
+              //       )
+              //     }
+              //   />
+              // )
               <CustomButton
-                onClick={handleSubmit}
-                endIcon={<CheckCircleIcon />}
-                text={
-                  submitLoader ? (
-                    <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-                  ) : (
-                    "Submit Application"
-                  )
-                }
-              />
-
+                  onClick={handleSubmit}
+                  endIcon={<CheckCircleIcon />}
+                  text={
+                    submitLoader ? (
+                      <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+                    ) : (
+                      "Submit Application"
+                    )
+                  }
+                />
             ) : (
-              <CustomButton onClick={handleNext} endIcon={<NavigateNextIcon />} text='Next'/>
+              <CustomButton
+                onClick={handleNext}
+                endIcon={<NavigateNextIcon />}
+                text="Next"
+              />
             )}
+
           </Box>
         </CardContent>
       </Card>
@@ -693,7 +795,7 @@ export default function NewApplicationForm() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={() => setOpenSummary(false)} text='Close'/>
+          <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
     </Container>

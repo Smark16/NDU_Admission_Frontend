@@ -1,5 +1,4 @@
-// PersonalInfo.tsx
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import {
   Box,
   TextField,
@@ -15,7 +14,7 @@ import {
 } from "@mui/material"
 import { CheckCircle as CheckCircleIcon } from "@mui/icons-material"
 import type { SelectChangeEvent } from "@mui/material/Select"
-import ReactSelect from "react-select" 
+import ReactSelect from "react-select"
 import countryList from "react-select-country-list"
 
 interface PersonalInfoProps {
@@ -26,6 +25,9 @@ interface PersonalInfoProps {
     dateOfBirth: string
     gender: string
     nationality: string
+    nin?: string
+    passportNumber?: string
+    disabled?: string
     phone: number | string
     email: string
     address: string
@@ -33,8 +35,8 @@ interface PersonalInfoProps {
     nextOfKinContact: string
     nextOfKinRelationship: string
   }
-  formErrors: Record<string, string> 
-  setFormData: React.Dispatch<React.SetStateAction<any>> // ← Correct type
+  formErrors: Record<string, string>
+  setFormData: React.Dispatch<React.SetStateAction<any>>
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   handleChange: (event: SelectChangeEvent<string>) => void
 }
@@ -47,16 +49,43 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
   formErrors
 }) => {
   const options = useMemo(() => countryList().getData(), [])
+  const [ninValidation, setNinValidation] = useState<{ message: string, color: 'success' | 'error' | undefined }>({ message: '', color: undefined });
 
-  // Fix: react-select expects { value, label }
+  const isValidUgandaNIN = (nin: string): boolean => {
+    const regex = /^[C][MF][A-Z0-9]{12}$/;
+    return regex.test(nin.toUpperCase());
+  };
+
   const changeHandler = (selectedOption: any) => {
     setFormData((prev: any) => ({
       ...prev,
       nationality: selectedOption ? selectedOption.label : "",
     }))
+    setNinValidation({ message: '', color: undefined });
   }
 
   const selectedValue = options.find(option => option.label === formData.nationality) || null
+  const LOCAL_COUNTRIES = ["Uganda"];
+
+  // Custom handler for NIN input to add real-time validation
+  const handleNinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData((prev: any) => ({
+      ...prev,
+      nin: value,
+    }));
+
+    // Real-time validation only for Uganda
+    if (formData.nationality === "Uganda" && value.trim()) {
+      if (isValidUgandaNIN(value)) {
+        setNinValidation({ message: 'Correct NIN', color: 'success' });
+      } else {
+        setNinValidation({ message: 'Invalid NIN (must be 14 characters starting with CM or CF)', color: 'error' });
+      }
+    } else {
+      setNinValidation({ message: '', color: undefined });
+    }
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -138,20 +167,19 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 <MenuItem value="male">Male</MenuItem>
                 <MenuItem value="female">Female</MenuItem>
               </Select>
-               {formErrors.gender && (
-              <FormHelperText>{formErrors.gender}</FormHelperText>
-            )}
+              {formErrors.gender && (
+                <FormHelperText>{formErrors.gender}</FormHelperText>
+              )}
             </FormControl>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.nationality}>
-              {/* <InputLabel>Nationality</InputLabel> */}
               <ReactSelect
                 options={options}
                 value={selectedValue}
                 onChange={changeHandler}
-                placeholder="Search nationality..."
+                placeholder="Search country..."
                 isClearable
                 styles={{
                   control: (base) => ({
@@ -161,11 +189,72 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   }),
                 }}
               />
-               {formErrors.nationality && (
-              <FormHelperText>{formErrors.nationality}</FormHelperText>
-            )}
+              {formErrors.nationality && (
+                <FormHelperText>{formErrors.nationality}</FormHelperText>
+              )}
             </FormControl>
           </Grid>
+
+          {selectedValue ? (LOCAL_COUNTRIES.includes(selectedValue?.label || "")
+            ? (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField
+                  fullWidth
+                  label="NIN (National ID Number)"
+                  name="nin"
+                  value={formData.nin || ""}
+                  onChange={handleNinChange}
+                  error={!!formErrors.nin || ninValidation.color === 'error'}
+                  helperText={formErrors.nin}          
+                />
+
+                {/* Real-time validation message – separate component */}
+                {formData.nationality === "Uganda" && ninValidation.message && (
+                  <FormHelperText
+                    sx={{
+                      color: ninValidation.color === 'success' ? 'success.main' :
+                        ninValidation.color === 'error' ? 'error.main' :
+                          'text.secondary',
+                      mt: 0.5,
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {ninValidation.message}
+                  </FormHelperText>
+                )}
+              </Grid>
+            ) : (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField
+                  fullWidth
+                  label="passport number"
+                  name="passportNumber"
+                  value={formData.passportNumber || ""}
+                  onChange={handleInputChange}
+                  error={!!formErrors.passportNumber}
+                  helperText={formErrors.passportNumber}
+                />
+              </Grid>
+            )) : null}
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <FormControl fullWidth required error={!!formErrors.disabled}>
+              <InputLabel>Disabled?</InputLabel>
+              <Select
+                name="disabled"
+                value={formData.disabled || ""}
+                onChange={handleChange}
+                label="Disabled?"
+              >
+                <MenuItem value="yes">Yes</MenuItem>
+                <MenuItem value="no">No</MenuItem>
+              </Select>
+              {formErrors.disabled && (
+                <FormHelperText>{formErrors.disabled}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
         </Grid>
       </Box>
 
@@ -209,7 +298,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           name="address"
           value={formData.address}
           onChange={handleInputChange}
-          required
           multiline
           rows={3}
           error={!!formErrors.address}
@@ -260,9 +348,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 <MenuItem value="spouse">Spouse</MenuItem>
                 <MenuItem value="other">Other</MenuItem>
               </Select>
-                {formErrors.nextOfKinRelationship && (
-              <FormHelperText>{formErrors.nextOfKinRelationship}</FormHelperText>
-            )}
+              {formErrors.nextOfKinRelationship && (
+                <FormHelperText>{formErrors.nextOfKinRelationship}</FormHelperText>
+              )}
             </FormControl>
           </Grid>
         </Grid>

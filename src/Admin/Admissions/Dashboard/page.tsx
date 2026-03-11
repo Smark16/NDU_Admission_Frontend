@@ -328,10 +328,7 @@ const AdmissionDashboard = () => {
                   </TableContainer>
                 )}
                 <Box textAlign="center" mt={3}>
-                  <CustomButton icon={<FileText size={18} />} text='View All Applications'/>
-                  {/* <Button variant="contained" startIcon={<FileText size={18} />}>
-                    View All Applications
-                  </Button> */}
+                  <CustomButton icon={<FileText size={18} />} component={Link} to="/admin/application_list" text="View All Applications"/>
                 </Box>
               </CardContent>
             </Card>

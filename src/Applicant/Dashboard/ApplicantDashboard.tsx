@@ -281,21 +281,7 @@ const ApplicantDashboard: React.FC = () => {
                 Start your admission journey by creating your first application.
               </Typography>
               <Link to="/applicant/new_application">
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{
-                    background: "linear-gradient(135deg, #5ba3f5 0%, #3b82f6 100%)",
-                    textTransform: "none",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    px: 4,
-                    py: 1.2,
-                    borderRadius: "8px",
-                  }}
-                >
-                  Create Application
-                </Button>
+              <CustomButton icon={<AddIcon />} text="create Application"/>
               </Link>
             </>
           ) : (
