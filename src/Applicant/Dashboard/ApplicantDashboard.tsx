@@ -20,10 +20,12 @@ import {
   GetApp as DownloadIcon,
   Description as FileTextIcon,
 } from "@mui/icons-material";
+import { Payment } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import useHook from "../../Hooks/useHook";
 import useAxios from "../../AxiosInstance/UseAxios";
 import CustomButton from "../../ReUsables/custombutton";
+import PaymentModal from "./PaymentModal";
 
 // Single application type (not array)
 interface Application {
@@ -41,8 +43,14 @@ interface Application {
 const ApplicantDashboard: React.FC = () => {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const { batch } = useHook();
   const AxiosInstance = useAxios();
+
+  // payment modal handlers
+  const handleOpenPaymentModal = () => {
+    setPaymentModalOpen(true);
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -96,15 +104,6 @@ const ApplicantDashboard: React.FC = () => {
   useEffect(() => {
     fetchApplication();
   }, []);
-
-  // const handleOfferLetterDownload = (url: string, filename: string) => {
-  //   const link = document.createElement("a")
-  //   link.href = url
-  //   link.download = filename
-  //   document.body.appendChild(link)
-  //   link.click()
-  //   document.body.removeChild(link)
-  // }
 
   // Loading state
   if (loading) {
@@ -241,6 +240,7 @@ const ApplicantDashboard: React.FC = () => {
             </Link>
 
             {(application.has_admission && application.admission_letter_pdf) && (
+              <>
               <Button
                 component="a"
                 href={`${import.meta.env.VITE_API_BASE_URL}${application.admission_letter_pdf}`}
@@ -255,6 +255,19 @@ const ApplicantDashboard: React.FC = () => {
               >
                 Download Offer Letter
               </Button>
+
+               <Button
+                variant="contained"
+                startIcon={<Payment />}
+                onClick={handleOpenPaymentModal}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600
+                }}
+              >
+                pay commitment Fee
+              </Button>
+                </>
             )}
           </Box>
         </Card>
@@ -291,6 +304,11 @@ const ApplicantDashboard: React.FC = () => {
           )}
         </Paper>
       )}
+
+      <PaymentModal 
+      open={paymentModalOpen} 
+      onClose={() => setPaymentModalOpen(false)} 
+      />
     </Container>
   );
 };

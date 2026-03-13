@@ -34,6 +34,7 @@ import {
   FileBarChart,
   CheckCircle,
   Logs,
+  BanknoteArrowDown,
 } from "lucide-react"
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
@@ -154,6 +155,12 @@ const navigationItems: NavItem[] = [
       }
     ],
   },
+  {
+    id: "Finance",
+    label: "Finance",
+    icon: <BanknoteArrowDown size={20} />,
+    path: "/admin/finance",
+  },
 
   // USER MANAGEMENT
   {
@@ -175,12 +182,6 @@ const navigationItems: NavItem[] = [
       },
     ],
   },
-  // {
-  //   id: "settings",
-  //   label: "Settings",
-  //   icon: <Settings size={20} />,
-  //   path: "/settings",
-  // },
   {
     id: "auditlogs",
     label: "Audit Logs",

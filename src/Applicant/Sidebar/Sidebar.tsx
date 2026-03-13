@@ -226,7 +226,6 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
           )
         })}
       </List>
-
       <Divider />
 
       {/* Quick Links */}

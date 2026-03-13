@@ -41,10 +41,12 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import ChevronRightIcon from "@mui/icons-material/ChevronRight"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
+import { Visibility } from "@mui/icons-material"
 
 interface Admitted {
   id: number
   batch: string
+  application: number
   campus: string
   program: string
   name: string
@@ -343,11 +345,20 @@ export default function AdmittedStudents() {
                               </>
                             )}
 
-                            {/* Edit & Delete */}
+                            {/* Edit & Delete & view */}
+                              <IconButton
+                              size="small"
+                              color="primary"
+                              component={Link}
+                              to={`/admin/application_review/${student.application}`}
+                              title="Edit Student"
+                            >
+                              <Visibility fontSize="small" />
+                            </IconButton>
+                        
                             <IconButton
                               size="small"
                               color="primary"
-                              // onClick={() => handleEditClick(student)}
                               component={Link}
                               to={`/admin/edit_admitted_student/${student.id}`}
                               title="Edit Student"

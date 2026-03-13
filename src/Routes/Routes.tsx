@@ -33,6 +33,7 @@ const FeeManagement = lazy(() => import('../Admin/Admissions/FeeManagement/page'
 const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/page'))
 const EditAdmittedStudentPage = lazy(()=>import('../Admin/Admissions/AdmitStudent/edit_strudent'))
 const AuditLogs = lazy(()=>import('../Admin/AuditLogs/page'))
+const Finance = lazy(() => import('../Admin/Finance/page'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -145,6 +146,7 @@ function AppRoutes() {
                   <Route path='/fee-management' element={<Suspense fallback={<LoadingSpinner />}><FeeManagement /></Suspense>} />
                   <Route path='/academic-levels' element={<Suspense fallback={<LoadingSpinner />}><AcademicLevels /></Suspense>} />
                   <Route path='/logs' element={<Suspense fallback={<LoadingSpinner />}><AuditLogs/></Suspense>}/>
+                  <Route path='/finance' element={<Suspense fallback={<LoadingSpinner />}><Finance/></Suspense>}/>
                 </Routes>
               </Box>
             </Box>
