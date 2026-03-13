@@ -26,6 +26,7 @@ const BatchManagement = lazy(() => import('../Admin/Admissions/Intake/page'))
 const FacultyManagement = lazy(() => import('../Admin/Faculty/page'))
 const ProgramManagement = lazy(() => import('../Admin/Faculty/Program/page'))
 const ReviewPage = lazy(() => import('../Admin/Admissions/ApplicationList/Review/page'))
+const ApplicationReviewPage = lazy(() => import('../Admin/Admissions/AdmittedStudent/Review/page'))
 const SetUpPage = lazy(() => import('../Admin/Admissions/Setup/page'))
 const AdmissionsReport = lazy(() => import('../Admin/Admissions/AdmissionReports/page'))
 const AddGroupDialog = lazy(() => import('../Admin/UserManagement/roles_permissions'))
@@ -34,6 +35,7 @@ const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/pag
 const EditAdmittedStudentPage = lazy(()=>import('../Admin/Admissions/AdmitStudent/edit_strudent'))
 const AuditLogs = lazy(()=>import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
+const Profile = lazy(() => import('../Admin/admission_profile'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -140,6 +142,7 @@ function AppRoutes() {
                   <Route path='/faculty-management' element={<Suspense fallback={<LoadingSpinner />}><FacultyManagement /></Suspense>} />
                   <Route path='/program_list' element={<Suspense fallback={<LoadingSpinner />}><ProgramManagement /></Suspense>} />
                   <Route path='/application_review/:id' element={<Suspense fallback={<LoadingSpinner />}>< ReviewPage /></Suspense>} />
+                  <Route path='/admitted_student_review/:id' element={<Suspense fallback={<LoadingSpinner />}>< ApplicationReviewPage /></Suspense>} />
                   <Route path="/set_up" element={<Suspense fallback={<LoadingSpinner />}><SetUpPage /></Suspense>} />
                   <Route path='/admission-reports' element={<Suspense fallback={<LoadingSpinner />}><AdmissionsReport /></Suspense>} />
                   <Route path='/roles-permissions' element={<Suspense fallback={<LoadingSpinner />}><AddGroupDialog /></Suspense>} />
@@ -147,6 +150,7 @@ function AppRoutes() {
                   <Route path='/academic-levels' element={<Suspense fallback={<LoadingSpinner />}><AcademicLevels /></Suspense>} />
                   <Route path='/logs' element={<Suspense fallback={<LoadingSpinner />}><AuditLogs/></Suspense>}/>
                   <Route path='/finance' element={<Suspense fallback={<LoadingSpinner />}><Finance/></Suspense>}/>
+                  <Route path='/profile' element={<Suspense fallback={<LoadingSpinner />}><Profile/></Suspense>}/>
                 </Routes>
               </Box>
             </Box>

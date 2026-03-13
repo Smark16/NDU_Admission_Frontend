@@ -350,7 +350,7 @@ export default function AdmittedStudents() {
                               size="small"
                               color="primary"
                               component={Link}
-                              to={`/admin/application_review/${student.application}`}
+                              to={`/admin/admitted_student_review/${student.application}`}
                               title="Edit Student"
                             >
                               <Visibility fontSize="small" />
