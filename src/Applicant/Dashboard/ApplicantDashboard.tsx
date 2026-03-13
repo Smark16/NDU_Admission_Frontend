@@ -20,12 +20,12 @@ import {
   GetApp as DownloadIcon,
   Description as FileTextIcon,
 } from "@mui/icons-material";
-import { Payment } from "@mui/icons-material";
+// import { Payment } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import useHook from "../../Hooks/useHook";
 import useAxios from "../../AxiosInstance/UseAxios";
 import CustomButton from "../../ReUsables/custombutton";
-import PaymentModal from "./PaymentModal";
+// import PaymentModal from "./PaymentModal";
 
 // Single application type (not array)
 interface Application {
@@ -43,14 +43,14 @@ interface Application {
 const ApplicantDashboard: React.FC = () => {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const { batch } = useHook();
   const AxiosInstance = useAxios();
 
   // payment modal handlers
-  const handleOpenPaymentModal = () => {
-    setPaymentModalOpen(true);
-  }
+  // const handleOpenPaymentModal = () => {
+  //   setPaymentModalOpen(true);
+  // }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -256,7 +256,7 @@ const ApplicantDashboard: React.FC = () => {
                 Download Offer Letter
               </Button>
 
-               <Button
+               {/* <Button
                 variant="contained"
                 startIcon={<Payment />}
                 onClick={handleOpenPaymentModal}
@@ -266,7 +266,7 @@ const ApplicantDashboard: React.FC = () => {
                 }}
               >
                 pay commitment Fee
-              </Button>
+              </Button> */}
                 </>
             )}
           </Box>
@@ -305,10 +305,10 @@ const ApplicantDashboard: React.FC = () => {
         </Paper>
       )}
 
-      <PaymentModal 
+      {/* <PaymentModal 
       open={paymentModalOpen} 
       onClose={() => setPaymentModalOpen(false)} 
-      />
+      /> */}
     </Container>
   );
 };

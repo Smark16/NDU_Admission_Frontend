@@ -239,7 +239,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
 
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.disabled}>
-              <InputLabel>Disabled?</InputLabel>
+              <InputLabel>Are you Disabled?</InputLabel>
               <Select
                 name="disabled"
                 value={formData.disabled || ""}
