@@ -59,6 +59,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
 
+ console.log(extRef)
+
   const handleClose = () => {
     setPhoneNumber('');
     setStatus('idle');
