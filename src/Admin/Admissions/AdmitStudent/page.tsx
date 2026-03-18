@@ -24,7 +24,9 @@ import {
   type SelectChangeEvent,
   CircularProgress,
   LinearProgress,
-  Backdrop, 
+  Backdrop,
+  FormControl,
+  InputLabel, 
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
@@ -70,7 +72,6 @@ interface Application {
   gender: string;
   email: string;
   campus: Campus
-  study_mode: string
   programs: Programs[]
   date_of_birth: string
 }
@@ -202,6 +203,8 @@ export default function AdmitStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
+  console.log('form data', formData)
+
   const handleGenerateRegNo = () => {
     if (!application) return
 
@@ -210,7 +213,7 @@ export default function AdmitStudentPage() {
     const selectedCampus = campus.find(c => c.id === selectedCampusId)
     const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
     const selectedProgramCode = application.programs.find(p => p.id === Number(formData.program))?.code
-    const studyMode = (application.study_mode?.[0]?.toUpperCase()) || "D"
+    const studyMode = (formData?.study_mode)
     const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
     const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
@@ -237,7 +240,7 @@ export default function AdmitStudentPage() {
         admission_notes: formData.notes,
         admitted_batch: batch?.id,
         reg_no: formData.reg_no,
-        study_mode: application?.study_mode || "",
+        study_mode: formData?.study_mode || "",
         application: application?.id || 0,
         is_admitted: true,
         admitted_by: loggeduser?.user_id
@@ -446,6 +449,28 @@ export default function AdmitStudentPage() {
               selected.
             </Typography>
           </FormSection>
+
+           {/* Study Mode */}
+          <Box>
+            <FormControl fullWidth required>
+              <InputLabel>Study Mode</InputLabel>
+              <Select
+                name="study_mode"
+                value={formData.study_mode}
+                onChange={handleChange}
+                label="Study Mode"
+              >
+                <MenuItem value="W">Weekend</MenuItem>
+                <MenuItem value="D">Day</MenuItem>
+                <MenuItem value="DL">Distance Learning</MenuItem>
+                <MenuItem value="DJ">Day January</MenuItem>
+                <MenuItem value="WJ">Weekend January</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
+              Select your preferred study mode
+            </Typography>
+          </Box>
 
           <FormSection>
             <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/>
