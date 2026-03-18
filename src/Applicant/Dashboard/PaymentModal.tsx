@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,11 +27,14 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import CustomButton from '../../ReUsables/custombutton';
+import useAxios from '../../AxiosInstance/UseAxios';
+import { AuthContext } from '../../Context/AuthContext';
 
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
-  amount?: number;
+  onSuccess?: () => void
+  amountPaid?: number;
   currency?: string;
   reason?: string;
 }
@@ -41,15 +44,20 @@ type PaymentStatus = 'idle' | 'processing' | 'success' | 'error';
 const PaymentModal: React.FC<PaymentModalProps> = ({
   open,
   onClose,
-  amount = 150000,
+  amountPaid,
   currency = 'UGX',
-  reason = 'Commitment Fee',
+  reason = 'Application Fee',
 }) => {
+  const AxiosInstance = useAxios()
+  const {loggeduser} = useContext(AuthContext) || {}
   const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [transactionId, setTransactionId] = useState('');
+
+  const [extRef, setExtRef] = useState<string | null>(null);
+ const [pollInterval, setPollInterval] = useState<number | null>(null);
 
   const handleClose = () => {
     setPhoneNumber('');
@@ -66,46 +74,118 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-  const handlePayment = async () => {
-    if (!phoneNumber.trim()) {
-      setErrorMessage('Please enter your phone number');
-      setStatus('error');
-      return;
-    }
+  // const handlePayment = async () => {
+  //   if (!phoneNumber.trim()) {
+  //     setErrorMessage('Please enter your phone number');
+  //     setStatus('error');
+  //     return;
+  //   }
 
-    if (!validatePhoneNumber(phoneNumber)) {
-      setErrorMessage('Please enter a valid Uganda phone number');
-      setStatus('error');
-      return;
-    }
+  //   if (!validatePhoneNumber(phoneNumber)) {
+  //     setErrorMessage('Please enter a valid Uganda phone number');
+  //     setStatus('error');
+  //     return;
+  //   }
 
-    setStatus('processing');
-    setErrorMessage('');
-    setSuccessMessage('');
+  //   setStatus('processing');
+  //   setErrorMessage('');
+  //   setSuccessMessage('');
 
-    // Simulate API call to payment processor
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+  //   // Simulate API call to payment processor
+  //   try {
+  //     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Simulate random success/failure (80% success rate)
-      const isSuccess = Math.random() < 0.8;
+  //     // Simulate random success/failure (80% success rate)
+  //     const isSuccess = Math.random() < 0.8;
 
-      if (isSuccess) {
-        const txnId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setTransactionId(txnId);
-        setSuccessMessage(
-          `Payment successful! Your transaction ID is ${txnId}. You will receive an SMS confirmation shortly.`
-        );
-        setStatus('success');
-      } else {
-        setErrorMessage('Payment failed. Please check your phone number or try again later.');
-        setStatus('error');
-      }
-    } catch (error) {
-      setErrorMessage('An error occurred during payment processing.');
-      setStatus('error');
+  //     if (isSuccess) {
+  //       const txnId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  //       setTransactionId(txnId);
+  //       setSuccessMessage(
+  //         `Payment successful! Your transaction ID is ${txnId}. You will receive an SMS confirmation shortly.`
+  //       );
+  //       setStatus('success');
+  //     } else {
+  //       setErrorMessage('Payment failed. Please check your phone number or try again later.');
+  //       setStatus('error');
+  //     }
+  //   } catch (error) {
+  //     setErrorMessage('An error occurred during payment processing.');
+  //     setStatus('error');
+  //   }
+  // };
+
+// Clean up polling on unmount/close
+useEffect(() => {
+  return () => {
+    if (pollInterval !== null) {
+      clearInterval(pollInterval);  
     }
   };
+}, [pollInterval]);
+
+const handlePayment = async () => {
+  if (!phoneNumber.trim() || !validatePhoneNumber(phoneNumber)) {
+    setErrorMessage('Valid Uganda phone number required');
+    setStatus('error');
+    return;
+  }
+
+  setStatus('processing');
+  setErrorMessage('');
+  setSuccessMessage('');
+
+  try {
+    const payload = {
+      phone: phoneNumber.replace(/\D/g, ''),
+      amount: Number(amountPaid),
+      first_name: loggeduser?.first_name, // or from user context
+      last_name: loggeduser?.last_name,
+    };
+
+    const res = await AxiosInstance.post('/api/payments/initiate_payment/', payload);
+
+    const data = await res.data
+
+    console.log('payment_data', data)
+
+    setExtRef(data.external_reference);
+    setSuccessMessage('Payment request sent! Check your phone for prompt...');
+    setStatus('processing'); // stay in processing while polling
+
+    // Start polling every 8 seconds
+    const interval = setInterval(async () => {
+      const statusRes = await AxiosInstance.get(`/api/payments/check_payment_status/${data.payment_reference}/`);
+      const statusData = await statusRes.data;
+
+      console.log('Poll result:', statusData);
+
+      if (statusData.returnCode === 0) {
+        if (statusData.status === 'PAID' || statusData.receiptNumber || statusData.transactionId) {
+          clearInterval(interval);
+          setTransactionId(statusData.transactionId || statusData.receiptNumber || 'N/A');
+          setSuccessMessage('Payment confirmed successfully!');
+          setStatus('success');
+
+        //   if (onSuccess) {
+        //   onSuccess();
+        // }
+          // Optional: call parent callback to set application_fee_paid = true
+        }
+      } else if (statusData.error) {
+        clearInterval(interval);
+        throw new Error(statusData.error);
+      }
+      // else keep polling (PENDING or no status yet)
+    }, 8000);
+
+    setPollInterval(interval);
+
+  } catch (err: any) {
+    setErrorMessage(err.message || 'Payment initiation failed');
+    setStatus('error');
+  }
+};
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -245,7 +325,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography sx={{ color: '#6b7280' }}>Amount Paid:</Typography>
                   <Typography sx={{ fontWeight: 700, color: '#1f2937' }}>
-                    {amount.toLocaleString()} {currency}
+                    {amountPaid?.toLocaleString()} {currency}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -365,7 +445,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       fontSize: '1.1rem',
                     }}
                   >
-                    {amount.toLocaleString()} {currency}
+                    {amountPaid?.toLocaleString()} {currency}
                   </Typography>
                 </Box>
 

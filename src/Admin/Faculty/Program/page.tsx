@@ -87,6 +87,7 @@ const ProgramManagement: React.FC = () => {
   const [bulkUploadResult, setBulkUploadResult] = useState<BulkUploadResult | null>(null)
   const [bulkUploadProgress, setBulkUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+  const [downloadProgram, setDownLoadProgram] = useState(false)
 
   // Form state uses number[] for campuses (IDs only)
   const initialForm = {
@@ -401,6 +402,42 @@ const ProgramManagement: React.FC = () => {
     } 
   };
 
+  // Download programs
+   const handleExport = async () => {
+    try {
+      setDownLoadProgram(true)
+      
+      const url = '/api/program/export_program_data'
+
+      const resp = await AxiosInstance.get(url, { responseType: "blob" });
+
+      const blob = new Blob([resp.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `programs-${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      setDownLoadProgram(false)
+      setSnackbar({
+        open: true,
+        message: "Programs downloaded successfully.",
+        type: "success",
+      })
+    } catch (error:any) {
+      console.log(error)
+      setSnackbar({
+        open: true,
+        message: "Export failed. Please try again.",
+        type: "error",
+      })
+      setDownLoadProgram(false)
+    }
+  }
+
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
@@ -462,9 +499,10 @@ const ProgramManagement: React.FC = () => {
           sx={{ flex: 1 }}
           size="small"
         />
-        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add New Program"/>
-        <CustomButton icon={<CloudUploadIcon />} onClick={() => setOpenBulkDialog(true)} variant="outlined" text="Bulk Upload" sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
-        <CustomButton variant="outlined" icon={<FileDownloadIcon/>} onClick={handleExportExcel} text={isLoading ? <CircularProgress size={20}/> : 'Download Excel/CSV'} sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Program"/>
+        <CustomButton icon={<CloudUploadIcon />} onClick={() => setOpenBulkDialog(true)} variant="outlined" text="Upload" sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+        <CustomButton variant="outlined" icon={<FileDownloadIcon/>} onClick={handleExportExcel} text={isLoading ? <CircularProgress size={20}/> : 'Download sheet'} sx={{ borderColor: "#7c1519", color: "#7c1519" }}/>
+        <CustomButton icon={<FileDownloadIcon/>} text={downloadProgram ? "Downloading..." : "DownLoad Programs"} onClick={handleExport}/>
       </Box>
 
       {/* Table */}

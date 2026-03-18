@@ -41,7 +41,7 @@ interface ProgramProps {
   formData: {
     campus: string;
     programs: number[];
-    study_mode: string;
+    // study_mode: string;
     academic_level: string;
   };
   formErrors: Record<string, string> 
@@ -172,7 +172,7 @@ const Programs: React.FC<ProgramProps> = ({
       </Box>
 
       {/* Study Mode */}
-      <Box>
+      {/* <Box>
         <FormControl fullWidth required error={!!formErrors.study_mode}>
           <InputLabel>Study Mode</InputLabel>
           <Select
@@ -192,7 +192,7 @@ const Programs: React.FC<ProgramProps> = ({
         <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
           Select your preferred study mode
         </Typography>
-      </Box>
+      </Box> */}
 
       {/* Programs Autocomplete */}
       {formData.campus && formData.academic_level && (

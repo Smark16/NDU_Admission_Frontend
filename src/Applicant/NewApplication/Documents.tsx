@@ -53,7 +53,7 @@ interface FormData {
   additionalQualificationType: string
   additionalQualificationYear: string
   class_of_award: string
-  study_mode: string
+  // study_mode: string
   passportPhoto: File | null
   oLevelDocuments: File | null
   aLevelDocuments: File | null

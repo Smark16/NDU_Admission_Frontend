@@ -43,6 +43,7 @@ import type { SelectChangeEvent } from '@mui/material/Select';
 import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
 import CustomButton from "../../ReUsables/custombutton"
+import PaymentModal from "../Dashboard/PaymentModal"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -51,6 +52,11 @@ const steps = [
   { label: "Documents", icon: CloudUploadIcon },
   { label: "Review", icon: CheckCircleIcon },
 ]
+
+interface AcademicLevel {
+  id:number,
+  name:string
+}
 
 interface Fee {
   id: string;
@@ -61,6 +67,7 @@ interface Fee {
   nationality_type: string;
   amount: number;
   currency: string;
+  academic_level: AcademicLevel[];
   is_active: boolean;
 }
 
@@ -105,7 +112,7 @@ interface FormData {
   aLevelIndexNumber: string
   aLevelSchool: string
   aLevelSubjects: SubjectResult[]
-  study_mode: string
+  // study_mode: string
   alevel_combination: string
   additionalQualificationInstitution: string
   additionalQualificationType: string
@@ -143,7 +150,7 @@ export default function NewApplicationForm() {
     address: "",
     nextOfKinName: "",
     class_of_award: "",
-    study_mode: '',
+    // study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
     campus: "",
@@ -177,6 +184,16 @@ export default function NewApplicationForm() {
     type: "success" | "error" | "info"
   } | null>(null)
 
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+
+  // payment modal handlers
+  const handleOpenPaymentModal = () => {
+    if (!selectedFee?.amount) {
+      return;
+    }
+    setPaymentModalOpen(true);
+  };
+
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type })
@@ -193,7 +210,7 @@ export default function NewApplicationForm() {
     }
   };
 
-   // Uganda NIN validation function (14 alphanumeric chars, starts with CM or CF)
+  // Uganda NIN validation function (14 alphanumeric chars, starts with CM or CF)
   const isValidUgandaNIN = (nin: string): boolean => {
     const regex = /^[C][MF][A-Z0-9]{12}$/;
     return regex.test(nin.toUpperCase());
@@ -241,7 +258,7 @@ export default function NewApplicationForm() {
         }
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
-        if (!formData.study_mode) errors.study_mode = "Study mode is required";
+        // if (!formData.study_mode) errors.study_mode = "Study mode is required";
         break;
 
       case 2: // Academic Results
@@ -419,14 +436,24 @@ export default function NewApplicationForm() {
   const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
     ? "Local" : "International";
 
+  // const academic_level = formData.academic_level && fees?.academic_level.find((a:any) => a.id === formData.academic_level)
+
+  // console.log('level', academic_level)
+
   const selectedFee = batch
     ? fees.find(
       fee =>
         fee.admission_id === batch.id &&
         fee.academic_year === batch.academic_year &&
-        fee.nationality_type === applicantType
+        fee.nationality_type === applicantType &&
+        fee.academic_level.some(
+          (level) => level.id === Number(formData.academic_level)
+        )
+
     )
     : undefined;
+
+  console.log('selected fee', selectedFee?.amount)
 
   const handleSubmit = async () => {
     try {
@@ -452,10 +479,10 @@ export default function NewApplicationForm() {
       formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
       formDataToSend.append("campus", formData.campus);
       formDataToSend.append("academic_level", formData.academic_level);
-      formDataToSend.append("study_mode", formData.study_mode);
+      // formDataToSend.append("study_mode", formData.study_mode);
       formDataToSend.append("status", "submitted");
 
-       // Append nin or passportNumber if present (add these lines)
+      // Append nin or passportNumber if present (add these lines)
       if (formData.nin) formDataToSend.append("nin", formData.nin);
       if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
@@ -738,25 +765,14 @@ export default function NewApplicationForm() {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              // !formData.application_fee_paid ? (
-              //   <CustomButton
-              //     icon={<CheckCircleIcon />}
-              //     text="Pay Application Fee"
-              //   />
-              // ) : (
-              //   <CustomButton
-              //     onClick={handleSubmit}
-              //     endIcon={<CheckCircleIcon />}
-              //     text={
-              //       submitLoader ? (
-              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-              //       ) : (
-              //         "Submit Application"
-              //       )
-              //     }
-              //   />
-              // )
-              <CustomButton
+              !formData.application_fee_paid ? (
+                <CustomButton
+                  icon={<CheckCircleIcon />}
+                  text="Pay Application Fee"
+                  onClick={handleOpenPaymentModal}
+                />
+              ) : (
+                <CustomButton
                   onClick={handleSubmit}
                   endIcon={<CheckCircleIcon />}
                   text={
@@ -767,6 +783,18 @@ export default function NewApplicationForm() {
                     )
                   }
                 />
+              )
+              // <CustomButton
+              //     onClick={handleSubmit}
+              //     endIcon={<CheckCircleIcon />}
+              //     text={
+              //       submitLoader ? (
+              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+              //       ) : (
+              //         "Submit Application"
+              //       )
+              //     }
+              //   />
             ) : (
               <CustomButton
                 onClick={handleNext}
@@ -798,6 +826,16 @@ export default function NewApplicationForm() {
           <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
+
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        onSuccess={() => {
+          setFormData(prev => ({ ...prev, application_fee_paid: true }));
+          // optional: show snackbar "Fee paid – you can now submit"
+        }}
+        amountPaid={selectedFee?.amount ?? 0}
+      />
     </Container>
   )
 }

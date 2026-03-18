@@ -31,8 +31,9 @@ import {
   CircularProgress,
   FormControl,
   FormHelperText,
+  LinearProgress,
 } from "@mui/material"
-import { Edit, Delete, Add, Search, CalendarToday } from "@mui/icons-material"
+import { Edit, Delete, Add, Search, CalendarToday, Upload } from "@mui/icons-material"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { AuthContext } from "../../../Context/AuthContext"
 import CustomButton from "../../../ReUsables/custombutton"
@@ -100,7 +101,14 @@ export default function BatchManagement() {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // Upload dialog states
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   // === FETCH BATCHES ===
   const fetchBatches = async () => {
@@ -125,7 +133,6 @@ export default function BatchManagement() {
     }
   }
 
-  // === INITIAL LOAD ===
   useEffect(() => {
     fetchBatches()
     fetchPrograms()
@@ -137,7 +144,7 @@ export default function BatchManagement() {
     setTimeout(() => setNotification(null), 4000)
   }
 
-  // === FILTER BATCHES ===
+  // === FILTER & PAGINATION ===
   const filteredBatches = batches.filter(
     (batch) =>
       batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,7 +160,6 @@ export default function BatchManagement() {
   const handleOpenDialog = (batch?: Batch) => {
     if (batch) {
       setEditingId(batch.id)
-
       setFormData({
         name: batch.name,
         code: batch.code,
@@ -175,86 +181,46 @@ export default function BatchManagement() {
   const handleCloseDialog = () => {
     setOpenDialog(false)
     setIsSubmitting(false)
+    setFormErrors({})
   }
 
   const handleFormChange = (field: keyof FormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  // Validate forms
+  // === VALIDATE FORM ===
   const validateForm = () => {
-    const errors: Record<string, string> = {};
+    const errors: Record<string, string> = {}
 
-    if (!formData.name.trim()) {
-      errors.name = "Intake name is required";
-    }
+    if (!formData.name.trim()) errors.name = "Intake name is required"
+    if (!formData.code.trim()) errors.code = "Intake code is required"
+    if (formData.programs.length === 0) errors.programs = "Select at least one program"
 
-    if (!formData.code) {
-      errors.code = "Intake code is required";
-    }
-
-    if (formData.programs.length === 0) {
-      errors.programs = "Intake programs are required";
-    }
-
-    if (!formData.application_start_date) {
-      errors.application_start_date = "Intake start date is required";
-    }
-
-    if (!formData.application_end_date) {
-      errors.application_end_date = "Intake end date is required";
-    }
-
-    if (!formData.admission_start_date) {
-      errors.admission_start_date = "admission startdate is required";
-    }
-
-    if (!formData.admission_end_date) {
-      errors.admission_end_date = "admission enddate is required";
-    }
-
+    // Date validations...
+    if (!formData.application_start_date) errors.application_start_date = "Start date required"
+    if (!formData.application_end_date) errors.application_end_date = "End date required"
     if (formData.application_start_date && formData.application_end_date) {
-    
-      const parseLocalDate = (dateStr: string) => {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day); 
-      };
-
-      const start = parseLocalDate(formData.application_start_date);
-      const end = parseLocalDate(formData.application_end_date);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (start < today) {
-        errors.application_start_date = "Start date cannot be in the past";
-      }
-
-      if (start >= end) {
-        errors.application_end_date = "End date must be after start date";
-      }
+      const start = new Date(formData.application_start_date)
+      const end = new Date(formData.application_end_date)
+      if (start >= end) errors.application_end_date = "End must be after start"
     }
 
+    if (!formData.admission_start_date) errors.admission_start_date = "Admission start required"
+    if (!formData.admission_end_date) errors.admission_end_date = "Admission end required"
     if (formData.admission_start_date && formData.admission_end_date) {
-      const start = new Date(formData.admission_start_date);
-      const end = new Date(formData.admission_end_date);
-      if (start >= end) {
-        errors.admission_start_date = "End date must be after start date";
-      }
-      if (start < new Date()) {
-        errors.admission_start_date = "Start date cannot be in the past";
-      }
+      const start = new Date(formData.admission_start_date)
+      const end = new Date(formData.admission_end_date)
+      if (start >= end) errors.admission_end_date = "End must be after start"
     }
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
-  // === SAVE (POST / PUT) ===
+  // === SAVE BATCH ===
   const handleSave = async () => {
-
     if (!validateForm()) {
-      showNotification("Please fill all required fields and select at least one program", "error")
+      showNotification("Please fix the errors", "error")
       return
     }
 
@@ -263,27 +229,24 @@ export default function BatchManagement() {
       const payload = {
         ...formData,
         created_by: Number(loggeduser?.user_id),
-        programs: formData.programs,
       }
 
+      // let response;
       if (editingId) {
-        // === UPDATE (PUT) ===
         const response = await AxiosInstance.put(`/api/admissions/edit_batch/${editingId}`, payload)
         setBatches((prev) =>
           prev.map((b) => (b.id === editingId ? response.data : b))
         )
-        showNotification("Batch updated successfully", "success")
+        showNotification("Batch updated", "success")
       } else {
-        // === CREATE (POST) ===
         const response = await AxiosInstance.post("/api/admissions/create_batch", payload)
         setBatches((prev) => [...prev, response.data])
-        showNotification("Batch created successfully", "success")
+        showNotification("Batch created", "success")
       }
 
       handleCloseDialog()
     } catch (error: any) {
-      const msg = error.response?.data?.detail || error.message || "Operation failed"
-      showNotification(msg, "error")
+      showNotification(error.response?.data?.detail || "Failed to save batch", "error")
     } finally {
       setIsSubmitting(false)
     }
@@ -292,20 +255,64 @@ export default function BatchManagement() {
   // === DELETE ===
   const handleConfirmDelete = async () => {
     if (!batchToDelete) return
-
     try {
       await AxiosInstance.delete(`/api/admissions/delete_batch/${batchToDelete}`)
       setBatches((prev) => prev.filter((b) => b.id !== batchToDelete))
-      showNotification("Batch deleted successfully", "success")
+      showNotification("Batch deleted", "success")
     } catch (error: any) {
-      if (error.response?.data.detail) {
-        showNotification(`${error.response?.data.detail}`, "error")
-      } else {
-        showNotification("Failed to delete batch", "error")
-      }
+      showNotification(error.response?.data?.detail || "Delete failed", "error")
     } finally {
       setDeleteDialogOpen(false)
       setBatchToDelete(null)
+    }
+  }
+
+  // === UPLOAD PROGRAMS ===
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setPreviewError(null)
+    }
+  }
+
+  const handleUploadPreview = async () => {
+    if (!selectedFile) return
+
+    setUploading(true)
+    setUploadProgress(0)
+    setPreviewError(null)
+
+    const formData = new FormData()
+    formData.append("file", selectedFile)
+
+    try {
+      const response = await AxiosInstance.post("/api/program/preview_programs", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            setUploadProgress(percent)
+          }
+        },
+      })
+
+      const { programs: previewPrograms, count } = response.data
+
+      // Auto-fill the multi-select with returned IDs
+      const programIds = previewPrograms.map((p: any) => p.id)
+      handleFormChange("programs", programIds)
+
+      showNotification(`Successfully previewed ${count} programs`, "success")
+      setUploadDialogOpen(false)
+      setSelectedFile(null)
+    } catch (error: any) {
+      const msg = error.response?.data?.error || error.response?.data?.details || "Upload failed"
+      setPreviewError(msg)
+      showNotification(msg, "error")
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -318,8 +325,26 @@ export default function BatchManagement() {
     })
 
   const getStatusChip = (batch: Batch) => {
-    if (!batch.is_active) return <Chip label="Inactive" color="default" size="small" />
-    return <Chip label="Active" color="success" size="small" />
+    return batch.is_active ? (
+      <Chip label="Active" color="success" size="small" />
+    ) : (
+      <Chip label="Inactive" color="default" size="small" />
+    )
+  }
+
+  const renderProgramsChips = (programs: Program[]) => {
+    const maxVisible = 5
+    const visible = programs.slice(0, maxVisible)
+    const remaining = programs.length - maxVisible
+
+    return (
+      <Stack direction="row" gap={0.5} flexWrap="wrap">
+        {visible.map((p) => (
+          <Chip key={p.id} label={p.short_form} size="small" sx={{ color: "#7c1519" }} variant="outlined" />
+        ))}
+        {remaining > 0 && <Chip label={`+${remaining} more...`} size="small" color="primary" variant="outlined" />}
+      </Stack>
+    )
   }
 
   return (
@@ -350,10 +375,14 @@ export default function BatchManagement() {
                 Intake Management
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Manage admission intakes and periods
+                Manage admission intakes and attach programs
               </Typography>
             </Box>
-            <CustomButton icon={<Add />} onClick={() => handleOpenDialog()} text="Add New Intake"/>
+            <CustomButton
+              icon={<Add />}
+              onClick={() => handleOpenDialog()}
+              text="Add New Intake"
+            />
           </Stack>
         </CardContent>
       </Card>
@@ -432,13 +461,7 @@ export default function BatchManagement() {
                   <TableCell>
                     <Chip label={batch.academic_year} size="small" />
                   </TableCell>
-                  <TableCell>
-                    <Stack direction="row" gap={0.5} flexWrap="wrap">
-                      {batch.programs.map((p) => (
-                        <Chip key={p.id} label={p.short_form} size="small" sx={{color:"#7c1519"}} variant="outlined" />
-                      ))}
-                    </Stack>
-                  </TableCell>
+                  <TableCell>{renderProgramsChips(batch.programs)}</TableCell>
                   <TableCell>
                     <Typography variant="caption" display="block">
                       <strong>Start:</strong> {formatDate(batch.application_start_date)}
@@ -462,7 +485,7 @@ export default function BatchManagement() {
                       color="primary"
                       onClick={() => handleOpenDialog(batch)}
                     >
-                      <Edit fontSize="small" sx={{color:"#7c1519"}}/>
+                      <Edit fontSize="small" sx={{ color: "#7c1519" }} />
                     </IconButton>
                     <IconButton
                       size="small"
@@ -518,40 +541,44 @@ export default function BatchManagement() {
               helperText={formErrors.code}
             />
 
-            {/* === SEARCHABLE PROGRAM SELECT === */}
-            <FormControl fullWidth required error={!!formErrors.programs}>
-              <Autocomplete
-                multiple
-                options={programs}
-                getOptionLabel={(option) => option.name}
-                value={programs.filter((p) => formData.programs.includes(p.id))}
-                onChange={(_, newValue) => {
-                  handleFormChange("programs", newValue.map((v) => v.id))
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Programs"
-                    placeholder="Search and select programs..."
-                    required={formData.programs.length === 0}
-                  />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      label={option.name}
-                      size="small"
-                      {...getTagProps({ index })}
-                      key={option.id}
+            {/* Programs Section with Upload Button */}
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <FormControl fullWidth required error={!!formErrors.programs}>
+                <Autocomplete
+                  multiple
+                  options={programs}
+                  getOptionLabel={(option) => option.name}
+                  value={programs.filter((p) => formData.programs.includes(p.id))}
+                  onChange={(_, newValue) => {
+                    handleFormChange("programs", newValue.map((v) => v.id))
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Programs"
+                      placeholder="Search and select programs..."
                     />
-                  ))
-                }
-                loading={programs.length === 0}
-                noOptionsText="No programs found"
-              />
-              {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
-            </FormControl>
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        label={option.name}
+                        size="small"
+                        {...getTagProps({ index })}
+                        key={option.id}
+                      />
+                    ))
+                  }
+                  loading={programs.length === 0}
+                  noOptionsText="No programs found"
+                />
+                {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
+              </FormControl>
+              
+              <CustomButton variant="outlined" startIcon={<Upload />} onClick={() => setUploadDialogOpen(true)} text='Upload'/>
+            </Stack>
 
+            {/* Date fields */}
             <TextField
               label="Application Start"
               type="date"
@@ -605,8 +632,73 @@ export default function BatchManagement() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={handleCloseDialog} sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel" variant="outlined"/>
-          <CustomButton onClick={handleSave} disabled={isSubmitting} text={isSubmitting ? <CircularProgress size={20} /> : editingId ? "Update" : "Create"}/>
+          <CustomButton
+            onClick={handleCloseDialog}
+            sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+            text="Cancel"
+            variant="outlined"
+          />
+          <CustomButton
+            onClick={handleSave}
+            disabled={isSubmitting}
+            text={isSubmitting ? <CircularProgress size={20} /> : editingId ? "Update" : "Create"}
+          />
+        </DialogActions>
+      </Dialog>
+
+      {/* === UPLOAD PROGRAMS DIALOG === */}
+      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Upload Programs CSV/XLSX</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Upload a file with a column named <strong>ID</strong> containing program IDs.
+            </Typography>
+
+            <Button
+              variant="contained"
+              component="label"
+              startIcon={<Upload />}
+              sx={{ alignSelf: "flex-start", bgcolor: "#7c1519" }}
+            >
+              Choose File
+              <input
+                type="file"
+                hidden
+                accept=".csv,.xlsx"
+                onChange={handleFileChange}
+              />
+            </Button>
+
+            {selectedFile && (
+              <Typography variant="body2">
+                Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)
+              </Typography>
+            )}
+
+            {uploading && (
+              <Box sx={{ width: "100%", mt: 1 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                <Typography variant="caption" sx={{ mt: 1, display: "block" }}>
+                  Uploading... {uploadProgress}%
+                </Typography>
+              </Box>
+            )}
+
+            {previewError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {previewError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton variant="outlined" onClick={() => setUploadDialogOpen(false)} disabled={uploading} text='Cancel'/>
+          <CustomButton
+            onClick={handleUploadPreview}
+            disabled={uploading || !selectedFile}
+            text={uploading ? "Processing..." : "Preview & Add"}
+          />
         </DialogActions>
       </Dialog>
 
@@ -617,8 +709,13 @@ export default function BatchManagement() {
           <Typography>This action cannot be undone.</Typography>
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={() => setDeleteDialogOpen(false)} text="cancel" variant="outlined" sx={{borderColor:"#7c1519", color:"#7c1519"}}/>
-          <CustomButton onClick={handleConfirmDelete} text="Delete"/>
+          <CustomButton
+            onClick={() => setDeleteDialogOpen(false)}
+            text="Cancel"
+            variant="outlined"
+            sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+          />
+          <CustomButton onClick={handleConfirmDelete} text="Delete" />
         </DialogActions>
       </Dialog>
     </Box>
