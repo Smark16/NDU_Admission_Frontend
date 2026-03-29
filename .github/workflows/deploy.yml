@@ -1,0 +1,41 @@
+name: Deploy NDU Voting Admin
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Deploy to server via SSH with apleboy
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1
+        
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          
+          script: |
+            set -e
+            cd /home/sfmis/NDU_Admission_Frontend
+            git reset --hard
+            git pull origin main
+            npm install
+            npm run build
+
+            TARGET_DIR="/var/www/admission-portal"
+
+            sudo rm -rf ${TARGET_DIR}/*
+
+            sudo cp -r dist/* ${TARGET_DIR}/
+
+            sudo systemctl restart nginx
