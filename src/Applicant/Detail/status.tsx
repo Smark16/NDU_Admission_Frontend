@@ -12,9 +12,6 @@ interface StatusSectionProps {
 }
 
 export default function StatusSection({ application }: StatusSectionProps) {
-//   const theme = useTheme()
-//   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-
   const statusIcons: Record<string, React.ReactNode> = {
     accepted: <CheckCircleIcon sx={{ color: "success.main" }} />,
     submitted: <ScheduleIcon sx={{ color: "info.main" }} />,
@@ -64,7 +61,7 @@ export default function StatusSection({ application }: StatusSectionProps) {
             })}
           />
 
-          {application?.reviewed_by && (
+          {application?.reviewed_by?.username && (
             <>
               <Divider />
               <InfoField label="Reviewed By" value={application?.reviewed_by?.first_name && application.reviewed_by?.last_name ?

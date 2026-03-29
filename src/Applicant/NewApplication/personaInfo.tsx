@@ -187,7 +187,16 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                     height: 56,
                     minHeight: 56,
                   }),
-                }}
+                menuPortal: (base) => ({
+                  ...base,
+                  zIndex: 9999,           
+                }),
+                menu: (base) => ({
+                  ...base,
+                  zIndex: 9999,          
+                }),
+              }}
+            menuPortalTarget={document.body}  
               />
               {formErrors.nationality && (
                 <FormHelperText>{formErrors.nationality}</FormHelperText>

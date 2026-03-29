@@ -21,9 +21,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 export interface FacultyAdmitted {
@@ -40,20 +37,18 @@ export interface FeeCollection {
 
 interface ChartsProps {
   facultyAdmittedData: FacultyAdmitted[];
-  feeCollectionData: FeeCollection[];
   totalAdmitted: number;
 }
 
 export default function Charts({
   facultyAdmittedData,
-  feeCollectionData,
   totalAdmitted,
 }: ChartsProps) {
   return (
     <>
       {/* Bar & Pie */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -71,7 +66,7 @@ export default function Charts({
             </CardContent>
           </Card>
         </Grid>
-
+{/* 
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
@@ -98,7 +93,7 @@ export default function Charts({
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </Grid>
+        </Grid> */}
       </Grid>
 
       {/* Table */}

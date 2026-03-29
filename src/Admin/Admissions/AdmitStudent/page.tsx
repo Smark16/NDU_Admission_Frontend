@@ -82,7 +82,7 @@ const FormSection = styled(Box)(({ theme }) => ({
 
 export default function AdmitStudentPage() {
   const { id } = useParams()
-  const {batch} = useHook()
+  const {admissionBatch} = useHook()
   const navigate = useNavigate()
   const { loggeduser} = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
@@ -104,6 +104,7 @@ export default function AdmitStudentPage() {
     type: "success",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [loadApplication, setLoadApplication] = useState(false)
   const [isAdmitted, setIsAdmitted] = useState(false)
 
   // ← ONLY THESE 3 LINES ADDED FOR PROGRESS
@@ -124,10 +125,13 @@ export default function AdmitStudentPage() {
   // fetch application
   const getApplication = async () => {
     try {
+      setLoadApplication(true)
       const response = await AxiosInstance.get(`/api/admissions/single_app/${id}`)
       setApplication(response.data)
     } catch (err) {
       console.log(err)
+    }finally{
+      setLoadApplication(false)
     }
   }
 
@@ -203,8 +207,6 @@ export default function AdmitStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  console.log('form data', formData)
-
   const handleGenerateRegNo = () => {
     if (!application) return
 
@@ -238,7 +240,7 @@ export default function AdmitStudentPage() {
         admitted_campus: formData.campus,
         admitted_program: formData.program,
         admission_notes: formData.notes,
-        admitted_batch: batch?.id,
+        admitted_batch: admissionBatch?.id,
         reg_no: formData.reg_no,
         study_mode: formData?.study_mode || "",
         application: application?.id || 0,
@@ -319,6 +321,22 @@ export default function AdmitStudentPage() {
       }
       setIsLoading(false)
     }
+  }
+
+  if(loadApplication){
+    return ( 
+      <Box
+        sx={{
+          height: '100vh',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <CircularProgress size={30} thickness={4} sx={{ color: "#7c1519" }} />
+      </Box>
+    )
   }
 
   return (

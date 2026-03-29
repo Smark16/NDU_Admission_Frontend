@@ -18,6 +18,7 @@ type DecodedUser = {
   last_name: string;
   last_login: string | null;
   phone: number;
+  permissions: string[];
   role: string;
   is_staff: boolean;
   is_applicant: boolean;
@@ -55,7 +56,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
   const [noAccount, setNoAccount] = useState("");
-
+ 
+  console.log(loggeduser)
 
   const loginUser = async (username: string, password: string) => {
     setLoginLoading(true);
@@ -79,7 +81,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Navigation happens in useEffect
       }
     } catch (err: any) {
-      console.error("Login error:", err);
       const message = err.response?.data?.detail || "Invalid username or password";
       setNoAccount(message);
       showErrorAlert(message);
@@ -125,7 +126,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           localStorage.removeItem('lastPath');
         }
       } catch (err) {
-        console.error("Invalid token", err);
         localStorage.removeItem("authtokens");
         setAuthTokens(null);
       }

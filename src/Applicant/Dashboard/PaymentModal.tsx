@@ -33,7 +33,7 @@ import { AuthContext } from '../../Context/AuthContext';
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void
+  onPaymentSuccess?: (externalReference?: string) => void;
   amountPaid?: number;
   currency?: string;
   reason?: string;
@@ -44,6 +44,7 @@ type PaymentStatus = 'idle' | 'processing' | 'success' | 'error';
 const PaymentModal: React.FC<PaymentModalProps> = ({
   open,
   onClose,
+  onPaymentSuccess,
   amountPaid,
   currency = 'UGX',
   reason = 'Application Fee',
@@ -76,47 +77,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-  // const handlePayment = async () => {
-  //   if (!phoneNumber.trim()) {
-  //     setErrorMessage('Please enter your phone number');
-  //     setStatus('error');
-  //     return;
-  //   }
-
-  //   if (!validatePhoneNumber(phoneNumber)) {
-  //     setErrorMessage('Please enter a valid Uganda phone number');
-  //     setStatus('error');
-  //     return;
-  //   }
-
-  //   setStatus('processing');
-  //   setErrorMessage('');
-  //   setSuccessMessage('');
-
-  //   // Simulate API call to payment processor
-  //   try {
-  //     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  //     // Simulate random success/failure (80% success rate)
-  //     const isSuccess = Math.random() < 0.8;
-
-  //     if (isSuccess) {
-  //       const txnId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  //       setTransactionId(txnId);
-  //       setSuccessMessage(
-  //         `Payment successful! Your transaction ID is ${txnId}. You will receive an SMS confirmation shortly.`
-  //       );
-  //       setStatus('success');
-  //     } else {
-  //       setErrorMessage('Payment failed. Please check your phone number or try again later.');
-  //       setStatus('error');
-  //     }
-  //   } catch (error) {
-  //     setErrorMessage('An error occurred during payment processing.');
-  //     setStatus('error');
-  //   }
-  // };
-
 // Clean up polling on unmount/close
 useEffect(() => {
   return () => {
@@ -127,6 +87,7 @@ useEffect(() => {
 }, [pollInterval]);
 
 const handlePayment = async () => {
+  // ✅ Validate phone
   if (!phoneNumber.trim() || !validatePhoneNumber(phoneNumber)) {
     setErrorMessage('Valid Uganda phone number required');
     setStatus('error');
@@ -141,53 +102,97 @@ const handlePayment = async () => {
     const payload = {
       phone: phoneNumber.replace(/\D/g, ''),
       amount: Number(amountPaid),
-      first_name: loggeduser?.first_name, // or from user context
+      first_name: loggeduser?.first_name,
       last_name: loggeduser?.last_name,
     };
 
-    const res = await AxiosInstance.post('/api/payments/initiate_payment/', payload);
+    const res = await AxiosInstance.post(
+      '/api/payments/initiate_payment/',
+      payload
+    );
 
-    const data = await res.data
+    const data = res.data;
 
-    console.log('payment_data', data)
+    console.log('payment_data', data);
 
+    // ✅ Save references
     setExtRef(data.external_reference);
+
     setSuccessMessage('Payment request sent! Check your phone for prompt...');
-    setStatus('processing'); // stay in processing while polling
+    setStatus('processing');
 
-    // Start polling every 8 seconds
+    // ✅ START POLLING
     const interval = setInterval(async () => {
-      const statusRes = await AxiosInstance.get(`/api/payments/check_payment_status/${data.payment_reference}/`);
-      const statusData = await statusRes.data;
+      try {
+        const statusRes = await AxiosInstance.get(
+          `/api/payments/check_payment_status/${data.payment_reference}/`
+        );
 
-      console.log('Poll result:', statusData);
+        const statusData = statusRes.data;
 
-      if (statusData.returnCode === 0) {
-        if (statusData.status === 'PAID' || statusData.receiptNumber || statusData.transactionId) {
+        console.log('Poll result:', statusData);
+
+        // ✅ SUCCESS
+        if (statusData.status === 'PAID') {
           clearInterval(interval);
-          setTransactionId(statusData.transactionId || statusData.receiptNumber || 'N/A');
+          setPollInterval(null);
+
+          setTransactionId(
+            statusData.transactionId ||
+            statusData.receiptNumber ||
+            'N/A'
+          );
+
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
+          
+          // success callback
+           onPaymentSuccess?.(extRef || data.external_reference);   
 
-        //   if (onSuccess) {
-        //   onSuccess();
-        // }
-          // Optional: call parent callback to set application_fee_paid = true
+          return;
         }
-      } else if (statusData.error) {
+
+        // ✅ FAILED / CANCELLED
+        if (statusData.status === 'FAILED') {
+          clearInterval(interval);
+          setPollInterval(null);
+
+          setErrorMessage('Payment failed or cancelled');
+          setStatus('error');
+
+          return;
+        }
+
+        // ✅ else → still PENDING → keep polling
+
+      } catch (err) {
+        console.error('Polling error:', err);
+
         clearInterval(interval);
-        throw new Error(statusData.error);
+        setPollInterval(null);
+
+        setErrorMessage('Error checking payment status');
+        setStatus('error');
       }
-      // else keep polling (PENDING or no status yet)
     }, 8000);
 
+    // ✅ Save interval so it can be cleared on unmount
     setPollInterval(interval);
 
   } catch (err: any) {
-    setErrorMessage(err.message || 'Payment initiation failed');
+    console.error('Payment initiation error:', err);
+
+    setErrorMessage(
+      err?.response?.data?.error ||
+      err.message ||
+      'Payment initiation failed'
+    );
+
     setStatus('error');
   }
 };
+
+console.log('transactionId', transactionId)
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -594,7 +599,12 @@ const handlePayment = async () => {
         )}
 
         {status === 'success' && (
-            <CustomButton onClick={handleClose} text='Done'/>
+            <CustomButton 
+             onClick={() => {
+               onPaymentSuccess?.(extRef || "");   
+              handleClose();
+             }}  
+            text='Done'/>
         )}
 
         {status === 'error' && (

@@ -150,6 +150,7 @@ export default function Register() {
           justifyContent: "center",
           position: "relative",
           py: 4,
+          mt: 5
         }}
       >
         <Container maxWidth="sm">

@@ -22,7 +22,6 @@ interface DocumentsSectionProps {
 }
 
 export default function DocumentsSection({ documents }: DocumentsSectionProps) {
-  console.log('document', documents)
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 

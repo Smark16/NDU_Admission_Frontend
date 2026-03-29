@@ -49,10 +49,16 @@ interface FormData {
   aLevelSchool: string
   aLevelSubjects: SubjectResult[]
   alevel_combination: string
-  additionalQualificationInstitution: string
-  additionalQualificationType: string
-  additionalQualificationYear: string
-  class_of_award: string
+  // additionalQualificationInstitution: string
+  // additionalQualificationType: string
+  // additionalQualificationYear: string
+  // class_of_award: string
+  additionalQualifications: Array<{
+    institution: string;
+    type: string;
+    year: string;
+    class_of_award: string;
+  }>;
   // study_mode: string
   passportPhoto: File | null
   oLevelDocuments: File | null
@@ -279,7 +285,7 @@ const Documents: React.FC<DocumentProps> = ({
         </Paper>
 
         {/* Other Institution Academic Documents Section */}
-        {formData.additionalQualificationInstitution && (
+        {formData.additionalQualifications.length > 0 && (
         <Paper sx={{ p: 3, bgcolor: "#f8fbff", border: "1px solid #e0eef7" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
             <CheckCircleIcon sx={{ color: "#5ba3f5", fontSize: 28 }} />

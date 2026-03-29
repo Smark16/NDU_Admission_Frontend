@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link as RouterLink } from "react-router-dom"   // renamed for clarity
 import {
   AppBar,
   Toolbar,
@@ -25,7 +25,14 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen)
+    setMobileOpen((prev) => !prev)
+  }
+
+  // Helper: close drawer with tiny delay → fixes mobile touch timing issues
+  const handleNavClick = () => {
+    setTimeout(() => {
+      setMobileOpen(false)
+    }, 80)   // 50–150 ms usually works best on mobile
   }
 
   const navItems = [
@@ -34,7 +41,15 @@ export default function Navbar() {
   ]
 
   const drawer = (
-    <Box sx={{ width: 280650, bgcolor: "background.paper", height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        width: 280,                    // fixed typo
+        bgcolor: "background.paper",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Box sx={{ p: 3, bgcolor: "#7c1519", color: "white" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: "0.5px" }}>
@@ -48,18 +63,18 @@ export default function Navbar() {
 
       <List sx={{ px: 2, pt: 2 }}>
         {navItems.map((item) => (
-          <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+          <ListItem key={item.label} disablePadding sx={{ mb: 1.5 }}>
             <ListItemButton
-              component={Link}
+              component={RouterLink}
               to={item.path}
-              onClick={handleDrawerToggle}
+              onClick={handleNavClick}          // ← delayed close
               sx={{
                 borderRadius: 2,
-                py: 1.8,
+                py: 2,                          // larger touch target
                 bgcolor: item.label === "Register" ? "#3e397b" : "#f8f9fa",
                 color: item.label === "Register" ? "white" : "#3e397b",
                 "&:hover": {
-                  bgcolor: item.label === "Register" ? "#7770c7ff" : "#e3f2fd",
+                  bgcolor: item.label === "Register" ? "#7770c7" : "#e3f2fd",
                   transform: "translateY(-1px)",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 },
@@ -81,7 +96,7 @@ export default function Navbar() {
   return (
     <>
       <AppBar
-        position="static"
+        position="fixed"              // ← changed to fixed (common for mobile nav)
         elevation={0}
         sx={{
           background: "linear-gradient(135deg, #7c1519 0%, #7c1519 100%)",
@@ -105,7 +120,7 @@ export default function Navbar() {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
               }}
             />
-            <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
+            <RouterLink to="/" style={{ textDecoration: "none", color: "inherit" }}>
               <Typography
                 variant="h5"
                 sx={{
@@ -117,13 +132,13 @@ export default function Navbar() {
               >
                 Ndejje Applications Portal
               </Typography>
-            </Link>
+            </RouterLink>
           </Box>
 
           {/* Desktop Buttons */}
           <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
             <Button
-              component={Link}
+              component={RouterLink}
               to="/"
               startIcon={<LoginIcon />}
               sx={{
@@ -149,7 +164,7 @@ export default function Navbar() {
             </Button>
 
             <Button
-              component={Link}
+              component={RouterLink}
               to="/register"
               startIcon={<PersonAddIcon />}
               variant="contained"
@@ -175,8 +190,9 @@ export default function Navbar() {
             </Button>
           </Box>
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu Icon */}
           <IconButton
+            edge="end"
             onClick={handleDrawerToggle}
             sx={{
               display: { xs: "flex", md: "none" },
@@ -196,7 +212,7 @@ export default function Navbar() {
         open={mobileOpen}
         onClose={handleDrawerToggle}
         PaperProps={{
-          sx: { width: "85%", maxWidth: 350 }
+          sx: { width: "85%", maxWidth: 350 },
         }}
       >
         {drawer}

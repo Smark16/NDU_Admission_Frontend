@@ -54,8 +54,8 @@ const steps = [
 ]
 
 interface AcademicLevel {
-  id:number,
-  name:string
+  id: number,
+  name: string
 }
 
 interface Fee {
@@ -88,6 +88,7 @@ interface FormData {
   firstName: string
   lastName: string
   application_fee_paid: boolean
+  externalReference?: string;
   middleName: string
   dateOfBirth: string
   gender: string
@@ -114,10 +115,16 @@ interface FormData {
   aLevelSubjects: SubjectResult[]
   // study_mode: string
   alevel_combination: string
-  additionalQualificationInstitution: string
-  additionalQualificationType: string
-  additionalQualificationYear: string
-  class_of_award: string
+  // additionalQualificationInstitution: string
+  // additionalQualificationType: string
+  // additionalQualificationYear: string
+  // class_of_award: string
+  additionalQualifications: Array<{
+    institution: string;
+    type: string;
+    year: string;
+    class_of_award: string;
+  }>;
   passportPhoto: File | null
   oLevelDocuments: File | null
   aLevelDocuments: File | null
@@ -149,7 +156,7 @@ export default function NewApplicationForm() {
     email: loggeduser?.email ?? '',
     address: "",
     nextOfKinName: "",
-    class_of_award: "",
+    // class_of_award: "",
     // study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
@@ -168,13 +175,15 @@ export default function NewApplicationForm() {
     aLevelSchool: "",
     aLevelSubjects: [{ id: "1", subject: "", grade: "" }],
     alevel_combination: "",
-    additionalQualificationInstitution: "",
-    additionalQualificationType: "",
-    additionalQualificationYear: "",
+    // additionalQualificationInstitution: "",
+    // additionalQualificationType: "",
+    // additionalQualificationYear: "",
+    additionalQualifications: [],
     passportPhoto: null,
     oLevelDocuments: null,
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
+    externalReference: "",
     status: "submitted"
   })
   const [openSummary, setOpenSummary] = useState(false)
@@ -187,12 +196,12 @@ export default function NewApplicationForm() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // payment modal handlers
-  // const handleOpenPaymentModal = () => {
-  //   if (!selectedFee?.amount) {
-  //     return;
-  //   }
-  //   setPaymentModalOpen(true);
-  // };
+  const handleOpenPaymentModal = () => {
+    if (!selectedFee?.amount) {
+      return;
+    }
+    setPaymentModalOpen(true);
+  };
 
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
@@ -294,7 +303,7 @@ export default function NewApplicationForm() {
         if (!formData.aLevelDocuments) {
           errors.aLevelDocuments = "A-Level certificate is required";
         }
-        if (formData.additionalQualificationInstitution && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
+        if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
         break;
 
       case 4:
@@ -436,10 +445,6 @@ export default function NewApplicationForm() {
   const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
     ? "Local" : "International";
 
-  // const academic_level = formData.academic_level && fees?.academic_level.find((a:any) => a.id === formData.academic_level)
-
-  // console.log('level', academic_level)
-
   const selectedFee = batch
     ? fees.find(
       fee =>
@@ -453,7 +458,7 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-  console.log('selected fee', selectedFee?.amount)
+  console.log('applicant Data', formData)
 
   const handleSubmit = async () => {
     try {
@@ -479,7 +484,7 @@ export default function NewApplicationForm() {
       formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
       formDataToSend.append("campus", formData.campus);
       formDataToSend.append("academic_level", formData.academic_level);
-      // formDataToSend.append("study_mode", formData.study_mode);
+      
       formDataToSend.append("status", "submitted");
 
       // Append nin or passportNumber if present (add these lines)
@@ -497,10 +502,16 @@ export default function NewApplicationForm() {
       formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
       formDataToSend.append("alevel_school", formData.aLevelSchool || "");
       formDataToSend.append("alevel_combination", formData.alevel_combination || "");
-      formDataToSend.append("additional_qualification_institution", formData.additionalQualificationInstitution || "");
-      formDataToSend.append("additional_qualification_type", formData.additionalQualificationType || "");
-      formDataToSend.append("additional_qualification_year", formData.additionalQualificationYear || "");
-      formDataToSend.append("class_of_award", formData.class_of_award || "");
+
+      // additional Qualifications
+      formDataToSend.append(
+        "additional_qualifications",
+        JSON.stringify(formData.additionalQualifications.filter(q => q.institution || q.type))
+      );
+      // formDataToSend.append("additional_qualification_institution", formData.additionalQualificationInstitution || "");
+      // formDataToSend.append("additional_qualification_type", formData.additionalQualificationType || "");
+      // formDataToSend.append("additional_qualification_year", formData.additionalQualificationYear || "");
+      // formDataToSend.append("class_of_award", formData.class_of_award || "");
 
       // Results as JSON strings
       formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
@@ -523,6 +534,10 @@ export default function NewApplicationForm() {
       if (formData.otherInstitutionDocuments) {
         formDataToSend.append("documents", formData.otherInstitutionDocuments);
         formDataToSend.append("document_types", "Others");
+      }
+
+      if (formData.externalReference) {
+        formDataToSend.append("external_reference", formData.externalReference);
       }
 
       // ONE SINGLE REQUEST – FAST & RELIABLE
@@ -581,6 +596,7 @@ export default function NewApplicationForm() {
       removeALevelSubject={removeALevelSubject}
       handleInputChange={handleInputChange}
       handleChange={handleChange}
+      setFormData={setFormData}
       formErrors={formErrors}
     />
   )
@@ -714,7 +730,7 @@ export default function NewApplicationForm() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Card sx={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
         <CardHeader
           title="New Application"
@@ -765,26 +781,14 @@ export default function NewApplicationForm() {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              // !formData.application_fee_paid ? (
-              //   <CustomButton
-              //     icon={<CheckCircleIcon />}
-              //     text="Pay Application Fee"
-              //     onClick={handleOpenPaymentModal}
-              //   />
-              // ) : (
-              //   <CustomButton
-              //     onClick={handleSubmit}
-              //     endIcon={<CheckCircleIcon />}
-              //     text={
-              //       submitLoader ? (
-              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-              //       ) : (
-              //         "Submit Application"
-              //       )
-              //     }
-              //   />
-              // )
-              <CustomButton
+              !formData.application_fee_paid ? (
+                <CustomButton
+                  icon={<CheckCircleIcon />}
+                  text="Pay Application Fee"
+                  onClick={handleOpenPaymentModal}
+                />
+              ) : (
+                <CustomButton
                   onClick={handleSubmit}
                   endIcon={<CheckCircleIcon />}
                   text={
@@ -795,6 +799,18 @@ export default function NewApplicationForm() {
                     )
                   }
                 />
+              )
+              // <CustomButton
+              //     onClick={handleSubmit}
+              //     endIcon={<CheckCircleIcon />}
+              //     text={
+              //       submitLoader ? (
+              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+              //       ) : (
+              //         "Submit Application"
+              //       )
+              //     }
+              //   />
             ) : (
               <CustomButton
                 onClick={handleNext}
@@ -830,9 +846,17 @@ export default function NewApplicationForm() {
       <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        onSuccess={() => {
-          setFormData(prev => ({ ...prev, application_fee_paid: true }));
-          // optional: show snackbar "Fee paid – you can now submit"
+        onPaymentSuccess={(externalRef?: string) => {
+          setFormData(prev => ({
+            ...prev,
+            application_fee_paid: true,
+            externalReference: externalRef || ""
+          }));
+
+          showNotification(
+            "Application fee paid successfully! You can now submit your application.",
+            "success"
+          );
         }}
         amountPaid={selectedFee?.amount ?? 0}
       />

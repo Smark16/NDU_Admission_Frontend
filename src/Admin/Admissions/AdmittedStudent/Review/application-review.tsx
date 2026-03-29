@@ -38,9 +38,10 @@ interface ApplicationReviewProps {
   olevelresults: any[]
   alevelresults: any[]
   documents: any[]
+  additionalQualifications:any[]
 }
 
-const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults }) => {
+const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [profileDownload, setProfileDownload] = useState(false)
   const navigate = useNavigate()
@@ -322,7 +323,9 @@ const handleDownloadProfile = async () => {
           <EducationalBackgroundSection 
           alevelresults={alevelresults} 
           olevelresults={olevelresults} 
-          application={application} />
+          application={application} 
+          additionalQualifications={additionalQualifications}
+          />
       
           {/* Documents Section */}
           <Card sx={{ mb: 3 }}>

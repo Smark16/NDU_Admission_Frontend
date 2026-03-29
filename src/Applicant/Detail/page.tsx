@@ -13,7 +13,6 @@ interface Reviewer {
   username: string
 }
 
-
 interface Application {
   id: number;
   first_name: string;
@@ -65,6 +64,13 @@ interface Document {
   name: string;
   file_url: string;
 }
+
+interface AdditionalQualififcations {
+  additional_qualification_institution: string
+  additional_qualification_type: string
+  additional_qualification_year: string
+  class_of_award: string
+}
 // --- End Interface Definitions ---
 
 export default function Home() {
@@ -75,6 +81,7 @@ export default function Home() {
   const [olevelresults, setOlevelResults] = useState<Result[]>([]);
   const [alevelresults, setAlevelResults] = useState<Result[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [qualifications, setQualifications] = useState<AdditionalQualififcations[]>([])
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDetail = async () => {
@@ -98,6 +105,7 @@ export default function Home() {
       setOlevelResults((response.data.olevel_results ?? []).map(norm));
       setAlevelResults((response.data.alevel_results ?? []).map(norm));
       setDocuments(response.data.documents);
+      setQualifications(response.data.qualifications)
       setIsLoading(false)
     } catch (err) {
       console.error("Failed to fetch application details:", err);
@@ -108,12 +116,10 @@ export default function Home() {
     }
   };
 
-  // console.log('alevel', alevelresults)
   useEffect(() => {
     fetchDetail();
   }, [id]);
 
-  // 1. Show loading state while data is being fetched
   {
     isLoading && !application && (
       <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -130,6 +136,7 @@ export default function Home() {
         olevelresults={olevelresults}
         alevelresults={alevelresults}
         documents={documents}
+        additionalQualifications={qualifications} 
       />
     </main>
   );

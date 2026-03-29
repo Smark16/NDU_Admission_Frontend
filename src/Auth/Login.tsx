@@ -15,17 +15,37 @@ import {
 } from "@mui/material";
 import Navbar from '../Navbar/Navbar';
 import { AuthContext } from '../Context/AuthContext';
-import cover_image from '../Images/cover_page.jpg'; 
+import cover_image from '../Images/cover_page.jpg';
+import EmailDialog from './send_email'
+import {api} from '../../lib/api'
 
 export default function Login() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("Login must be used within AuthProvider");
 
-  const { noAccount, loginLoading, loginUser, showErrorAlert } = context;
+  const { noAccount, loginLoading, loginUser, showErrorAlert, showSuccessAlert } = context;
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<Record<string, string>>({});
+  const [open, setOpen] = useState(false)
+
+  const handleOpen = () => setOpen(true)
+  const handleClose = () => setOpen(false)
+  const [loadEmail, setLoadEmail] = useState(false)
+
+  const handleEmailSubmit = async (email: string) => {
+    try{
+      setLoadEmail(true)
+      const res = await api.post('api/accounts/send_email', { email })
+      showSuccessAlert(`${res?.data?.detail}` || 'email sent successfully')
+    }catch(err:any){
+     showErrorAlert(`${err?.response?.data?.detail}` || 'something went wrong please try again')
+    }finally{
+      setLoadEmail(false)
+    }
+    // or any async operation
+  }
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -53,12 +73,13 @@ export default function Login() {
           backgroundImage: `url(${cover_image})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundAttachment: "fixed", 
+          backgroundAttachment: "fixed",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
           py: 4,
+          mt: 5
         }}
       >
         {/* Dark Overlay for Text Readability */}
@@ -145,10 +166,14 @@ export default function Login() {
 
               <Box textAlign="right" mb={3}>
                 <Link
-                  href="/forgot-password"
+                  // href="/forgot-password"
                   underline="hover"
                   color="primary"
+                  onClick={handleOpen}
                   fontWeight={500}
+                  sx={{
+                    cursor:"pointer"
+                  }}
                 >
                   Forgot Password?
                 </Link>
@@ -198,6 +223,16 @@ export default function Login() {
             </Box>
           </Paper>
         </Container>
+
+        <EmailDialog
+          open={open}
+          loading={loadEmail}
+          onClose={handleClose}
+          onSubmit={handleEmailSubmit}
+          title="Reset your password"
+          description="Enter your email address and we'll send you a reset link."
+          submitButtonText="Send Reset Link"
+        />
       </Box>
     </>
   );

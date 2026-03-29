@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import {
   Container,
   TextField,
-  Select,
-  MenuItem,
+  Autocomplete,
   TextareaAutosize,
   Button,
   Box,
@@ -15,12 +14,17 @@ import {
   CardContent,
   CardHeader,
   Alert,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   type SelectChangeEvent,
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
@@ -29,6 +33,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 
 import useAxios from "../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../ReUsables/custombutton"
+import useHook from "../../../Hooks/useHook"
 
 const StyledCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(3),
@@ -75,14 +80,16 @@ interface AdmittedData {
   id: number
   student_id: string
   reg_no: string
+  study_mode: string
   admission_notes: string
   admitted_program: Program
   admitted_campus: Campus
-  application: number  // ← this is the application ID
+  application: number  
 }
 
 export default function EditAdmittedStudentPage() {
   const { id } = useParams()
+  const { admissionBatch } = useHook()
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
@@ -90,8 +97,8 @@ export default function EditAdmittedStudentPage() {
   const [admittedData, setAdmittedData] = useState<AdmittedData | null>(null)
   const [campuses, setCampuses] = useState<Campus[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [loadApplication, setLoadApplication] = useState(false)
 
-  // Form state - pre-filled from backend
   const [formData, setFormData] = useState({
     student_id: "",
     reg_no: "",
@@ -118,14 +125,13 @@ export default function EditAdmittedStudentPage() {
     }
   }
 
-  // Step 1: Fetch admitted student data (contains application ID)
+  // Fetch admitted student data
   const getAdmittedData = async () => {
     try {
       const response = await AxiosInstance.get(`/api/admissions/candidate_admission/${id}/`)
       const data = response.data
       setAdmittedData(data)
 
-      // Pre-fill form with admitted data
       setFormData({
         student_id: data.student_id || "",
         reg_no: data.reg_no || "",
@@ -148,27 +154,24 @@ export default function EditAdmittedStudentPage() {
     if (!admittedData?.application) return
 
     try {
+      setLoadApplication(true)
       const response = await AxiosInstance.get(`/api/admissions/single_app/${admittedData.application}`)
       setApplication(response.data)
     } catch (err) {
       console.log("Failed to fetch application:", err)
+    }finally{
+      setLoadApplication(false)
     }
   }
 
-  // Run fetches in correct order
   useEffect(() => {
     fetchCampuses()
     getAdmittedData()
   }, [id])
 
-  // Fetch application only after admittedData is available
   useEffect(() => {
     getApplication()
-  }, [admittedData?.application]) 
-
-  console.log('admittedData', admittedData)
-  console.log('application ID from admitted', admittedData?.application)
-  console.log('full application object', application)
+  }, [admittedData?.application])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -186,6 +189,21 @@ export default function EditAdmittedStudentPage() {
       [name]: value,
     }))
   }
+
+  // Autocomplete handler for program
+  const handleProgramChange = (_event: React.SyntheticEvent, value: Program | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      program: value ? String(value.id) : "",
+    }))
+  }
+
+  const programOptions = useMemo(() => admissionBatch?.programs || [], [admissionBatch?.programs])
+
+  const selectedProgram = useMemo(() => {
+    if (!formData.program) return null
+    return programOptions.find((p:any) => p.id === Number(formData.program)) ?? null
+  }, [formData.program, programOptions])
 
   const handleSubmitClick = () => {
     if (!formData.student_id.trim() || !formData.reg_no.trim()) {
@@ -214,8 +232,8 @@ export default function EditAdmittedStudentPage() {
     const selectedCampusId = Number(formData.campus)
     const selectedCampus = campuses.find(c => c.id === selectedCampusId)
     const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
-    const selectedProgramCode = application.programs.find(p => p.id === Number(formData.program))?.code
-    const studyMode = (application.study_mode?.[0]?.toUpperCase()) || "D"
+    const selectedProgramCode = programOptions.find((p:any) => p.id === Number(formData.program))?.code
+    const studyMode = formData.study_mode
     const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
     const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
@@ -239,7 +257,7 @@ export default function EditAdmittedStudentPage() {
         admitted_campus: formData.campus,
         admitted_program: formData.program,
         admission_notes: formData.notes.trim(),
-        study_mode: formData.study_mode || application?.study_mode || "",
+        study_mode: formData.study_mode,
       }
 
       await AxiosInstance.patch(`/api/admissions/update_admission/${id}/`, payload)
@@ -273,9 +291,24 @@ export default function EditAdmittedStudentPage() {
     }
   }
 
+   if(loadApplication){
+    return ( 
+      <Box
+        sx={{
+          height: '100vh',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <CircularProgress size={30} thickness={4} sx={{ color: "#7c1519" }} />
+      </Box>
+    )
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header - unchanged */}
       <Box sx={{ mb: 4 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => window.history.back()} sx={{ mb: 2 }}>
           Back
@@ -288,7 +321,6 @@ export default function EditAdmittedStudentPage() {
         </Typography>
       </Box>
 
-      {/* Form Card - UI kept exactly as original */}
       <StyledCard>
         <CardHeader
           avatar={<CheckCircleIcon sx={{ color: "white" }} />}
@@ -314,27 +346,37 @@ export default function EditAdmittedStudentPage() {
             </Typography>
           </Alert>
 
+          {/* SEARCHABLE PROGRAM FIELD - now uses batch.programs */}
           <Box sx={{ mb: 3 }}>
-            <Select
+            <Autocomplete
+              options={programOptions}
+              getOptionLabel={(option) => `${option.name} (${option.code})`}
+              value={selectedProgram}
+              onChange={handleProgramChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Assigned Program"
+                  placeholder="Search and select program from active batch"
+                  variant="outlined"
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box>
+                    <Typography variant="body1">{option.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.code} • Faculty: {typeof option.faculty === 'string' ? option.faculty : option.faculty?.name || 'N/A'}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value?.id}
+              noOptionsText="No programs available in this batch"
               fullWidth
-              name="program"
-              value={formData.program}
-              onChange={handleSelectChange}
-              displayEmpty
-              variant="outlined"
-            >
-              <MenuItem value="" disabled>
-                Select Program
-              </MenuItem>
-              {application?.programs?.map((program, index) => (
-                <MenuItem key={program.id} value={program.id}>
-                  {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
-                  {program.name} ({program.code})
-                </MenuItem>
-              ))}
-            </Select>
+            />
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              Select which program to assign to this student.
+              Search for any program available in the current active batch/intake
             </Typography>
           </Box>
 
@@ -350,7 +392,7 @@ export default function EditAdmittedStudentPage() {
               <MenuItem value="" disabled>
                 Select Campus
               </MenuItem>
-              {campuses.map((c, _index) => (
+              {campuses.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
                   {admittedData?.admitted_campus?.id === c.id ? `Current: ${c.name}` : c.name}
                 </MenuItem>
@@ -358,6 +400,27 @@ export default function EditAdmittedStudentPage() {
             </Select>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
               Select campus for this student.
+            </Typography>
+          </Box>
+
+          <Box>
+            <FormControl fullWidth required>
+              <InputLabel>Study Mode</InputLabel>
+              <Select
+                name="study_mode"
+                value={formData.study_mode}
+                onChange={handleSelectChange}
+                label="Study Mode"
+              >
+                <MenuItem value="W">Weekend</MenuItem>
+                <MenuItem value="D">Day</MenuItem>
+                <MenuItem value="DL">Distance Learning</MenuItem>
+                <MenuItem value="DJ">Day January</MenuItem>
+                <MenuItem value="WJ">Weekend January</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography variant="caption" sx={{ mt: 1, display: "block", color: "#666" }}>
+              Select your preferred study mode
             </Typography>
           </Box>
 
@@ -432,7 +495,6 @@ export default function EditAdmittedStudentPage() {
         </CardContent>
       </StyledCard>
 
-      {/* Confirmation Dialog */}
       <Dialog open={openDialog} onClose={handleCancel}>
         <DialogTitle sx={{ fontWeight: 600 }}>Confirm Update</DialogTitle>
         <DialogContent>

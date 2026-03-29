@@ -38,9 +38,10 @@ interface ApplicationReviewProps {
   olevelresults: any[]
   alevelresults: any[]
   documents: any[]
+  additionalQualifications:any[]
 }
 
-const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults }) => {
+const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications }) => {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
@@ -135,6 +136,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setIsLoading(false)
     }
   }
+
+   const formatCurrency = (value: number): string => {
+        if (!value) return '0';
+        
+        return value.toLocaleString();
+    };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -299,7 +306,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
           <EducationalBackgroundSection 
           alevelresults={alevelresults} 
           olevelresults={olevelresults} 
-          application={application} />
+          application={application} 
+          additionalQualifications={additionalQualifications}
+          />
       
           {/* Documents Section */}
           <Card sx={{ mb: 3 }}>
@@ -406,6 +415,20 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 </Typography>
               </Box>
 
+              <Divider />
+
+               <Box>
+                <Typography variant="caption" color="textSecondary">
+                  Application Fee Amount
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, mt: 0.5, color: application.application_fee_paid ? "#4caf50" : "#f44336" }}
+                >
+                  UGX {formatCurrency(Number(application.application_fee_amount))}
+                </Typography>
+              </Box>
+              
               <Divider />
 
               <Box>

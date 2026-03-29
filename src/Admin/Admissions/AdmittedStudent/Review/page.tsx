@@ -15,7 +15,14 @@ interface Application {
   nationality: string;
   phone: string;
   email: string;
+  
+ // next_of_kin_name: string;
+  // next_of_kin_contact: string;
+  // next_of_kin_relationship: string;
+//  program: { name: string; code: string };
   batch: string;
+  // campus: { name: string };
+
   olevel_school: string;
   olevel_year: number;
   alevel_school: string;
@@ -52,6 +59,13 @@ interface Document {
   file_url:string;
 }
 
+interface AdditionalQualififcations {
+  additional_qualification_institution: string
+  additional_qualification_type: string
+  additional_qualification_year: string
+  class_of_award: string
+}
+
 export default function ReviewPage() {
    const AxiosInstance = useAxios();
     const { id } = useParams();
@@ -60,6 +74,7 @@ export default function ReviewPage() {
     const [olevelresults, setOlevelResults] = useState<Result[]>([]);
     const [alevelresults, setAlevelResults] = useState<Result[]>([]);
     const [documents, setDocuments] = useState<Document[]>([]);
+    const [qualifications, setQualifications] = useState<AdditionalQualififcations[]>([])
     const [isLoading, setIsLoading] = useState(true);
   
     const fetchDetail = async () => {
@@ -80,11 +95,12 @@ export default function ReviewPage() {
           subject: typeof r.subject === "object" ? r.subject : { id: r.subject, name: "???" },
         });
   
-  
+
         setApplication(response.data.application);
         setOlevelResults((response.data.olevel_results ?? []).map(norm));
         setAlevelResults((response.data.alevel_results ?? []).map(norm));
         setDocuments(response.data.documents);
+        setQualifications(response.data.qualifications)
       } catch (err) {
         console.error("Failed to fetch application details:", err);
        
@@ -126,6 +142,7 @@ export default function ReviewPage() {
         olevelresults={olevelresults}
         alevelresults={alevelresults}
         documents={documents}
+        additionalQualifications={qualifications} 
     />
   )
 }

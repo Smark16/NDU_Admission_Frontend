@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { CircularProgress, Box, useTheme, useMediaQuery } from '@mui/material'
 
 import Sidebar from '../Applicant/Sidebar/Sidebar'
@@ -7,6 +7,8 @@ import Sidebar1 from '../Admin/Sidebar/page'
 import '../Routes/routes.css'
 import PrivateRoute from '../PrivateRoutes/page'
 import Logout from '../Auth/Logout'
+import useHook from "../Hooks/useHook";
+import AdminRoute from './ProtectedRoutes'
 
 const ApplicantDashboard = lazy(() => import('../Applicant/Dashboard/ApplicantDashboard'))
 const NewApplication = lazy(() => import('../Applicant/NewApplication/NewApplication'))
@@ -14,6 +16,7 @@ const ApplicantProfile = lazy(() => import('../Applicant/Profile/ApplicantProfil
 const Home = lazy(() => import('../Applicant/Detail/page'))
 const Login = lazy(() => import('../Auth/Login'))
 const Register = lazy(() => import('../Auth/Register'))
+const ResetPasswordForm = lazy(()=>import('../Auth/ResetPassword'))
 
 // admin routes
 const UserManagement = lazy(() => import('../Admin/UserManagement/page'))
@@ -32,15 +35,34 @@ const AdmissionsReport = lazy(() => import('../Admin/Admissions/AdmissionReports
 const AddGroupDialog = lazy(() => import('../Admin/UserManagement/roles_permissions'))
 const FeeManagement = lazy(() => import('../Admin/Admissions/FeeManagement/page'))
 const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/page'))
-const EditAdmittedStudentPage = lazy(()=>import('../Admin/Admissions/AdmitStudent/edit_strudent'))
-const AuditLogs = lazy(()=>import('../Admin/AuditLogs/page'))
+const EditAdmittedStudentPage = lazy(() => import('../Admin/Admissions/AdmitStudent/edit_strudent'))
+const AuditLogs = lazy(() => import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
 
 function AppRoutes() {
+  const { batch, isBatchLoading  } = useHook()
+  console.log('active batch', batch)
   const location = useLocation()
   const drawerWidth = 0
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+
+  if (isBatchLoading) {
+    return (
+      <Box
+        sx={{
+          height: '100vh',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <CircularProgress size={60} thickness={4} sx={{ color: "#7c1519" }} />
+        {/* <Typography sx={{ ml: 3 }}>Loading active batch...</Typography> */}
+      </Box>
+    )
+  }
 
   const LoadingSpinner = () => (
     <Box
@@ -58,7 +80,7 @@ function AppRoutes() {
       <CircularProgress
         size={50}
         thickness={4}
-        sx={{color:"#7c1519"}}
+        sx={{ color: "#7c1519" }}
       />
     </Box>
   );
@@ -83,6 +105,7 @@ function AppRoutes() {
         <Route path='/' element={<Suspense fallback={<LoadingSpinner />}><Login /></Suspense>} />
         <Route path='/register' element={<Suspense fallback={<LoadingSpinner />}><Register /></Suspense>} />
         <Route path='logout' element={<Logout />} />
+        <Route path='/reset-password' element={<Suspense fallback={<LoadingSpinner />}><ResetPasswordForm/></Suspense>}/>
 
         {/* Applicant */}
         {isSidebarRoute && (
@@ -95,14 +118,25 @@ function AppRoutes() {
                   sx={{
                     flexGrow: 1,
                     width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
-                    ml: { xs: 0, md: `${drawerWidth}px` }, 
-                    mt: { xs: "64px", md: 0 },       
+                    ml: { xs: 0, md: `${drawerWidth}px` },
+                    mt: { xs: "64px", md: 0 },
                     transition: "margin 0.3s ease-in-out",
                   }}
                 >
                   <Routes>
                     <Route path='dashboard' element={<Suspense fallback={<LoadingSpinner />}><ApplicantDashboard /></Suspense>} />
-                    <Route path='new_application' element={<Suspense fallback={<LoadingSpinner />}>< NewApplication /></Suspense>} />
+                    <Route
+                      path="new_application"
+                      element={
+                        batch?.is_active ? (
+                          <Suspense fallback={<LoadingSpinner />}>
+                            <NewApplication />
+                          </Suspense>
+                        ) : (
+                          <Navigate to="/applicant/dashboard" replace />
+                        )
+                      }
+                    />
                     <Route path='detail/:id' element={<Suspense fallback={<LoadingSpinner />}><Home /></Suspense>} />
                     <Route path='profile' element={<Suspense fallback={<LoadingSpinner />}><ApplicantProfile /></Suspense>} />
                   </Routes>
@@ -130,25 +164,114 @@ function AppRoutes() {
                 }}
               >
                 <Routes>
-                  <Route path='/user_management' element={<Suspense fallback={<LoadingSpinner />}><UserManagement /></Suspense>} />
-                  <Route path='/campus_management' element={<Suspense fallback={<LoadingSpinner />}><CampusManagement /></Suspense>} />
+                  <Route path='/user_management' element={
+                     <AdminRoute permission='accounts.view_user'>
+                       <Suspense fallback={<LoadingSpinner />}><UserManagement /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/campus_management' element={
+                     <AdminRoute permission='accounts.view_campus'>
+                       <Suspense fallback={<LoadingSpinner />}><CampusManagement /></Suspense>
+                     </AdminRoute>
+                    } />
+                    
                   <Route path='/admission_dashboard' element={<Suspense fallback={<LoadingSpinner />}><AdmissionDashboard /></Suspense>} />
-                  <Route path='/admit_student/:id' element={<Suspense fallback={<LoadingSpinner />}><AdmitStudentPage /></Suspense>} />
-                  <Route path='/edit_admitted_student/:id' element={<Suspense fallback={<LoadingSpinner />}><EditAdmittedStudentPage /></Suspense>}/>
-                  <Route path='/admited_students' element={<Suspense fallback={<LoadingSpinner />}><AdmittedStudents /></Suspense>} />
-                  <Route path='/application_list' element={<Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>} />
-                  <Route path='/intake' element={<Suspense fallback={<LoadingSpinner />}><BatchManagement /></Suspense>} />
-                  <Route path='/faculty-management' element={<Suspense fallback={<LoadingSpinner />}><FacultyManagement /></Suspense>} />
-                  <Route path='/program_list' element={<Suspense fallback={<LoadingSpinner />}><ProgramManagement /></Suspense>} />
-                  <Route path='/application_review/:id' element={<Suspense fallback={<LoadingSpinner />}>< ReviewPage /></Suspense>} />
-                  <Route path='/admitted_student_review/:id' element={<Suspense fallback={<LoadingSpinner />}>< ApplicationReviewPage /></Suspense>} />
-                  <Route path="/set_up" element={<Suspense fallback={<LoadingSpinner />}><SetUpPage /></Suspense>} />
-                  <Route path='/admission-reports' element={<Suspense fallback={<LoadingSpinner />}><AdmissionsReport /></Suspense>} />
-                  <Route path='/roles-permissions' element={<Suspense fallback={<LoadingSpinner />}><AddGroupDialog /></Suspense>} />
-                  <Route path='/fee-management' element={<Suspense fallback={<LoadingSpinner />}><FeeManagement /></Suspense>} />
-                  <Route path='/academic-levels' element={<Suspense fallback={<LoadingSpinner />}><AcademicLevels /></Suspense>} />
-                  <Route path='/logs' element={<Suspense fallback={<LoadingSpinner />}><AuditLogs/></Suspense>}/>
-                  <Route path='/finance' element={<Suspense fallback={<LoadingSpinner />}><Finance/></Suspense>}/>
+
+                  <Route path='/admit_student/:id' element={
+                     <AdminRoute permission='admissions.add_admittedstudent'>
+                       <Suspense fallback={<LoadingSpinner />}><AdmitStudentPage /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/edit_admitted_student/:id' element={
+                     <AdminRoute permission='admissions.change_admittedstudent'>
+                       <Suspense fallback={<LoadingSpinner />}><EditAdmittedStudentPage /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/admited_students' element={
+                     <AdminRoute permission='admissions.view_admittedstudent'>
+                       <Suspense fallback={<LoadingSpinner />}><AdmittedStudents /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/application_list' element={
+                     <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/intake' element={
+                     <AdminRoute permission='admissions.view_batch'>
+                       <Suspense fallback={<LoadingSpinner />}><BatchManagement /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/faculty-management' element={
+                     <AdminRoute permission='admissions.view_faculty'>
+                       <Suspense fallback={<LoadingSpinner />}><FacultyManagement /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/program_list' element={
+                     <AdminRoute permission='Programs.view_program'>
+                       <Suspense fallback={<LoadingSpinner />}><ProgramManagement /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/application_review/:id' element={
+                     <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}>< ReviewPage /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/admitted_student_review/:id' element={
+                     <AdminRoute permission='admissions.view_admittedstudent'>
+                       <Suspense fallback={<LoadingSpinner />}>< ApplicationReviewPage /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path="/set_up" element={
+                     <AdminRoute permission='AdmissionReports.view_setup'>
+                       <Suspense fallback={<LoadingSpinner />}><SetUpPage /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                  <Route path='/admission-reports' element={
+                    <AdminRoute permission='AdmissionReports.view_admissionreports'>
+                      <Suspense fallback={<LoadingSpinner />}><AdmissionsReport /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/roles-permissions' element={
+                    <AdminRoute permission='auth.view_group'>
+                      <Suspense fallback={<LoadingSpinner />}><AddGroupDialog /></Suspense>
+                    </AdminRoute>
+                    } />
+                  <Route path='/fee-management' element={
+                    <AdminRoute permission='payments.view_applicationfee'>
+                      <Suspense fallback={<LoadingSpinner />}><FeeManagement /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/academic-levels' element={
+                    <AdminRoute permission='admissions.view_academiclevel'>
+                      <Suspense fallback={<LoadingSpinner />}><AcademicLevels /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/logs' element={
+                    <AdminRoute permission='audit.view_auditlog'>
+                      <Suspense fallback={<LoadingSpinner />}><AuditLogs /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/finance' element={
+                     <AdminRoute permission='payments.view_applicationpayment'>
+                       <Suspense fallback={<LoadingSpinner />}><Finance /></Suspense>
+                     </AdminRoute>
+                    } />
                 </Routes>
               </Box>
             </Box>

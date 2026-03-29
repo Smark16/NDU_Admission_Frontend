@@ -13,20 +13,17 @@ interface ApplicationDetailProps {
   olevelresults: any[]
   alevelresults: any[]
   documents: any[]
+  additionalQualifications:any[]
 }
 
-export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents }: ApplicationDetailProps) {
-  // const theme = useTheme()
-  // const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-
+export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents, additionalQualifications }: ApplicationDetailProps) {
+ 
   const statusColors: Record<string, "success" | "error" | "info" | "warning"> = {
     accepted: "success",
     rejected: "error",
     submitted: "info",
     draft: "warning",
   }
-
-  console.log('application', olevelresults)
 
   return (
     <>
@@ -72,7 +69,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
               <PersonalInfoSection application={application} />
               <AcademicInfoSection application={application} />
-              <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} />
+              <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />
               <DocumentsSection documents={documents} />
               <PassportPhotoSection application={application} />
             </Box>

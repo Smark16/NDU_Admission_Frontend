@@ -11,7 +11,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Chip,
   Alert,
   LinearProgress,
 } from "@mui/material";
@@ -109,11 +108,6 @@ export default function AdmissionsReport() {
   const facultyAdmittedData: FacultyAdmitted[] = facultyChartStats?.faculty_data ?? [];
   const totalAdmitted = facultyAdmittedData.reduce((s, i) => s + i.admitted, 0);
 
-  const feeCollectionData = [
-    { name: "Local", value: 28500, color: "#667eea" },
-    { name: "International", value: 18200, color: "#f093fb" },
-  ];
-
   /* ------------------- UI ------------------------------------------ */
   return (
     <Box sx={{ p: 3, bgcolor: "background.default", minHeight: "100vh" }}>
@@ -150,13 +144,9 @@ export default function AdmissionsReport() {
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {[
           { label: "Total Applications", value: selectedStat?.total_applications ?? 0, grad: "135deg, #667eea 0%, #764ba2 100%" },
-          { label: "Accepted", value: selectedStat?.accepted ?? 0, grad: "135deg, #f093fb 0%, #f5576c 100%" },
-          { label: "Pending", value: selectedStat?.pending ?? 0, grad: "135deg, #4facfe 0%, #00f2fe 100%" },
-          { label: "Rejected", value: selectedStat?.rejected ?? 0, grad: "135deg, #fa709a 0%, #fee140 100%" },
-          { label: "Total Admitted", value: selectedStat?.total_admitted ?? 0, grad: "135deg, #10b981 0%, #059669 100%" },
-          { label: "Fees Collected", value: "UGX 46,700", grad: "135deg, #f59e0b 0%, #d97706 100%" },
-          { label: "Local Fees", value: "UGX 28,500", grad: "135deg, #8b5cf6 0%, #7c3aed 100%" },
-          { label: "International Fees", value: "UGX 18,200", grad: "135deg, #ec4899 0%, #be185d 100%" },
+          { label: "Pending Applications", value: selectedStat?.pending ?? 0, grad: "135deg, #8b5cf6 0%, #7c3aed 100%" },
+          { label: "Rejected Applications", value: selectedStat?.rejected ?? 0, grad: "135deg, #ec4899 0%, #be185d 100%" },
+          { label: "Total Admitted Students", value: selectedStat?.total_admitted ?? 0, grad: "135deg, #10b981 0%, #059669 100%" },
         ].map((c, i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ background: `linear-gradient(${c.grad})` }}>
@@ -165,8 +155,6 @@ export default function AdmissionsReport() {
                 {isLoading ? <LinearProgress/> : (
                   <Typography sx={{ color: "white", fontSize: 28, fontWeight: 700, mb: 1 }}>{c.value}</Typography>
                 )}
-                <Chip label={i < 5 ? "↑ 12%" : "61%"} size="small"
-                  sx={{ background: "rgba(255,255,255,0.2)", color: "white", fontSize: 11 }} />
               </CardContent>
             </Card>
           </Grid>
@@ -174,7 +162,7 @@ export default function AdmissionsReport() {
       </Grid>
 
       {/* ---------- CHARTS ---------- */}
-      <Charts facultyAdmittedData={facultyAdmittedData} feeCollectionData={feeCollectionData} totalAdmitted={totalAdmitted} />
+      <Charts facultyAdmittedData={facultyAdmittedData} totalAdmitted={totalAdmitted} />
 
       {/* ---------- APPLICANTS TABLE ---------- */}
       <ApplicantsDB
