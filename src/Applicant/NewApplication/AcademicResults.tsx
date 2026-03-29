@@ -522,7 +522,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  FormHelperText,
 } from "@mui/material";
 import {
   School as SchoolIcon,
@@ -570,7 +569,6 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
   handleOLevelSubjectChange,
   addOLevelSubject,
   addALevelSubject,
-  handleChange,
   handleInputChange,
   removeOLevelSubject,
   handleALevelSubjectChange,

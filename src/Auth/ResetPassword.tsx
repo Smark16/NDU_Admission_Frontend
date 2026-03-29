@@ -67,7 +67,7 @@ export default function ResetPasswordForm() {
     setError(null)
 
     try {
-      const response = await api.post("/api/accounts/reset_password/confirm/", {
+      await api.post("/api/accounts/reset_password/confirm/", {
         password: password,
         password2: confirmPassword,
         uidb64: uidb64,
