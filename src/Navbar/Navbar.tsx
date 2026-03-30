@@ -67,10 +67,10 @@ export default function Navbar() {
             <ListItemButton
               component={RouterLink}
               to={item.path}
-              onClick={handleNavClick}          // ← delayed close
+              onClick={handleNavClick}          
               sx={{
                 borderRadius: 2,
-                py: 2,                          // larger touch target
+                py: 2,                        
                 bgcolor: item.label === "Register" ? "#3e397b" : "#f8f9fa",
                 color: item.label === "Register" ? "white" : "#3e397b",
                 "&:hover": {
@@ -96,10 +96,10 @@ export default function Navbar() {
   return (
     <>
       <AppBar
-        position="fixed"              // ← changed to fixed (common for mobile nav)
+        position="fixed"           
         elevation={0}
         sx={{
-          background: "linear-gradient(135deg, #7c1519 0%, #7c1519 100%)",
+          background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
           color: "white",
           boxShadow: "0 4px 20px rgba(13, 71, 161, 0.25)",
         }}
@@ -186,7 +186,7 @@ export default function Navbar() {
                 },
               }}
             >
-              Register Now
+              Apply Now
             </Button>
           </Box>
 

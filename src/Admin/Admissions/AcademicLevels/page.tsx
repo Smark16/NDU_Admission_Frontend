@@ -62,7 +62,7 @@ export default function AcademicLevels() {
   const fetchAcademicLevels = async () => {
     try {
       setIsLoading(true)
-      const response = await AxiosInstance.get('/api/admissions/list_academic_level')
+      const response = await AxiosInstance.get('/api/admissions/list_admin_academic_level')
       setLevels(response.data)
       setIsLoading(false)
     } catch (err) {
