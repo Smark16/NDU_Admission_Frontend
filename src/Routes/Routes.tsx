@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { CircularProgress, Box, useTheme, useMediaQuery } from '@mui/material'
 
 import Sidebar from '../Applicant/Sidebar/Sidebar'
@@ -7,7 +7,6 @@ import Sidebar1 from '../Admin/Sidebar/page'
 import '../Routes/routes.css'
 import PrivateRoute from '../PrivateRoutes/page'
 import Logout from '../Auth/Logout'
-import useHook from "../Hooks/useHook";
 import AdminRoute from './ProtectedRoutes'
 
 const ApplicantDashboard = lazy(() => import('../Applicant/Dashboard/ApplicantDashboard'))
@@ -40,29 +39,10 @@ const AuditLogs = lazy(() => import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
 
 function AppRoutes() {
-  const { batch, isBatchLoading  } = useHook()
-  console.log('active batch', batch)
   const location = useLocation()
   const drawerWidth = 0
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
-
-  if (isBatchLoading) {
-    return (
-      <Box
-        sx={{
-          height: '100vh',
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <CircularProgress size={60} thickness={4} sx={{ color: "#7c1519" }} />
-        {/* <Typography sx={{ ml: 3 }}>Loading active batch...</Typography> */}
-      </Box>
-    )
-  }
 
   const LoadingSpinner = () => (
     <Box
@@ -125,18 +105,7 @@ function AppRoutes() {
                 >
                   <Routes>
                     <Route path='dashboard' element={<Suspense fallback={<LoadingSpinner />}><ApplicantDashboard /></Suspense>} />
-                    <Route
-                      path="new_application"
-                      element={
-                        batch?.is_active ? (
-                          <Suspense fallback={<LoadingSpinner />}>
-                            <NewApplication />
-                          </Suspense>
-                        ) : (
-                          <Navigate to="/applicant/dashboard" replace />
-                        )
-                      }
-                    />
+                    <Route path="new_application" element={<Suspense fallback={<LoadingSpinner />}><NewApplication /></Suspense>}/>
                     <Route path='detail/:id' element={<Suspense fallback={<LoadingSpinner />}><Home /></Suspense>} />
                     <Route path='profile' element={<Suspense fallback={<LoadingSpinner />}><ApplicantProfile /></Suspense>} />
                   </Routes>

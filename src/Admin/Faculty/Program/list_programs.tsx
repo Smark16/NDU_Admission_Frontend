@@ -1,5 +1,5 @@
 // components/program/ListPrograms.tsx
-import React from "react"
+import React from "react";
 import {
   Box,
   Chip,
@@ -13,32 +13,32 @@ import {
   TableRow,
   Typography,
   Switch,
-} from "@mui/material"
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material"
+} from "@mui/material";
+import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 
 interface Campus {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
 interface Program {
-  id: number
-  name: string
-  short_form: string
-  code: string
-  academic_level: string
-  campuses: Campus[]
-  faculty: string
-  min_years: number | undefined
-  max_years: number | undefined
-  is_active: boolean
+  id: number;
+  name: string;
+  short_form: string;
+  code: string;
+  academic_level: string;
+  campuses: Campus[];
+  faculty: string;
+  min_years?: number;        // Made optional with ?
+  max_years?: number;        // Made optional with ?
+  is_active: boolean;
 }
 
 interface ListProgramsProps {
-  programs: Program[]
-  onEdit: (program: Program) => void
-  onDelete: (id: number) => void
-  onToggleStatus: (id: number) => void
+  programs: Program[];
+  onEdit: (program: Program) => void;
+  onDelete: (id: number) => void;
+  onToggleStatus: (id: number) => void;
 }
 
 const ListPrograms: React.FC<ListProgramsProps> = ({
@@ -52,24 +52,24 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography color="textSecondary">No programs found</Typography>
       </Paper>
-    )
+    );
   }
 
   return (
     <TableContainer component={Paper} sx={{ boxShadow: 2, mt: 3 }}>
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#3e397b"}}>
+          <TableRow sx={{ backgroundColor: "#3e397b" }}>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Program Name</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Short Form</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Code</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Faculty</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Level</TableCell>
-            <TableCell sx={{ fontWeight: 600, color: "white"  }}>Campuses</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: "white"  }}>Min Years</TableCell>
-            <TableCell align="center" sx={{ fontWeight: 600, color: "white"  }}>Max Years</TableCell>
-            <TableCell align="center" sx={{ fontWeight: 600, color: "white"  }}>Status</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 600, color: "white"  }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Short Form</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Code</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Faculty</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Level</TableCell>
+            <TableCell sx={{ fontWeight: 600, color: "white" }}>Campuses</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, color: "white" }}>Min Years</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Max Years</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Status</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600, color: "white" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -117,13 +117,13 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
                 <Switch
                   checked={program.is_active}
                   onChange={() => onToggleStatus(program.id)}
-                  sx={{color:"#3e397b"}}
+                  sx={{ color: "#3e397b" }}
                 />
               </TableCell>
               <TableCell align="right">
                 <IconButton
                   size="small"
-                  sx={{color:"#3e397b"}}
+                  sx={{ color: "#3e397b" }}
                   onClick={() => onEdit(program)}
                 >
                   <EditIcon fontSize="small" />
@@ -141,7 +141,7 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
         </TableBody>
       </Table>
     </TableContainer>
-  )
-}
+  );
+};
 
-export default ListPrograms
+export default ListPrograms;

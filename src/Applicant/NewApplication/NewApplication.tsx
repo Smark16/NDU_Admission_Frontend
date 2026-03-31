@@ -508,10 +508,6 @@ export default function NewApplicationForm() {
         "additional_qualifications",
         JSON.stringify(formData.additionalQualifications.filter(q => q.institution || q.type))
       );
-      // formDataToSend.append("additional_qualification_institution", formData.additionalQualificationInstitution || "");
-      // formDataToSend.append("additional_qualification_type", formData.additionalQualificationType || "");
-      // formDataToSend.append("additional_qualification_year", formData.additionalQualificationYear || "");
-      // formDataToSend.append("class_of_award", formData.class_of_award || "");
 
       // Results as JSON strings
       formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));

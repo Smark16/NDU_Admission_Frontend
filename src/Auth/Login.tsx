@@ -217,7 +217,7 @@ export default function Login() {
                   fontWeight={600}
                   color="#1a1a1a"
                 >
-                  Register here
+                  Apply here
                 </Link>
               </Stack>
             </Box>
