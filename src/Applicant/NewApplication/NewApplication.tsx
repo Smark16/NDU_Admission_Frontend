@@ -189,9 +189,8 @@ export default function NewApplicationForm() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // auto save
-  const [isDraftSaved, setIsDraftSaved] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
+  // const [isDraftSaved, setIsDraftSaved] = useState(false);
+  // const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // payment modal handlers
   const handleOpenPaymentModal = () => {
@@ -569,7 +568,7 @@ export default function NewApplicationForm() {
 
     const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
 
-    setLastSaved(new Date());
+    // setLastSaved(new Date());
 
     if (showMessage) {
       showSuccessAlert(`${response?.data?.message}`)
