@@ -115,10 +115,6 @@ interface FormData {
   aLevelSubjects: SubjectResult[]
   // study_mode: string
   alevel_combination: string
-  // additionalQualificationInstitution: string
-  // additionalQualificationType: string
-  // additionalQualificationYear: string
-  // class_of_award: string
   additionalQualifications: Array<{
     institution: string;
     type: string;
@@ -137,7 +133,7 @@ export default function NewApplicationForm() {
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser } = useContext(AuthContext) || {}
+  const { loggeduser, showErrorAlert, showSuccessAlert } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
   const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
@@ -175,9 +171,6 @@ export default function NewApplicationForm() {
     aLevelSchool: "",
     aLevelSubjects: [{ id: "1", subject: "", grade: "" }],
     alevel_combination: "",
-    // additionalQualificationInstitution: "",
-    // additionalQualificationType: "",
-    // additionalQualificationYear: "",
     additionalQualifications: [],
     passportPhoto: null,
     oLevelDocuments: null,
@@ -194,6 +187,11 @@ export default function NewApplicationForm() {
   } | null>(null)
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+
+  // auto save
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
 
   // payment modal handlers
   const handleOpenPaymentModal = () => {
@@ -559,29 +557,106 @@ export default function NewApplicationForm() {
     }
   };
 
+  // HANDLE SAVE DRAFT
+ const saveDraft = async (showMessage = false) => {
+  try {
+    const draftData = {
+      ...formData,
+      applicant: loggeduser?.user_id,
+      batch: batch?.id,
+      status: "draft",
+    };
+
+    const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
+
+    setLastSaved(new Date());
+
+    if (showMessage) {
+      showSuccessAlert(`${response?.data?.message}`)
+    }
+  } catch (err) {
+    console.error("Failed to save draft", err);
+    if (showMessage) {
+      showNotification("Failed to save draft", "error");
+    }
+  }
+};
+
+const loadDraft = async () => {
+  try {
+    const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+
+    if (data?.draft_exists && data?.data) {
+      setFormData(prev => ({
+        ...prev,
+        ...data.data,
+        // Ensure arrays are not overwritten with undefined
+        oLevelSubjects: data.data.oLevelSubjects || prev.oLevelSubjects,
+        aLevelSubjects: data.data.aLevelSubjects || prev.aLevelSubjects,
+        additionalQualifications: data.data.additionalQualifications || [],
+        programs: data.data.programs || [],
+      }));
+
+      // Show loading message only once
+      showSuccessAlert("Previous draft loaded successfully")
+    }
+  } catch (err) {
+    console.log("No draft found or error loading draft");
+    showErrorAlert("No draft found or error loading draft")
+  } 
+};
+
+// Main useEffect - Runs once on mount + when activeStep changes
+useEffect(() => {
+  loadDraft();
+
+  // Auto-save every 8 seconds (silent by default)
+  const interval = setInterval(() => {
+    if (activeStep < 4) {
+      saveDraft(false);        // silent save - no notification
+    }
+  }, 8000);
+
+  return () => clearInterval(interval);
+}, [activeStep]);   // Only depend on activeStep, NOT formData
+
   // personal details
   const renderPersonalDetails = () => (
-    <PersonalInfo
-      formData={formData}
-      handleInputChange={handleInputChange}
-      handleChange={handleChange}
-      setFormData={setFormData}
-      formErrors={formErrors}
-    />
+    <>
+    {notification && (
+        <Alert
+          severity={notification.type}
+          onClose={() => setNotification(null)}
+          sx={{ mb: 3 }}
+        >
+          {notification.message}
+        </Alert>
+      )}
+      <PersonalInfo
+        formData={formData}
+        handleInputChange={handleInputChange}
+        handleChange={handleChange}
+        setFormData={setFormData}
+        formErrors={formErrors}
+      />
+    </>
   )
 
   // programs
   const renderPrograms = () => (
+    <>
     <Programs
       formData={formData}
       handleChange={handleChange}
       setFormData={setFormData}
       formErrors={formErrors}
     />
+    </>
   )
 
   // academic results
   const renderAcademicResults = () => (
+    <>
     <AcademicResults
       formData={formData}
       handleOLevelSubjectChange={handleOLevelSubjectChange}
@@ -595,16 +670,19 @@ export default function NewApplicationForm() {
       setFormData={setFormData}
       formErrors={formErrors}
     />
+    </>
   )
 
   // documents
   const renderDocuments = () => (
+    <>
     <Documents
       formData={formData}
       handleFileChange={handleFileChange}
       setFormData={setFormData}
       formErrors={formErrors}
     />
+    </>
   )
 
   const renderReview = () => (
