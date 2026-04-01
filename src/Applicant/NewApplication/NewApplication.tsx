@@ -133,7 +133,7 @@ export default function NewApplicationForm() {
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser, showErrorAlert, showSuccessAlert } = useContext(AuthContext) || {}
+  const { loggeduser, showErrorAlert = ()=>{}, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
   const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
