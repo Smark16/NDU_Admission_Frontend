@@ -133,7 +133,7 @@ export default function NewApplicationForm() {
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser, showErrorAlert = ()=>{}, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
+  const { loggeduser, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
   const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
@@ -586,38 +586,50 @@ const loadDraft = async () => {
     const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
     if (data?.draft_exists && data?.data) {
-      setFormData(prev => ({
-        ...prev,
-        ...data.data,
-        // Ensure arrays are not overwritten with undefined
-        oLevelSubjects: data.data.oLevelSubjects || prev.oLevelSubjects,
-        aLevelSubjects: data.data.aLevelSubjects || prev.aLevelSubjects,
-        additionalQualifications: data.data.additionalQualifications || [],
-        programs: data.data.programs || [],
-      }));
+      setFormData((prev) => {
+        const draftData = data.data;
 
-      // Show loading message only once
-      showSuccessAlert("Previous draft loaded successfully")
+        return {
+          ...prev,                    
+          ...draftData,             
+
+          // ←←← PRESERVE FILE FIELDS (they are never in draft)
+          passportPhoto: prev.passportPhoto,
+          oLevelDocuments: prev.oLevelDocuments,
+          aLevelDocuments: prev.aLevelDocuments,
+          otherInstitutionDocuments: prev.otherInstitutionDocuments,
+
+          // Ensure arrays are not overwritten incorrectly
+          oLevelSubjects: draftData.oLevelSubjects || prev.oLevelSubjects,
+          aLevelSubjects: draftData.aLevelSubjects || prev.aLevelSubjects,
+          additionalQualifications: draftData.additionalQualifications || prev.additionalQualifications,
+          programs: draftData.programs || prev.programs,
+        };
+      });
+
+      showSuccessAlert("Previous draft loaded successfully");
     }
   } catch (err) {
     console.log("No draft found or error loading draft");
-    showErrorAlert("No draft found or error loading draft")
-  } 
+    // Optional: remove this alert if it's annoying on every refresh
+    // showErrorAlert("No draft found or error loading draft");
+  }
 };
 
 // Main useEffect - Runs once on mount + when activeStep changes
+// Initial load + auto-save setup (runs ONLY ONCE when component mounts)
 useEffect(() => {
   loadDraft();
 
-  // Auto-save every 8 seconds (silent by default)
+  // Auto-save every 8 seconds (silent)
   const interval = setInterval(() => {
-    if (activeStep < 4) {
-      saveDraft(false);        // silent save - no notification
+    if (activeStep < 4) {           // don't save while on Review step
+      saveDraft(false);
     }
   }, 8000);
 
   return () => clearInterval(interval);
-}, [activeStep]);   // Only depend on activeStep, NOT formData
+}, []); // ←←← Empty dependency = runs only once
 
   // personal details
   const renderPersonalDetails = () => (
