@@ -163,7 +163,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF or ZIP
+            Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF
             file.
           </Typography>
           <Paper
@@ -181,7 +181,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="oLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip,.jpg,.jpeg,.png"
+              accept=".pdf"
               style={{ display: "none" }}
               id="olevel-docs"
             />
@@ -191,7 +191,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP, JPG, or PNG (Max 10MB)
+                PDF (Max 10MB)
               </Typography>
               {formData.oLevelDocuments && (
                 <Chip
@@ -228,7 +228,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload your A-Level examination results/certificates. You can upload multiple documents as a single PDF or ZIP
+            Upload your A-Level examination results/certificates. You can upload multiple documents as a single PDF
             file.
           </Typography>
           <Paper
@@ -246,7 +246,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="aLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip,.jpg,.jpeg,.png"
+              accept=".pdf"
               style={{ display: "none" }}
               id="alevel-docs"
             />
@@ -256,7 +256,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP, JPG, or PNG (Max 10MB)
+                PDF (Max 10MB)
               </Typography>
               {formData.aLevelDocuments && (
                 <Chip
@@ -312,7 +312,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="otherInstitutionDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip,.jpg,.jpeg,.png"
+              accept=".pdf,.zip"
               style={{ display: "none" }}
               id="other-docs"
             />
@@ -322,7 +322,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP, JPG, or PNG (Max 10MB) - Optional
+                PDF, ZIP (Max 10MB) - Optional
               </Typography>
               {formData.otherInstitutionDocuments && (
                 <Chip

@@ -43,6 +43,8 @@ interface ApplicationReviewProps {
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [docLoading, setDocLoading] = useState(false)
+  const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
@@ -114,8 +116,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     }
   }
 
-  const downloadDocument = async (url: string, filename: string) => {
+  const downloadDocument = async (url: string, filename: string, seletedId:number) => {
+    setSelectedID(seletedId)
     try {
+      setDocLoading(true)
       const response = await fetch(url, { mode: "cors" });
       if (!response.ok) throw new Error("Network response was not ok");
 
@@ -134,6 +138,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     } catch (error) {
       console.error("Failed to download document:", error);
       showNotification("Failed to download document:", "error")
+    }finally{
+      setDocLoading(false)
     }
   };
 
@@ -373,8 +379,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                           <CustomButton
                             variant="outlined"
                             icon={<FileDownloadIcon />}
-                            onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
-                            text='Download'
+                            onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name, doc?.id)}
+                            text={selectedID === doc?.id && docLoading ? "Downloading..." : "Download"}
                             sx={{
                               borderColor: "#7c1519",
                               color: "#7c1519"
