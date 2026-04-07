@@ -45,7 +45,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [isLoading, setIsLoading] = useState(false)
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
-  const [profileDownload, setProfileDownload] = useState(false)
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
@@ -78,27 +77,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     if (status.toLowerCase() === "accepted") return <CheckCircleIcon />
     return <WarningIcon />
   }
-
-  const handleDownloadProfile = async () => {
-    try {
-      setProfileDownload(true)
-      const response = await AxiosInstance.get(`/api/admissions/student-profile/pdf/${application.id}/`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Admission_Letter.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setProfileDownload(false)
-    } catch (error: any) {
-      console.error("Download failed", error);
-      showNotification(`${error?.response?.detail?.data}` || 'something went wrong', "error")
-      setProfileDownload(false)
-    }
-  };
 
   const handleReject = async () => {
     try {
@@ -202,7 +180,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     Application ID: #{application.id} • {application.batch}
                   </Typography>
                 </Box>
-                <CustomButton text={profileDownload ? "downloading..." : "DownLoad Profile"} startIcon={<FileDownloadIcon />} onClick={handleDownloadProfile} />
               </Box>
             </CardContent>
           </Card>
