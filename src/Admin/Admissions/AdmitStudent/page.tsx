@@ -207,12 +207,6 @@ export default function AdmitStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  const handleprogramcodegeneration = (code: string) => {
-    const selectedProgramCode =code?.match(/^\d+/)?.[0] || ""
-    return selectedProgramCode
-  }
-  console.log(handleprogramcodegeneration('3024DAY'))
-
   // handle reg No generation
  const handleGenerateRegNo = () => {
   if (!application) return
@@ -226,9 +220,7 @@ export default function AdmitStudentPage() {
   const campusNumber = campusName.includes("kampala") ? "2" : "1"
  
   const program = application.programs.find(p => p.id === Number(formData.program))
-  console.log('selectedprogram',program)
-  const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || ""
-  console.log('selectedprogracode',selectedProgramCode)
+  const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
 
   const studyMode = formData?.study_mode
 
