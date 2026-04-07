@@ -232,7 +232,7 @@ export default function EditAdmittedStudentPage() {
   const year = new Date().getFullYear().toString().slice(-2)
 
   const selectedCampusId = Number(formData.campus)
-  const selectedCampus = campus.find(c => c.id === selectedCampusId)
+  const selectedCampus = campuses.find(c => c.id === selectedCampusId)
   
   const campusName = selectedCampus?.name?.toLowerCase() || ""
   const campusNumber = campusName.includes("kampala") ? "2" : "1"
