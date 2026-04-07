@@ -225,20 +225,31 @@ export default function EditAdmittedStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  const handleGenerateRegNo = () => {
-    if (!application) return
+   // handle reg No generation
+ const handleGenerateRegNo = () => {
+  if (!application) return
 
-    const year = new Date().getFullYear().toString().slice(-2)
-    const selectedCampusId = Number(formData.campus)
-    const selectedCampus = campuses.find(c => c.id === selectedCampusId)
-    const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
-    const selectedProgramCode = programOptions.find((p:any) => p.id === Number(formData.program))?.code
-    const studyMode = formData.study_mode
-    const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
-    const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
+  const year = new Date().getFullYear().toString().slice(-2)
 
-    setFormData(prev => ({ ...prev, reg_no: regNo }))
-  }
+  const selectedCampusId = Number(formData.campus)
+  const selectedCampus = campus.find(c => c.id === selectedCampusId)
+  
+  const campusName = selectedCampus?.name?.toLowerCase() || ""
+  const campusNumber = campusName.includes("kampala") ? "2" : "1"
+ 
+  const program = application.programs.find(p => p.id === Number(formData.program))
+  // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
+  const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
+
+  const studyMode = formData?.study_mode
+
+  const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
+
+  const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
+
+  setFormData(prev => ({ ...prev, reg_no: regNo }))
+  return regNo
+}
 
   const handleGeneratePayCode = () => {
     const prefix = Math.random() < 0.5 ? "1" : "2"

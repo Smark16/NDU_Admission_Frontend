@@ -220,7 +220,8 @@ export default function AdmitStudentPage() {
   const campusNumber = campusName.includes("kampala") ? "2" : "1"
  
   const program = application.programs.find(p => p.id === Number(formData.program))
-  const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
+  // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
+  const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
 
   const studyMode = formData?.study_mode
 
