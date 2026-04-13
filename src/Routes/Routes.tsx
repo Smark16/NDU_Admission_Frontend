@@ -37,6 +37,7 @@ const AcademicLevels = lazy(() => import('../Admin/Admissions/AcademicLevels/pag
 const EditAdmittedStudentPage = lazy(() => import('../Admin/Admissions/AdmitStudent/edit_strudent'))
 const AuditLogs = lazy(() => import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
+const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectApplication/page'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -76,7 +77,7 @@ function AppRoutes() {
 
   // Check if current route should show sidebar
   const isSidebarRoute = sidebarRoutes.some((path) =>
-    location.pathname.startsWith(path.replace(":id", "")) // match /election_details/123
+    location.pathname.startsWith(path.replace(":id", "")) 
   );
 
   return (
@@ -168,6 +169,12 @@ function AppRoutes() {
                   <Route path='/application_list' element={
                      <AdminRoute permission='admissions.view_application'>
                        <Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                    <Route path='/direct_application' element={
+                     <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><DirectApplicationForm /></Suspense>
                      </AdminRoute>
                     } />
 

@@ -35,6 +35,7 @@ import {
 } from "@mui/icons-material"
 import {Link} from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
+import CustomButton from "../../../ReUsables/custombutton"
 
 interface Application {
   id: number
@@ -176,7 +177,8 @@ export default function ApplicationList() {
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          {/* Application search */}
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               size="small"
@@ -195,7 +197,9 @@ export default function ApplicationList() {
               }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
+
+          {/* Application status */}
+          <Grid size={{ xs: 12, sm: 4 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
@@ -213,6 +217,11 @@ export default function ApplicationList() {
                 <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+
+          {/* Application button */}
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <CustomButton text="Direct Application Entry" component={Link} to="/admin/direct_application" />
           </Grid>
         </Grid>
       </Paper>
