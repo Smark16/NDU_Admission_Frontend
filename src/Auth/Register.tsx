@@ -106,8 +106,7 @@ export default function Register() {
     }
     try {
       setLoading(true)
-      const response = await api.post('/api/accounts/register', formData)
-      if (response.status === 201) {
+      await api.post('/api/accounts/register', formData)
         setLoading(false)
         setSuccess(true)
         setFormData({
@@ -120,7 +119,6 @@ export default function Register() {
           is_applicant: false
         })
         navigate('/')
-      }
     } catch (err: any) {
       console.log(err)
       if (err.response?.data.email) {
@@ -152,6 +150,7 @@ export default function Register() {
           py: 4,
           mt: 5
         }}
+        loading='lazy'
       >
         <Container maxWidth="sm">
           <Paper

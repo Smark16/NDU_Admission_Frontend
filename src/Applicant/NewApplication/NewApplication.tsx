@@ -790,7 +790,7 @@ useEffect(() => {
 
       <Alert>
         <Typography>
-          Note: Your Required to pay a unrefundable application fee of {" "}
+          Note: Your Required to pay a nonrefundable application fee of {" "}
           <strong>UGX {selectedFee?.amount}</strong> before application submission
         </Typography>
       </Alert>

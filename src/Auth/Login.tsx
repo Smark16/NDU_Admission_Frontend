@@ -81,6 +81,7 @@ export default function Login() {
           py: 4,
           mt: 5
         }}
+        loading="lazy"
       >
         {/* Dark Overlay for Text Readability */}
         <Box
