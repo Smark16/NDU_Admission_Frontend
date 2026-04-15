@@ -623,7 +623,7 @@ useEffect(() => {
 
   // Auto-save every 8 seconds (silent)
   const interval = setInterval(() => {
-    if (activeStep < 4) {           // don't save while on Review step
+    if (activeStep <= 5) {           
       saveDraft(false);
     }
   }, 8000);
