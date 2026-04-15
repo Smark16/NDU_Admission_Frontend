@@ -43,7 +43,7 @@ import type { SelectChangeEvent } from '@mui/material/Select';
 import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
 import CustomButton from "../../ReUsables/custombutton"
-import PaymentModal from "../Dashboard/PaymentModal"
+// import PaymentModal from "../Dashboard/PaymentModal"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -186,19 +186,19 @@ export default function NewApplicationForm() {
     type: "success" | "error" | "info"
   } | null>(null)
 
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // auto save
   // const [isDraftSaved, setIsDraftSaved] = useState(false);
   // const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // payment modal handlers
-  const handleOpenPaymentModal = () => {
-    if (!selectedFee?.amount) {
-      return;
-    }
-    setPaymentModalOpen(true);
-  };
+  // const handleOpenPaymentModal = () => {
+  //   if (!selectedFee?.amount) {
+  //     return;
+  //   }
+  //   setPaymentModalOpen(true);
+  // };
 
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
@@ -866,26 +866,14 @@ useEffect(() => {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              !formData.application_fee_paid ? (
-                <CustomButton
-                  icon={<CheckCircleIcon />}
-                  text="Pay Application Fee"
-                  onClick={handleOpenPaymentModal}
-                />
-              ) : (
-                <CustomButton
-                  onClick={handleSubmit}
-                  endIcon={<CheckCircleIcon />}
-                  text={
-                    submitLoader ? (
-                      <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-                    ) : (
-                      "Submit Application"
-                    )
-                  }
-                />
-              )
-              // <CustomButton
+              // !formData.application_fee_paid ? (
+              //   <CustomButton
+              //     icon={<CheckCircleIcon />}
+              //     text="Pay Application Fee"
+              //     onClick={handleOpenPaymentModal}
+              //   />
+              // ) : (
+              //   <CustomButton
               //     onClick={handleSubmit}
               //     endIcon={<CheckCircleIcon />}
               //     text={
@@ -896,6 +884,18 @@ useEffect(() => {
               //       )
               //     }
               //   />
+              // )
+              <CustomButton
+                  onClick={handleSubmit}
+                  endIcon={<CheckCircleIcon />}
+                  text={
+                    submitLoader ? (
+                      <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+                    ) : (
+                      "Submit Application"
+                    )
+                  }
+                />
             ) : (
               <CustomButton
                 onClick={handleNext}
@@ -928,7 +928,7 @@ useEffect(() => {
         </DialogActions>
       </Dialog>
 
-      <PaymentModal
+      {/* <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         onPaymentSuccess={(externalRef?: string) => {
@@ -944,7 +944,7 @@ useEffect(() => {
           );
         }}
         amountPaid={selectedFee?.amount ?? 0}
-      />
+      /> */}
     </Container>
   )
 }
