@@ -150,7 +150,6 @@ export default function Register() {
           py: 4,
           mt: 5
         }}
-        loading='lazy'
       >
         <Container maxWidth="sm">
           <Paper
