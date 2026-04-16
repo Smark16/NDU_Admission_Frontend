@@ -78,6 +78,7 @@ export default function AdmittedStudents() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
+  const [isDeletingAdmitted, setIsDeletingAdmitted] = useState(false)
 
   // Fetch admitted students
   useEffect(() => {
@@ -169,14 +170,17 @@ export default function AdmittedStudents() {
 
   const confirmDelete = async () => {
     if (!selectedStudent) return
-
+   
     try {
-      await AxiosInstance.delete(`/api/admissions/admitted_students/${selectedStudent.id}/`)
+      setIsDeletingAdmitted(true)
+      await AxiosInstance.delete(`/api/admissions/delete_admission/${selectedStudent.id}/`)
       setAdmittedStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id))
       setDeleteDialogOpen(false)
       setSelectedStudent(null)
     } catch (err) {
       console.error("Delete failed:", err)
+    } finally {
+      setIsDeletingAdmitted(false)
     }
   }
 
@@ -457,7 +461,7 @@ export default function AdmittedStudents() {
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={confirmDelete}>
-            Delete
+            {isDeletingAdmitted ? "Deleting..." : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
