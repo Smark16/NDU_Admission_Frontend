@@ -32,6 +32,7 @@ import EducationalBackgroundSection from './education-background'
 import { Link, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../../ReUsables/custombutton"
+import RejectionForm from "./RejectionForm"
 
 interface ApplicationReviewProps {
   application: any
@@ -46,6 +47,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
+  const [openReject, setOpenReject] = useState(false);
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
@@ -79,21 +81,46 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     return <WarningIcon />
   }
 
-  const handleReject = async () => {
-    try {
-      setIsLoading(true)
-      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "rejected" })
-      setIsLoading(false)
-      showNotification("Application has been rejected", "success")
-
-      setTimeout(() => {
-        navigate('/admin/application_list')
-      }, 500)
-    } catch (err) {
-      console.log(err)
-      setIsLoading(false)
-    }
+  const handleReject = async (rejection_reason: string) => {
+  if (!rejection_reason?.trim()) {
+    showNotification("Rejection reason is required", "error");
+    return;
   }
+
+  try {
+    setIsLoading(true);
+
+    const payload = {
+      rejection_reason: rejection_reason.trim(),
+    };
+
+    await AxiosInstance.patch(
+      `/api/admissions/reject_application/${application.id}`,
+      payload
+    );
+
+    setIsLoading(false);
+    showNotification("Application has been successfully rejected", "success");
+
+    // Optional: Refresh or navigate after success
+    setTimeout(() => {
+      navigate('/admin/application_list');
+    }, 800);
+
+  } catch (err: any) {
+    setIsLoading(false);
+    
+    console.error("Rejection error:", err);
+    
+    const errorMessage = 
+      err?.response?.data?.detail || 
+      err?.response?.data?.rejection_reason?.[0] ||
+      err?.response?.data?.message ||
+      "Failed to reject application. Please try again.";
+
+    showNotification(errorMessage, "error");
+  }
+};
  
   // download student profile
   const handleDownloadProfile = async () => {
@@ -513,7 +540,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                               borderColor: "#7c1519",
                               color: "#7c1519"
                             }}
-                            onClick={handleReject}
+                            onClick={() => setOpenReject(true)}
                           >
                             {isLoading ? <CircularProgress size={15} /> : "Reject Student"}
                           </Button>
@@ -527,6 +554,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
           </Card>
         </Grid>
       </Grid>
+
+      <RejectionForm
+        open={openReject}
+        onClose={() => setOpenReject(false)}
+        onSubmit={handleReject}
+        itemName={`${application.first_name} ${application.last_name}'s application`}
+      />
+
     </Container>
   )
 }
