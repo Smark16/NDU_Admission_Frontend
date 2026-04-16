@@ -218,7 +218,7 @@ export default function Crud({
                       <Typography
                         variant="body2"
                         sx={{
-                          maxWidth: 320,
+                          maxWidth: 220,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -228,7 +228,17 @@ export default function Crud({
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ color: "#6b7280", fontSize: "0.875rem" }}>
-                      {log.details || "—"}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          maxWidth: 200,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {log.details || "—"}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ color: "#6b7280" }}>{formatTimestamp(log.timestamp)}</TableCell>
                     <TableCell align="center">

@@ -15,8 +15,8 @@ import {
 import { Info as InfoIcon } from "@mui/icons-material";
 import type { SelectChangeEvent } from '@mui/material/Select';
 
-import useAxios from '../../AxiosInstance/UseAxios';
-import useHook from '../../Hooks/useHook';
+import useAxios from '../../../AxiosInstance/UseAxios';
+import useHook from '../../../Hooks/useHook';
 
 interface Campus {
   id: number;

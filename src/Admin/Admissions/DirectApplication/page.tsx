@@ -33,17 +33,16 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material"
 import { useNavigate } from "react-router-dom"
-import PersonalInfo from "./personaInfo"
+import PersonalInfo from "./personalnfo"
 import Programs from "./Programs"
 import AcademicResults from "./AcademicResults"
 import Documents from "./Documents"
 
-import { AuthContext } from "../../Context/AuthContext"
+import { AuthContext } from '../../../Context/AuthContext'
 import type { SelectChangeEvent } from '@mui/material/Select';
-import useAxios from "../../AxiosInstance/UseAxios"
-import useHook from "../../Hooks/useHook"
-import CustomButton from "../../ReUsables/custombutton"
-// import PaymentModal from "../Dashboard/PaymentModal"
+import useAxios from "../../../AxiosInstance/UseAxios"
+import useHook from "../../../Hooks/useHook"
+import CustomButton from "../../../ReUsables/custombutton"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -52,24 +51,6 @@ const steps = [
   { label: "Documents", icon: CloudUploadIcon },
   { label: "Review", icon: CheckCircleIcon },
 ]
-
-interface AcademicLevel {
-  id: number,
-  name: string
-}
-
-interface Fee {
-  id: string;
-  fee_type: string;
-  admission_period: string,
-  admission_id: number,
-  academic_year: string,
-  nationality_type: string;
-  amount: number;
-  currency: string;
-  academic_level: AcademicLevel[];
-  is_active: boolean;
-}
 
 interface SubjectResult {
   id: string
@@ -128,18 +109,17 @@ interface FormData {
   status: string
 }
 
-export default function NewApplicationForm() {
+export default function DirectApplicationForm() {
   const AxiosInstance = useAxios()
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
-  const { batch } = useHook()
-  const { loggeduser, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
+  const { admissionBatch } = useHook()
+  const { loggeduser } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
-  const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
   const [formData, setFormData] = useState<FormData>({
     applicant: loggeduser?.user_id ? Number(loggeduser?.user_id) : undefined,
-    batch: batch?.id ? Number(batch.id) : undefined,
+    batch: admissionBatch?.id ? Number(admissionBatch.id) : undefined,
     firstName: loggeduser?.first_name ?? '',
     lastName: loggeduser?.last_name ?? '',
     middleName: "",
@@ -152,8 +132,6 @@ export default function NewApplicationForm() {
     email: loggeduser?.email ?? '',
     address: "",
     nextOfKinName: "",
-    // class_of_award: "",
-    // study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
     campus: "",
@@ -186,35 +164,12 @@ export default function NewApplicationForm() {
     type: "success" | "error" | "info"
   } | null>(null)
 
-  // const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-
-  // auto save
-  // const [isDraftSaved, setIsDraftSaved] = useState(false);
-  // const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  // payment modal handlers
-  // const handleOpenPaymentModal = () => {
-  //   if (!selectedFee?.amount) {
-  //     return;
-  //   }
-  //   setPaymentModalOpen(true);
-  // };
 
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 6000)
   }
-
-  // Fetch fee plans
-  const fetchFeePlans = async () => {
-    try {
-      const { data } = await AxiosInstance.get('/api/payments/list_fee_plan');
-      setFees(data);
-    } catch (err) {
-      console.error('Error fetching fees:', err);
-    }
-  };
 
   // Uganda NIN validation function (14 alphanumeric chars, starts with CM or CF)
   const isValidUgandaNIN = (nin: string): boolean => {
@@ -264,6 +219,7 @@ export default function NewApplicationForm() {
         }
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
+        // if (!formData.study_mode) errors.study_mode = "Study mode is required";
         break;
 
       case 2: // Academic Results
@@ -275,9 +231,9 @@ export default function NewApplicationForm() {
         const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
         if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
 
-        if(formData.oLevelSubjects.length < 8){
-          errors.oLevelSubjects ='Add atleast 8 Olevel Results'
-        }
+        // if(formData.oLevelSubjects.length < 8){
+        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        // }
 
         // Only validate A-Level if applicant has A-Level
 
@@ -286,9 +242,9 @@ export default function NewApplicationForm() {
         if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
         if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
 
-        if(formData.aLevelSubjects.length < 5){
-          errors.aLevelSubjects = "Add atleast 5 Alevel results"
-        }
+        // if(formData.aLevelSubjects.length < 5){
+        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        // }
 
         break;
 
@@ -343,12 +299,11 @@ export default function NewApplicationForm() {
 
   // programs
   const programs = formData.programs?.map((programId: number) => {
-    return batch?.programs.find((p: any) => p.id === programId);
+    return admissionBatch?.programs.find((p: any) => p.id === programId);
   }).filter(Boolean);
 
   useEffect(() => {
     fetchCampus()
-    fetchFeePlans()
   }, [])
 
   // For text fields and textareas
@@ -436,26 +391,6 @@ export default function NewApplicationForm() {
     }
   }
 
-  // selected application amount
-  const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
-  const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
-    ? "Local" : "International";
-
-  const selectedFee = batch
-    ? fees.find(
-      fee =>
-        fee.admission_id === batch.id &&
-        fee.academic_year === batch.academic_year &&
-        fee.nationality_type === applicantType &&
-        fee.academic_level.some(
-          (level) => level.id === Number(formData.academic_level)
-        )
-
-    )
-    : undefined;
-
-  console.log('applicant Data', formData)
-
   const handleSubmit = async () => {
     try {
       setSubmitLoader(true);
@@ -464,7 +399,7 @@ export default function NewApplicationForm() {
 
       // Personal & Program Info
       formDataToSend.append("applicant", String(loggeduser?.user_id));
-      formDataToSend.append("batch", String(batch?.id));
+      formDataToSend.append("batch", String(admissionBatch?.id));
       formDataToSend.append("first_name", formData.firstName);
       formDataToSend.append("last_name", formData.lastName);
       formDataToSend.append("middle_name", formData.middleName || "");
@@ -533,13 +468,13 @@ export default function NewApplicationForm() {
       }
 
       // ONE SINGLE REQUEST – FAST & RELIABLE
-      await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+      await AxiosInstance.post("/api/admissions/create_direct_applications", formDataToSend);
 
       setSubmitLoader(false);
       setOpenSummary(true);
 
       setTimeout(() => {
-        navigate("/applicant/dashboard");
+        navigate("/admin/application_list");
       }, 2000);
 
     } catch (err: any) {
@@ -555,93 +490,9 @@ export default function NewApplicationForm() {
     }
   };
 
-  // HANDLE SAVE DRAFT
- const saveDraft = async (showMessage = false) => {
-  try {
-    const draftData = {
-      ...formData,
-      applicant: loggeduser?.user_id,
-      batch: batch?.id,
-      status: "draft",
-    };
-
-    const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
-
-    // setLastSaved(new Date());
-
-    if (showMessage) {
-      showSuccessAlert(`${response?.data?.message}`)
-    }
-  } catch (err) {
-    console.error("Failed to save draft", err);
-    if (showMessage) {
-      showNotification("Failed to save draft", "error");
-    }
-  }
-};
-
-const loadDraft = async () => {
-  try {
-    const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
-
-    if (data?.draft_exists && data?.data) {
-      setFormData((prev) => {
-        const draftData = data.data;
-
-        return {
-          ...prev,                    
-          ...draftData,             
-
-          // ←←← PRESERVE FILE FIELDS (they are never in draft)
-          passportPhoto: prev.passportPhoto,
-          oLevelDocuments: prev.oLevelDocuments,
-          aLevelDocuments: prev.aLevelDocuments,
-          otherInstitutionDocuments: prev.otherInstitutionDocuments,
-
-          // Ensure arrays are not overwritten incorrectly
-          oLevelSubjects: draftData.oLevelSubjects || prev.oLevelSubjects,
-          aLevelSubjects: draftData.aLevelSubjects || prev.aLevelSubjects,
-          additionalQualifications: draftData.additionalQualifications || prev.additionalQualifications,
-          programs: draftData.programs || prev.programs,
-        };
-      });
-
-      showSuccessAlert("Previous draft loaded successfully");
-    }
-  } catch (err) {
-    console.log("No draft found or error loading draft");
-    // Optional: remove this alert if it's annoying on every refresh
-    // showErrorAlert("No draft found or error loading draft");
-  }
-};
-
-// Main useEffect - Runs once on mount + when activeStep changes
-// Initial load + auto-save setup (runs ONLY ONCE when component mounts)
-useEffect(() => {
-  loadDraft();
-
-  // Auto-save every 8 seconds (silent)
-  const interval = setInterval(() => {
-    if (activeStep <= 5) {           
-      saveDraft(false);
-    }
-  }, 8000);
-
-  return () => clearInterval(interval);
-}, []); // ←←← Empty dependency = runs only once
-
   // personal details
   const renderPersonalDetails = () => (
     <>
-    {notification && (
-        <Alert
-          severity={notification.type}
-          onClose={() => setNotification(null)}
-          sx={{ mb: 3 }}
-        >
-          {notification.message}
-        </Alert>
-      )}
       <PersonalInfo
         formData={formData}
         handleInputChange={handleInputChange}
@@ -786,13 +637,6 @@ useEffect(() => {
           </Grid>
         </Grid>
       </Paper>
-
-      <Alert>
-        <Typography>
-          Note: Your Required to pay a nonrefundable application fee of {" "}
-          <strong>UGX {selectedFee?.amount}</strong> before application submission
-        </Typography>
-      </Alert>
     </Box>
   )
 
@@ -817,7 +661,7 @@ useEffect(() => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Card sx={{ boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
         <CardHeader
-          title="New Application"
+          title="Direct Application Form"
           subheader="Complete all steps to submit your application"
           sx={{
             background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
@@ -865,26 +709,7 @@ useEffect(() => {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              // !formData.application_fee_paid ? (
-              //   <CustomButton
-              //     icon={<CheckCircleIcon />}
-              //     text="Pay Application Fee"
-              //     onClick={handleOpenPaymentModal}
-              //   />
-              // ) : (
-              //   <CustomButton
-              //     onClick={handleSubmit}
-              //     endIcon={<CheckCircleIcon />}
-              //     text={
-              //       submitLoader ? (
-              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-              //       ) : (
-              //         "Submit Application"
-              //       )
-              //     }
-              //   />
-              // )
-              <CustomButton
+               <CustomButton
                   onClick={handleSubmit}
                   endIcon={<CheckCircleIcon />}
                   text={
@@ -918,7 +743,7 @@ useEffect(() => {
               Thank you for your application!
             </Typography>
             <Typography variant="body2" sx={{ color: "#666" }}>
-              Your application has been submitted successfully. You will receive a confirmation email shortly.
+              Student application has been submitted successfully.
             </Typography>
           </Box>
         </DialogContent>
@@ -926,24 +751,6 @@ useEffect(() => {
           <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
-
-      {/* <PaymentModal
-        open={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={(externalRef?: string) => {
-          setFormData(prev => ({
-            ...prev,
-            application_fee_paid: true,
-            externalReference: externalRef || ""
-          }));
-
-          showNotification(
-            "Application fee paid successfully! You can now submit your application.",
-            "success"
-          );
-        }}
-        amountPaid={selectedFee?.amount ?? 0}
-      /> */}
     </Container>
   )
 }

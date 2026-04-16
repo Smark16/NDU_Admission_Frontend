@@ -15,34 +15,25 @@ import {
   TablePagination,
   Button,
   Alert,
-  Card,
-  CardContent,
   Grid,
   InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   CircularProgress,
   Typography,
 } from "@mui/material"
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
-  CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
-  Schedule as ScheduleIcon,
 } from "@mui/icons-material"
 import {Link} from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
-import CustomButton from "../../../ReUsables/custombutton"
 
 interface Application {
   id: number
   first_name: string
   last_name: string
   gender: string
-  status: "submitted" | "accepted" | "rejected" | "under_review"
+  status: "rejected"
   created_at: string
   email: string
 }
@@ -51,16 +42,13 @@ interface Application {
 // Status → Chip config (icon is now a ReactElement)
 const statusConfig: Record<
   Application["status"],
-  { color: "default" | "info" | "warning" | "success" | "error"; icon: React.ReactElement }
+  { color: "error"; icon: React.ReactElement }
 > = {
-  submitted: { color: "info", icon: <ScheduleIcon fontSize="small" /> },
-  under_review: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
-  accepted: { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
   rejected: { color: "error", icon: <CancelIcon fontSize="small" /> },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function ApplicationList() {
+export default function RejectedList() {
   const AxiosInstance = useAxios()
 
   const [applications, setApplications] = useState<Application[]>([])
@@ -70,7 +58,6 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all") 
 
   // ───── FETCH APPLICATIONS ON MOUNT ─────
   useEffect(() => {
@@ -78,7 +65,7 @@ export default function ApplicationList() {
       try {
         setLoading(true)
         setError(null)
-        const res = await AxiosInstance.get("/api/admissions/applications")
+        const res = await AxiosInstance.get("/api/admissions/rejected_applications")
         setApplications(res.data)
       } catch (err: any) {
         setError(err.response?.data?.detail || "Failed to load applications")
@@ -98,11 +85,9 @@ export default function ApplicationList() {
         `${app.first_name} ${app.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter
-
-      return matchesSearch && matchesStatus
+      return matchesSearch
     })
-  }, [applications, searchTerm, statusFilter])
+  }, [applications, searchTerm])
 
   const paginatedApplications = filteredApplications.slice(
     page * rowsPerPage,
@@ -131,48 +116,12 @@ export default function ApplicationList() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ color: "#3e397b", fontWeight: "bold" }}>
-          Applications
+          Rejected Applications
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage and review all student applications
+          Manage and review all rejected applications
         </Typography>
       </Box>
-
-      {/* Stats Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: "Total", value: filteredApplications.length},
-          {
-            label: "Accepted",
-            value: filteredApplications.filter((a) => a.status === "accepted").length
-          },
-          {
-            label: "Under Review",
-            value: filteredApplications.filter((a) => a.status === "under_review").length
-          },
-          {
-            label: "Rejected",
-            value: filteredApplications.filter((a) => a.status === "rejected").length
-          },
-        ].map((stat, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #958fceff 0%, #3e397b 100%)',
-              }}
-            >
-              <CardContent>
-                <Typography variant="h4" sx={{ color: "white", fontWeight: "bold" }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                  {stat.label}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
 
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
@@ -196,32 +145,6 @@ export default function ApplicationList() {
                 ),
               }}
             />
-          </Grid>
-
-          {/* Application status */}
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={(e) => {
-                  setStatusFilter(e.target.value)
-                  setPage(0)
-                }}
-              >
-                <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="submitted">Submitted</MenuItem>
-                <MenuItem value="under_review">Under Review</MenuItem>
-                <MenuItem value="accepted">Accepted</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Application button */}
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <CustomButton text="Direct Application Entry" component={Link} to="/admin/direct_application" />
           </Grid>
         </Grid>
       </Paper>

@@ -109,7 +109,7 @@ export default function EducationalBackgroundSection({
       return (
         <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
           <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 4 }}>
-            No additional qualifications added .
+            No additional qualifications added.
           </Typography>
         </Paper>
       );
