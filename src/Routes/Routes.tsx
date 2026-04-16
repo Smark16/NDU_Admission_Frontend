@@ -38,6 +38,7 @@ const EditAdmittedStudentPage = lazy(() => import('../Admin/Admissions/AdmitStud
 const AuditLogs = lazy(() => import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
 const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectApplication/page'))
+const RejectedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Rejected'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -171,6 +172,14 @@ function AppRoutes() {
                        <Suspense fallback={<LoadingSpinner />}><ApplicationList /></Suspense>
                      </AdminRoute>
                     } />
+
+                  <Route path='/rejected_students' element={
+                    <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><RejectedList /></Suspense>
+                     </AdminRoute>
+                  }
+                  
+                  />
 
                     <Route path='/direct_application' element={
                      <AdminRoute permission='admissions.view_application'>

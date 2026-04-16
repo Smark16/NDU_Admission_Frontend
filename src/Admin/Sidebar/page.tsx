@@ -37,7 +37,7 @@ import {
   BanknoteArrowDown,
 } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom'
-import { School as SchoolIcon } from '@mui/icons-material';
+import { School as SchoolIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import logo from '../../Images/Ndejje_University_Logo.jpg'
 
 import { AuthContext } from "../../Context/AuthContext"
@@ -74,6 +74,13 @@ const navigationItems: NavItem[] = [
             icon: <FileText size={20} />,
             path: "/admin/application_list",
             requiredPermission: "admissions.view_application",       
+          },
+          {
+            id: "rejected",
+            label: "Rejected Students",
+            icon: <CancelIcon sx={{size:"20"}} />,
+            path: "/admin/rejected_students",
+            requiredPermission: "admissions.view_application",
           },
           {
             id: "admitted",
