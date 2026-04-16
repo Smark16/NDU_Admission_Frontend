@@ -43,7 +43,7 @@ import type { SelectChangeEvent } from '@mui/material/Select';
 import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
 import CustomButton from "../../ReUsables/custombutton"
-// import PaymentModal from "../Dashboard/PaymentModal"
+import PaymentModal from "../Dashboard/PaymentModal"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -883,7 +883,7 @@ useEffect(() => {
                     )
                   }
                 />
-              // )
+              )
               // <CustomButton
               //     onClick={handleSubmit}
               //     endIcon={<CheckCircleIcon />}
@@ -927,7 +927,7 @@ useEffect(() => {
         </DialogActions>
       </Dialog>
 
-       <PaymentModal
+      <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         onPaymentSuccess={(externalRef?: string) => {
@@ -943,7 +943,7 @@ useEffect(() => {
           );
         }}
         amountPaid={selectedFee?.amount ?? 0}
-      /> 
+      />
     </Container>
   )
 }
