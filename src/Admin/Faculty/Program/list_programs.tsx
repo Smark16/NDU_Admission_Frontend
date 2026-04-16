@@ -13,6 +13,7 @@ import {
   TableRow,
   Typography,
   Switch,
+  CircularProgress,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 
@@ -29,13 +30,14 @@ interface Program {
   academic_level: string;
   campuses: Campus[];
   faculty: string;
-  min_years?: number;        // Made optional with ?
-  max_years?: number;        // Made optional with ?
+  min_years?: number;
+  max_years?: number;
   is_active: boolean;
 }
 
 interface ListProgramsProps {
   programs: Program[];
+  loading: boolean;
   onEdit: (program: Program) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number) => void;
@@ -46,8 +48,20 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  loading,
 }) => {
-  if (programs.length === 0) {
+  if (loading) {
+    return (
+      <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
+        <CircularProgress sx={{ color: "#7c1519" }} />
+        <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
+          loading programs please wait.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (programs.length === 0 && !loading) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography color="textSecondary">No programs found</Typography>

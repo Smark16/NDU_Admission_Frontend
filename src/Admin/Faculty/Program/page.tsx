@@ -116,6 +116,7 @@ const ProgramManagement: React.FC = () => {
   const [bulkUploadProgress, setBulkUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [downloadProgram, setDownLoadProgram] = useState(false);
+  const [isLoadingProgram, setIsLoadingProgram] = useState(false);
 
   const initialForm = {
     name: "",
@@ -144,10 +145,13 @@ const ProgramManagement: React.FC = () => {
   // Fetch Programs
   const fetchPrograms = async () => {
     try {
+      setIsLoadingProgram(true);
       const response = await AxiosInstance.get("/api/program/list_programs");
       setPrograms(response.data);
     } catch (e) {
       console.error("Failed to fetch programs", e);
+    } finally {
+      setIsLoadingProgram(false);
     }
   };
 
@@ -210,12 +214,12 @@ const ProgramManagement: React.FC = () => {
     return matchesSearch && matchesFaculty && matchesCampus && matchesLevel;
   });
 
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedFaculty("");
-    setSelectedCampus("");
-    setSelectedLevel("");
-  };
+  // const resetFilters = () => {
+  //   setSearchQuery("");
+  //   setSelectedFaculty("");
+  //   setSelectedCampus("");
+  //   setSelectedLevel("");
+  // };
 
   // Handle Campus Multi-Select Change
   const handleCampusChange = (event: SelectChangeEvent<number[]>) => {
@@ -520,6 +524,30 @@ const ProgramManagement: React.FC = () => {
         ))}
       </Grid>
 
+      {/* Action Buttons */}
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Program" />
+        <CustomButton
+          icon={<CloudUploadIcon />}
+          onClick={() => setOpenBulkDialog(true)}
+          variant="outlined"
+          text="Upload"
+          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+        />
+        <CustomButton
+          variant="outlined"
+          icon={<FileDownloadIcon />}
+          onClick={handleExportExcel}
+          text={isLoading ? <CircularProgress size={20} /> : "Download sheet"}
+          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+        />
+        <CustomButton
+          icon={<FileDownloadIcon />}
+          text={downloadProgram ? "Downloading..." : "DownLoad Programs"}
+          onClick={handleExport}
+        />
+      </Box>
+
       {/* Search + Filters + Actions */}
       <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
         <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
@@ -595,39 +623,16 @@ const ProgramManagement: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+        {/* <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
           <CustomButton variant="text" onClick={resetFilters} text="Clear Filters" size="small" />
-        </Box>
+        </Box> */}
       </Paper>
-
-      {/* Action Buttons */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
-        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Program" />
-        <CustomButton
-          icon={<CloudUploadIcon />}
-          onClick={() => setOpenBulkDialog(true)}
-          variant="outlined"
-          text="Upload"
-          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
-        />
-        <CustomButton
-          variant="outlined"
-          icon={<FileDownloadIcon />}
-          onClick={handleExportExcel}
-          text={isLoading ? <CircularProgress size={20} /> : "Download sheet"}
-          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
-        />
-        <CustomButton
-          icon={<FileDownloadIcon />}
-          text={downloadProgram ? "Downloading..." : "DownLoad Programs"}
-          onClick={handleExport}
-        />
-      </Box>
 
       {/* Table */}
       <ListPrograms
         programs={filteredPrograms}
         onEdit={handleOpenDialog}
+        loading={isLoadingProgram}
         onDelete={setDeleteConfirm}
         onToggleStatus={handleToggleStatus}
       />

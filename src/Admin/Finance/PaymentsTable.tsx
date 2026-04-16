@@ -92,23 +92,6 @@ function PaymentsTable({
                 title={`Payment Records (${filteredPaymentsCount})`}
                 action={
                     <Stack direction="row" spacing={1}>
-                        {/* <Button
-              size="small"
-              startIcon={<FileDownload />}
-              variant="outlined"
-              sx={{ textTransform: 'none' }}
-            >
-              Export
-            </Button>
-            <Button
-              size="small"
-              startIcon={<Print />}
-              variant="outlined"
-              sx={{ textTransform: 'none' }}
-              onClick={() => window.print()}
-            >
-              Print
-            </Button> */}
                     </Stack>
                 }
                 sx={{ borderBottom: '1px solid #e0e0e0' }}
@@ -134,12 +117,16 @@ function PaymentsTable({
                     </TableHead>
                     <TableBody>
                         {loader ? (<>
+                        <TableRow>
+                            <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                             <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
                                 <CircularProgress sx={{ color: "#7c1519" }} />
                                 <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
                                     loading application payments please wait.
                                 </Typography>
                             </Box>
+                            </TableCell>
+                        </TableRow>
                         </>) : payments.length > 0 ? (
                             payments.map((payment) => (
                                 <TableRow
