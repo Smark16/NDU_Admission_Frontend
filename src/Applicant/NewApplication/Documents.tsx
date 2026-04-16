@@ -115,7 +115,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="passportPhoto"
               onChange={handleFileChange}
-              accept="image/jpeg,image/png"
+              accept="image/jpeg,image/png,image/jpg"
               style={{ display: "none" }}
               id="passport-photo"
               required
@@ -181,7 +181,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="oLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf"
+              accept=".pdf, .jpg, .png, .jpeg"
               style={{ display: "none" }}
               id="olevel-docs"
             />
@@ -246,7 +246,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="aLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf"
+              accept=".pdf, .jpg, .png, .jpeg"
               style={{ display: "none" }}
               id="alevel-docs"
             />
@@ -312,7 +312,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="otherInstitutionDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip"
+              accept=".pdf,.zip, .png, .jpeg, .jpg"
               style={{ display: "none" }}
               id="other-docs"
             />
