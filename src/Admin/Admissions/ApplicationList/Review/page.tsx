@@ -40,6 +40,7 @@ interface Application {
   reviewed_by: string;
   reviewed_at: string | null;
   passport_photo: File | null;
+  entered_by?: string | null;
 }
 
 interface Subject {

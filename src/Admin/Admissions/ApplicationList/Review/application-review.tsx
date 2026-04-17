@@ -507,6 +507,20 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 </Typography>
               </Box>
 
+              {application.entered_by && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Entered By
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {application.entered_by}
+                    </Typography>
+                  </Box>
+                </>
+              )}
+
               {application.reviewed_by && (
                 <>
                   <Divider />

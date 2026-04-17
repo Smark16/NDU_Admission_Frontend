@@ -478,6 +478,20 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                   </Box>
                 </>
               )}
+
+              {application.admitted_by && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Admitted By
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {application.admitted_by}
+                    </Typography>
+                  </Box>
+                </>
+              )}
             </CardContent>
           </Card>
         </Grid>
