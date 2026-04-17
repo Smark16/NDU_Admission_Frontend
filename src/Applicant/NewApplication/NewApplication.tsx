@@ -225,7 +225,6 @@ export default function NewApplicationForm() {
   // Validate forms
   const validateStep = (step: number): boolean => {
     const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
-    const isLocal = LOCAL_COUNTRIES.includes(formData.nationality);
     const errors: Record<string, string> = {};
 
     switch (step) {
