@@ -152,8 +152,6 @@ export default function NewApplicationForm() {
     email: loggeduser?.email ?? '',
     address: "",
     nextOfKinName: "",
-    // class_of_award: "",
-    // study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
     campus: "",
