@@ -74,7 +74,7 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
   const AxiosInstance = useAxios();
 
   const oLevelGrades = ["D1", "D2", "C3", "C4", "C5", "C6", "P7", "P8", "F9", "A", "B", "C", "D", "E", "O"];
-  const aLevelGrades = ["A", "B", "C", "D", "E", "O", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const aLevelGrades = ["A", "B", "C", "D", "E", "O","F", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
   const [olevelSubjectList, setOlevelSubjectList] = useState<OLevelSubject[]>([]);
   const [alevelSubjectList, setAlevelSubjectList] = useState<ALevelSubject[]>([]);
