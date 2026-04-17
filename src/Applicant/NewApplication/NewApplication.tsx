@@ -965,7 +965,7 @@ useEffect(() => {
 
       <PaymentModal
         open={paymentModalOpen}
-        handleSubmit={handleSubmit}
+        // handleSubmit={handleSubmit}
         onClose={() => setPaymentModalOpen(false)}
         onPaymentSuccess={(externalRef?: string) => {
           setFormData(prev => ({
