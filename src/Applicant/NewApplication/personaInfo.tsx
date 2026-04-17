@@ -212,11 +212,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   label="NIN (National ID Number)"
                   name="nin"
                   value={formData.nin || ""}
-                  onChange={handleNinChange}
-                  error={!!formErrors.nin || ninValidation.color === 'error'}
-                  helperText={formErrors.nin}          
+                  onChange={handleNinChange}     
                 />
-
                 {/* Real-time validation message – separate component */}
                 {formData.nationality === "Uganda" && ninValidation.message && (
                   <FormHelperText
@@ -240,8 +237,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   name="passportNumber"
                   value={formData.passportNumber || ""}
                   onChange={handleInputChange}
-                  error={!!formErrors.passportNumber}
-                  helperText={formErrors.passportNumber}
                 />
               </Grid>
             )) : null}

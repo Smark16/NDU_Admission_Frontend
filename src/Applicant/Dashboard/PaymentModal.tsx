@@ -60,8 +60,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
 
- console.log(extRef)
-
   const handleClose = () => {
     setPhoneNumber('');
     setStatus('idle');
@@ -145,9 +143,10 @@ const handlePayment = async () => {
 
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
+
           
           // success callback
-           onPaymentSuccess?.(extRef || data.external_reference);   
+          onPaymentSuccess?.(extRef || data.external_reference);  
 
           return;
         }

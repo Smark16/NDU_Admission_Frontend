@@ -189,7 +189,7 @@ export default function NewApplicationForm() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // auto save
-  // const [isDraftSaved, setIsDraftSaved] = useState(false);
+  // const [draftSaved, setDraftSaved] = useState(false);
   // const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // payment modal handlers
@@ -241,14 +241,6 @@ export default function NewApplicationForm() {
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
         if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
-
-        // Require nin or passportNumber based on nationality
-        if (isLocal && !formData.nin?.trim()) {
-          errors.nin = "NIN is required for local applicants";
-        }
-        if (!isLocal && !formData.passportNumber?.trim()) {
-          errors.passportNumber = "Passport number is required for international applicants";
-        }
 
         // Validate Uganda NIN format if applicable
         if (formData.nationality === "Uganda" && formData.nin?.trim()) {
@@ -457,6 +449,11 @@ export default function NewApplicationForm() {
   console.log('applicant Data', formData)
 
   const handleSubmit = async () => {
+    if (!formData.application_fee_paid) {
+    showNotification("Please complete payment before submitting", "error");
+    return;
+  }
+
     try {
       setSubmitLoader(true);
 
@@ -579,6 +576,30 @@ export default function NewApplicationForm() {
     }
   }
 };
+// const saveDraft = async (showMessage = false) => {
+//   try {
+//     const draftData = {
+//       ...formData,
+//       applicant: loggeduser?.user_id,
+//       batch: batch?.id,
+//       status: "draft",
+//       // application_fee_paid is taken from current formData
+//     };
+
+//     const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
+
+//     setDraftSaved(true);   // ← Important: mark as saved
+
+//     if (showMessage) {
+//       showSuccessAlert(`${response?.data?.message || 'Draft saved successfully'}`);
+//     }
+//   } catch (err) {
+//     console.error("Failed to save draft", err);
+//     if (showMessage) {
+//       showNotification("Failed to save draft", "error");
+//     }
+//   }
+// };
 
 const loadDraft = async () => {
   try {
@@ -606,12 +627,13 @@ const loadDraft = async () => {
         };
       });
 
+      // setDraftSaved(true);
+
       showSuccessAlert("Previous draft loaded successfully");
     }
   } catch (err) {
     console.log("No draft found or error loading draft");
-    // Optional: remove this alert if it's annoying on every refresh
-    // showErrorAlert("No draft found or error loading draft");
+    
   }
 };
 
@@ -625,10 +647,23 @@ useEffect(() => {
     if (activeStep <= 5) {           
       saveDraft(false);
     }
-  }, 8000);
+  }, 2000);
 
   return () => clearInterval(interval);
 }, []); // ←←← Empty dependency = runs only once
+
+// useEffect(() => {
+//   loadDraft();
+
+//   // Auto-save every 8 seconds (silent)
+//   const interval = setInterval(() => {
+//     if (activeStep <= 4) {           
+//       saveDraft(false);   // silent save
+//     }
+//   }, 8000);
+
+//   return () => clearInterval(interval);
+// }, [activeStep]);   // ← added activeStep so it restarts if step changes
 
   // personal details
   const renderPersonalDetails = () => (
@@ -868,7 +903,7 @@ useEffect(() => {
               !formData.application_fee_paid ? (
                 <CustomButton
                   icon={<CheckCircleIcon />}
-                  text="Pay Application Fee"
+                  text="Pay and Submit Application"
                   onClick={handleOpenPaymentModal}
                 />
               ) : (
@@ -879,11 +914,12 @@ useEffect(() => {
                     submitLoader ? (
                       <CircularProgress size={24} sx={{ color: "#ffffff" }} />
                     ) : (
-                      "Submit Application"
+                      "Pay and  Submit Application"
                     )
                   }
                 />
               )
+
               // <CustomButton
               //     onClick={handleSubmit}
               //     endIcon={<CheckCircleIcon />}
@@ -929,6 +965,7 @@ useEffect(() => {
 
       <PaymentModal
         open={paymentModalOpen}
+        handleSubmit={handleSubmit}
         onClose={() => setPaymentModalOpen(false)}
         onPaymentSuccess={(externalRef?: string) => {
           setFormData(prev => ({
@@ -944,6 +981,33 @@ useEffect(() => {
         }}
         amountPaid={selectedFee?.amount ?? 0}
       />
+      
+      {/* <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        amountPaid={selectedFee?.amount ?? 0}
+        onPaymentSuccess={(externalRef?: string) => {
+          // 1. Update form state
+          setFormData((prev) => ({
+            ...prev,
+            application_fee_paid: true,
+            externalReference: externalRef || "",
+          }));
+
+          // 2. Save draft again (now with paid = true)
+          saveDraft(false);
+
+          showNotification(
+            "Payment successful! Submitting your application now...",
+            "success"
+          );
+
+          // 3. Auto-submit after a tiny delay
+          setTimeout(() => {
+            handleSubmit();
+          }, 1200);
+        }}
+       /> */}
     </Container>
   )
 }
