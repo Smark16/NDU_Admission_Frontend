@@ -74,6 +74,7 @@ interface Application {
   campus: Campus
   programs: Programs[]
   date_of_birth: string
+  school_pay_reference?: string;
 }
 
 const FormSection = styled(Box)(({ theme }) => ({
@@ -417,6 +418,11 @@ export default function AdmitStudentPage() {
         <CardHeader
           avatar={<CheckCircleIcon sx={{ color: "white" }} />}
           title={`Admission Details for ${application?.first_name} ${application?.last_name} (${application?.phone})`}
+          subheader={
+            application?.school_pay_reference
+              ? `School Pay Ref: ${application.school_pay_reference}`
+              : undefined
+          }
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
             backgroundColor: "#958fd6ff",

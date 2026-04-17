@@ -10,6 +10,8 @@ import {
   Typography,
   Divider,
   FormHelperText,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material"
 import type { SelectChangeEvent } from "@mui/material/Select"
 import ReactSelect from "react-select"
@@ -32,6 +34,8 @@ interface PersonalInfoProps {
     nextOfKinName: string
     nextOfKinContact: string
     nextOfKinRelationship: string
+    application_fee_paid: boolean
+    school_pay_reference?: string
   }
   formErrors: Record<string, string>
   setFormData: React.Dispatch<React.SetStateAction<any>>
@@ -301,6 +305,51 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           error={!!formErrors.address}
           helperText={formErrors.address}
         />
+      </Box>
+
+      <Divider sx={{ my: 2 }} />
+
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: "#5ba3f5" }}>
+          Application Fee
+        </Typography>
+        <Grid container spacing={2} alignItems="flex-start">
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.application_fee_paid}
+                  onChange={(e) =>
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      application_fee_paid: e.target.checked,
+                      school_pay_reference: e.target.checked ? prev.school_pay_reference : "",
+                    }))
+                  }
+                />
+              }
+              label="Application fee has been paid"
+            />
+          </Grid>
+          {formData.application_fee_paid && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                label="School Pay Reference No."
+                name="school_pay_reference"
+                value={formData.school_pay_reference || ""}
+                onChange={handleInputChange}
+                required
+                inputProps={{ maxLength: 50 }}
+                error={!!formErrors.school_pay_reference}
+                helperText={
+                  formErrors.school_pay_reference ||
+                  "Enter the reference number from the school pay receipt"
+                }
+              />
+            </Grid>
+          )}
+        </Grid>
       </Box>
 
       <Divider sx={{ my: 2 }} />

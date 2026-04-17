@@ -489,6 +489,17 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
 
               <Box>
                 <Typography variant="caption" color="textSecondary">
+                  School Pay Reference
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                  {application.school_pay_reference || "—"}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="caption" color="textSecondary">
                   Application Date
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
