@@ -242,8 +242,4 @@ const Documents: React.FC<DocumentProps> = ({
   );
 };
 
-<<<<<<< HEAD
 export default Documents;
-=======
-export default Documents;
->>>>>>> bfcdb3ad35c74bb6fc7cc8aa2cdc0f06a009ac15
