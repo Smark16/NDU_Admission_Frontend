@@ -154,7 +154,7 @@ const handlePayment = async () => {
           setStatus('success');
 
           // success callback
-          onPaymentSuccess?.(extRef || data.external_reference);  
+          // onPaymentSuccess?.(extRef || data.external_reference);  
 
           return;
         }
