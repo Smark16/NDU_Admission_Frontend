@@ -75,7 +75,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-    useEffect(() => {
+  useEffect(() => {
     if (status === 'success' && onPaymentSuccess) {
       onPaymentSuccess(extRef || undefined);
 
