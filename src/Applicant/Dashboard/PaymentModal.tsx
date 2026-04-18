@@ -75,6 +75,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
+    useEffect(() => {
+    if (status === 'success' && onPaymentSuccess) {
+      onPaymentSuccess(extRef || undefined);
+
+      // Auto-close modal after showing success for 1.8 seconds
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, onPaymentSuccess, extRef]);
+
 // Clean up polling on unmount/close
 useEffect(() => {
   return () => {
@@ -111,8 +124,6 @@ const handlePayment = async () => {
 
     const data = res.data;
 
-    console.log('payment_data', data);
-
     // ✅ Save references
     setExtRef(data.external_reference);
 
@@ -128,8 +139,6 @@ const handlePayment = async () => {
 
         const statusData = statusRes.data;
 
-        console.log('Poll result:', statusData);
-
         // ✅ SUCCESS
         if (statusData.status === 'PAID') {
           clearInterval(interval);
@@ -144,7 +153,6 @@ const handlePayment = async () => {
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
 
-          
           // success callback
           onPaymentSuccess?.(extRef || data.external_reference);  
 
@@ -190,8 +198,6 @@ const handlePayment = async () => {
     setStatus('error');
   }
 };
-
-console.log('transactionId', transactionId)
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -597,14 +603,14 @@ console.log('transactionId', transactionId)
           </>
         )}
 
-        {status === 'success' && (
+        {/* {status === 'success' && (
             <CustomButton 
              onClick={() => {
                onPaymentSuccess?.(extRef || "");   
               handleClose();
              }}  
             text='Done'/>
-        )}
+        )} */}
 
         {status === 'error' && (
           <>

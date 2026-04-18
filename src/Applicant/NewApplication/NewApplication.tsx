@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useState} from "react"
 import {
   Box,
   Card,
@@ -133,7 +133,13 @@ export default function NewApplicationForm() {
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
+  const { loggeduser} = useContext(AuthContext) || {}
+
+  // drafts
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true)
+  const [hasDraft, setHasDraft] = useState<boolean | null>(null)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+
   const [activeStep, setActiveStep] = useState(0)
   const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
@@ -185,10 +191,6 @@ export default function NewApplicationForm() {
   } | null>(null)
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-
-  // auto save
-  // const [draftSaved, setDraftSaved] = useState(false);
-  // const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // payment modal handlers
   const handleOpenPaymentModal = () => {
@@ -263,9 +265,9 @@ export default function NewApplicationForm() {
         const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
         if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
 
-        if(formData.oLevelSubjects.length < 8){
-          errors.oLevelSubjects ='Add atleast 8 Olevel Results'
-        }
+        // if(formData.oLevelSubjects.length < 8){
+        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        // }
 
         // Only validate A-Level if applicant has A-Level
 
@@ -274,9 +276,9 @@ export default function NewApplicationForm() {
         if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
         if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
 
-        if(formData.aLevelSubjects.length < 5){
-          errors.aLevelSubjects = "Add atleast 5 Alevel results"
-        }
+        // if(formData.aLevelSubjects.length < 5){
+        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        // }
 
         break;
 
@@ -297,18 +299,6 @@ export default function NewApplicationForm() {
     setFormErrors(errors);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return Object.keys(errors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (!validateStep(activeStep)) {
-      return;
-    }
-
-    setFormErrors({});
-
-    if (activeStep < steps.length - 1) {
-      setActiveStep(activeStep + 1);
-    }
   };
 
   const handleBack = () => {
@@ -424,6 +414,80 @@ export default function NewApplicationForm() {
     }
   }
 
+  // HANDLE SAVE DRAFT
+  const saveDraft = async (showMessage = false) => {
+  try {
+    // Create clean payload - REMOVE ALL FILES and non-serializable data
+    const draftPayload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      middleName: formData.middleName,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      nationality: formData.nationality,
+      nin: formData.nin,
+      passportNumber: formData.passportNumber,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      disabled: formData.disabled,
+      nextOfKinName: formData.nextOfKinName,
+      nextOfKinContact: formData.nextOfKinContact,
+      nextOfKinRelationship: formData.nextOfKinRelationship,
+      campus: formData.campus,
+      academic_level: formData.academic_level,
+      programs: formData.programs,
+      oLevelYear: formData.oLevelYear,
+      oLevelIndexNumber: formData.oLevelIndexNumber,
+      oLevelSchool: formData.oLevelSchool,
+      oLevelSubjects: formData.oLevelSubjects,
+      aLevelYear: formData.aLevelYear,
+      aLevelIndexNumber: formData.aLevelIndexNumber,
+      aLevelSchool: formData.aLevelSchool,
+      aLevelSubjects: formData.aLevelSubjects,
+      alevel_combination: formData.alevel_combination,
+      additionalQualifications: formData.additionalQualifications,
+      application_fee_paid: formData.application_fee_paid,
+      externalReference: formData.externalReference,
+      status: "draft",
+      applicant: loggeduser?.user_id,
+      batch: batch?.id,
+    };
+
+    await AxiosInstance.post(
+      "/api/drafts/save_draft/",
+      draftPayload
+    );
+  
+    if (showMessage) showNotification("Draft saved successfully", "success");
+
+  } catch (err) {
+    console.error("Failed to save draft", err);
+    if (showMessage) {
+      showNotification("Failed to save draft", "error");
+    }
+  }
+};
+
+  // handle next
+  const handleNext = async () => {
+  if (!validateStep(activeStep)) {
+    return;
+  }
+
+  setFormErrors({});
+
+  if (activeStep < steps.length - 1) {
+    setIsSavingDraft(true); 
+    // Save draft with CURRENT formData BEFORE changing step
+    await saveDraft(false);       
+    
+    // Then move to next step
+    setActiveStep(activeStep + 1);
+    setIsSavingDraft(false);
+  }
+};
+
   // selected application amount
   const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
   const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
@@ -441,8 +505,6 @@ export default function NewApplicationForm() {
 
     )
     : undefined;
-
-  console.log('applicant Data', formData)
 
   const handleSubmit = async () => {
     if (!formData.application_fee_paid) {
@@ -548,118 +610,130 @@ export default function NewApplicationForm() {
     }
   };
 
-  // HANDLE SAVE DRAFT
- const saveDraft = async (showMessage = false) => {
-  try {
-    const draftData = {
-      ...formData,
-      applicant: loggeduser?.user_id,
-      batch: batch?.id,
-      status: "draft",
-    };
-
-    const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
-
-    // setLastSaved(new Date());
-
-    if (showMessage) {
-      showSuccessAlert(`${response?.data?.message}`)
-    }
-  } catch (err) {
-    console.error("Failed to save draft", err);
-    if (showMessage) {
-      showNotification("Failed to save draft", "error");
-    }
-  }
-};
-// const saveDraft = async (showMessage = false) => {
-//   try {
-//     const draftData = {
-//       ...formData,
-//       applicant: loggeduser?.user_id,
-//       batch: batch?.id,
-//       status: "draft",
-//       // application_fee_paid is taken from current formData
-//     };
-
-//     const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
-
-//     setDraftSaved(true);   // ← Important: mark as saved
-
-//     if (showMessage) {
-//       showSuccessAlert(`${response?.data?.message || 'Draft saved successfully'}`);
-//     }
-//   } catch (err) {
-//     console.error("Failed to save draft", err);
-//     if (showMessage) {
-//       showNotification("Failed to save draft", "error");
-//     }
-//   }
-// };
-
 const loadDraft = async () => {
   try {
+    setIsLoadingDraft(true)
     const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
     if (data?.draft_exists && data?.data) {
-      setFormData((prev) => {
-        const draftData = data.data;
+       setHasDraft(true)
+      const draft = data.data;
 
-        return {
-          ...prev,                    
-          ...draftData,             
+      setFormData(prev => ({
+        ...prev,
+        firstName: draft.first_name || prev.firstName,
+        lastName: draft.last_name || prev.lastName,
+        middleName: draft.middle_name || "",
+        dateOfBirth: draft.dateOfBirth || "",
+        gender: draft.gender || "",
+        nationality: draft.nationality || "",
+        nin: draft.nin || "",
+        passportNumber: draft.passportNumber|| "",
+        phone: draft.phone || prev.phone,
+        email: draft.email || prev.email,
+        address: draft.address || "",
+        disabled: draft.disabled || "",
+        nextOfKinName: draft.nextOfKinName || "",
+        nextOfKinContact: draft.nextOfKinContact || "",
+        nextOfKinRelationship: draft.nextOfKinRelationship || "",
 
-          // ←←← PRESERVE FILE FIELDS (they are never in draft)
-          passportPhoto: prev.passportPhoto,
-          oLevelDocuments: prev.oLevelDocuments,
-          aLevelDocuments: prev.aLevelDocuments,
-          otherInstitutionDocuments: prev.otherInstitutionDocuments,
+        // Programs section
+        campus: draft.campus ? String(draft.campus) : "",
+        academic_level: draft.academic_level ? String(draft.academic_level) : "",
+        programs: Array.isArray(draft.programs) ? draft.programs : [],
+        
+        // JSON Fields
+        oLevelYear: draft.oLevelYear || "",
+        oLevelIndexNumber: draft.oLevelIndexNumber || "",
+        oLevelSchool: draft.oLevelSchool || "",
+        oLevelSubjects: draft.oLevelSubjects || prev.oLevelSubjects,
 
-          // Ensure arrays are not overwritten incorrectly
-          oLevelSubjects: draftData.oLevelSubjects || prev.oLevelSubjects,
-          aLevelSubjects: draftData.aLevelSubjects || prev.aLevelSubjects,
-          additionalQualifications: draftData.additionalQualifications || prev.additionalQualifications,
-          programs: draftData.programs || prev.programs,
-        };
-      });
+        aLevelYear: draft.aLevelYear || "",
+        aLevelIndexNumber: draft.aLevelIndexNumber || "",
+        aLevelSchool: draft.aLevelSchool || "",
+        alevel_combination: draft.alevel_combination || "",
+        aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
 
-      // setDraftSaved(true);
+        additionalQualifications: draft.additionalQualifications || [],
+        application_fee_paid: draft.application_fee_paid || false,
+        externalReference: draft.externalReference || "",
+      }));
 
-      showSuccessAlert("Previous draft loaded successfully");
     }
   } catch (err) {
-    console.log("No draft found or error loading draft");
-    
+    console.log("No previous draft found");
+  }finally {
+    setIsLoadingDraft(false)
   }
 };
 
-// Main useEffect - Runs once on mount + when activeStep changes
-// Initial load + auto-save setup (runs ONLY ONCE when component mounts)
 useEffect(() => {
   loadDraft();
+}, []);   
 
-  // Auto-save every 8 seconds (silent)
-  const interval = setInterval(() => {
-    if (activeStep <= 5) {           
-      saveDraft(false);
-    }
-  }, 2000);
+useEffect(() => {
+  if (activeStep > 0) {           
+    saveDraft(false);
+    // loadDraft();
+  }
+}, [activeStep]);
 
-  return () => clearInterval(interval);
-}, []); // ←←← Empty dependency = runs only once
+// ====================== LOADING OVERLAY ======================
+  if (isLoadingDraft && hasDraft === null) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 8 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '70vh',
+          textAlign: 'center'
+        }}>
+          <CircularProgress size={80} thickness={4} sx={{ color: '#3e397b', mb: 4 }} />
+          
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
+            Loading your draft...
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#666', maxWidth: 400 }}>
+            Please wait while we restore your previous application data
+          </Typography>
+        </Box>
+      </Container>
+    )
+  }
 
-// useEffect(() => {
-//   loadDraft();
-
-//   // Auto-save every 8 seconds (silent)
-//   const interval = setInterval(() => {
-//     if (activeStep <= 4) {           
-//       saveDraft(false);   // silent save
-//     }
-//   }, 8000);
-
-//   return () => clearInterval(interval);
-// }, [activeStep]);   // ← added activeStep so it restarts if step changes
+  // Application submission Loader
+  if (submitLoader) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 8 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '80vh',
+          textAlign: 'center',
+          bgcolor: 'rgba(255,255,255,0.95)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999
+        }}>
+          <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 5 }} />
+          
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#1a3a52' }}>
+            Submitting Your Application...
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#555', maxWidth: 500 }}>
+            Please wait while we process and submit your application. Do not refresh the page.
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   // personal details
   const renderPersonalDetails = () => (
@@ -910,7 +984,7 @@ useEffect(() => {
                     submitLoader ? (
                       <CircularProgress size={24} sx={{ color: "#ffffff" }} />
                     ) : (
-                      "Pay and  Submit Application"
+                      "Submit Application"
                     )
                   }
                 />
@@ -931,7 +1005,8 @@ useEffect(() => {
               <CustomButton
                 onClick={handleNext}
                 endIcon={<NavigateNextIcon />}
-                text="Next"
+                text={isSavingDraft ? "Saving Draft..." : "Next"}
+                disabled={isSavingDraft}
               />
             )}
 
@@ -958,27 +1033,8 @@ useEffect(() => {
           <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
-
-      <PaymentModal
-        open={paymentModalOpen}
-        // handleSubmit={handleSubmit}
-        onClose={() => setPaymentModalOpen(false)}
-        onPaymentSuccess={(externalRef?: string) => {
-          setFormData(prev => ({
-            ...prev,
-            application_fee_paid: true,
-            externalReference: externalRef || ""
-          }));
-
-          showNotification(
-            "Application fee paid successfully! You can now submit your application.",
-            "success"
-          );
-        }}
-        amountPaid={selectedFee?.amount ?? 0}
-      />
       
-      {/* <PaymentModal
+      <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
@@ -998,12 +1054,15 @@ useEffect(() => {
             "success"
           );
 
+          // Close modal immediately
+          setPaymentModalOpen(false);
+
           // 3. Auto-submit after a tiny delay
           setTimeout(() => {
             handleSubmit();
-          }, 1200);
+          }, 800);
         }}
-       /> */}
+       />
     </Container>
   )
 }
