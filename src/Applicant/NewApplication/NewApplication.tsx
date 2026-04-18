@@ -265,9 +265,9 @@ export default function NewApplicationForm() {
         const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
         if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
 
-        if(formData.oLevelSubjects.length < 8){
-          errors.oLevelSubjects ='Add atleast 8 Olevel Results'
-        }
+        // if(formData.oLevelSubjects.length < 8){
+        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        // }
 
         // Only validate A-Level if applicant has A-Level
 
@@ -276,9 +276,9 @@ export default function NewApplicationForm() {
         if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
         if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
 
-        if(formData.aLevelSubjects.length < 5){
-          errors.aLevelSubjects = "Add atleast 5 Alevel results"
-        }
+        // if(formData.aLevelSubjects.length < 5){
+        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        // }
 
         break;
 
