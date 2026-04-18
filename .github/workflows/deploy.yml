@@ -13,8 +13,6 @@ jobs:
       # Step 1: Checkout code from GitHub
       - name: Checkout repository
         uses: actions/checkout@v4
-        with
-          fetch-depth: 0  
 
       # Step 2: Deploy to server via SSH with apleboy
       - name: Deploy to Server
@@ -30,13 +28,7 @@ jobs:
             set -e
             cd /home/admissions/NDU_Admission_Frontend
             git reset --hard
-
-            echo "🔄 Fetching latest changes..."
-            git fetch origin
-
-            echo "🔄 Pulling with rebase to handle divergent branches..."
-            git pull --rebase origin main
-
+            git pull origin main
             npm install
             npm run build
 
