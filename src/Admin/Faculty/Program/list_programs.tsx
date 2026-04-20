@@ -13,7 +13,6 @@ import {
   TableRow,
   Typography,
   Switch,
-  CircularProgress,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 
@@ -30,14 +29,13 @@ interface Program {
   academic_level: string;
   campuses: Campus[];
   faculty: string;
-  min_years?: number;
-  max_years?: number;
+  min_years?: number;        // Made optional with ?
+  max_years?: number;        // Made optional with ?
   is_active: boolean;
 }
 
 interface ListProgramsProps {
   programs: Program[];
-  loading: boolean;
   onEdit: (program: Program) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number) => void;
@@ -48,20 +46,8 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
-  loading,
 }) => {
-  if (loading) {
-    return (
-      <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
-        <CircularProgress sx={{ color: "#7c1519" }} />
-        <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
-          loading programs please wait.
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (programs.length === 0 && !loading) {
+  if (programs.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
         <Typography color="textSecondary">No programs found</Typography>
@@ -73,7 +59,7 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
     <TableContainer component={Paper} sx={{ boxShadow: 2, mt: 3 }}>
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#3e397b" }}>
+          <TableRow sx={{ backgroundColor: "#0D0060" }}>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Program Name</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Short Form</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Code</TableCell>
@@ -131,13 +117,13 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
                 <Switch
                   checked={program.is_active}
                   onChange={() => onToggleStatus(program.id)}
-                  sx={{ color: "#3e397b" }}
+                  sx={{ color: "#0D0060" }}
                 />
               </TableCell>
               <TableCell align="right">
                 <IconButton
                   size="small"
-                  sx={{ color: "#3e397b" }}
+                  sx={{ color: "#0D0060" }}
                   onClick={() => onEdit(program)}
                 >
                   <EditIcon fontSize="small" />

@@ -105,10 +105,14 @@ export default function SetUpPage() {
         file: File | null;
         status: "active" | "inactive";
         programs: number[];
+        start_date: string;
+        hall_of_residence: string;
     }>({
         file: null,
         status: "active",
         programs: [],
+        start_date: "",
+        hall_of_residence: "",
     });
 
     // Mock data
@@ -193,20 +197,22 @@ export default function SetUpPage() {
             if ("code" in item) {
                 // It's a subject
                 setSubjectForm({ name: item.name, code: item.code })
-                setTemplateForm({ file: null, status: "active", programs: [] })
+                setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
             } else {
                 // It's a template
                 setTemplateForm({
                     file: item.file,
                     status: item.status,
-                    programs: item.programs.map((p) => p.id)
+                    programs: item.programs.map((p) => p.id),
+                    start_date: (item as any).start_date || "",
+                    hall_of_residence: (item as any).hall_of_residence || "",
                 })
                 setSubjectForm({ name: "", code: "" })
             }
         } else {
             setEditingId(null)
             setSubjectForm({ name: "", code: "" })
-            setTemplateForm({ file: null, status: "active", programs: [] })
+            setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
         }
         setOpenDialog(true)
     }
@@ -215,7 +221,7 @@ export default function SetUpPage() {
         setOpenDialog(false)
         setEditingId(null)
         setSubjectForm({ name: "", code: "" })
-        setTemplateForm({ file: null, status: "active", programs: [] })
+        setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
     }
 
     const handleSave = async () => {
@@ -228,6 +234,8 @@ export default function SetUpPage() {
             }
 
             formData.append("status", templateForm.status)
+            if (templateForm.start_date) formData.append("start_date", templateForm.start_date)
+            if (templateForm.hall_of_residence) formData.append("hall_of_residence", templateForm.hall_of_residence)
             templateForm.programs.forEach((id) => {
                 formData.append("programs", id.toString());
             });
@@ -533,7 +541,7 @@ export default function SetUpPage() {
                     sx={{
                         fontWeight: 700,
                         mb: 1,
-                        background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
+                        background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
                         backgroundClip: "text",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",

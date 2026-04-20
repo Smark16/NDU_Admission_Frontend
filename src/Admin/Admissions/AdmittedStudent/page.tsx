@@ -78,7 +78,6 @@ export default function AdmittedStudents() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
-  const [isDeletingAdmitted, setIsDeletingAdmitted] = useState(false)
 
   // Fetch admitted students
   useEffect(() => {
@@ -170,17 +169,14 @@ export default function AdmittedStudents() {
 
   const confirmDelete = async () => {
     if (!selectedStudent) return
-   
+
     try {
-      setIsDeletingAdmitted(true)
-      await AxiosInstance.delete(`/api/admissions/delete_admission/${selectedStudent.id}/`)
+      await AxiosInstance.delete(`/api/admissions/admitted_students/${selectedStudent.id}/`)
       setAdmittedStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id))
       setDeleteDialogOpen(false)
       setSelectedStudent(null)
     } catch (err) {
       console.error("Delete failed:", err)
-    } finally {
-      setIsDeletingAdmitted(false)
     }
   }
 
@@ -189,7 +185,7 @@ export default function AdmittedStudents() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Admitted Students
           </Typography>
@@ -253,7 +249,7 @@ export default function AdmittedStudents() {
                 <TableHead>
                   <TableRow
                     sx={{
-                      backgroundColor: "#3e397b",
+                      backgroundColor: "#0D0060",
                       "& th": {
                         color: "white",
                         fontWeight: 700,
@@ -461,7 +457,7 @@ export default function AdmittedStudents() {
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={confirmDelete}>
-            {isDeletingAdmitted ? "Deleting..." : "Delete"}
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

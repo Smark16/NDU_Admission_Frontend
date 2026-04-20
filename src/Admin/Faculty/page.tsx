@@ -314,7 +314,7 @@ export default function FacultyManagement() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
           <Typography variant="h4" sx={{ 30: 600 }}>
             Faculty Management
           </Typography>
@@ -386,7 +386,7 @@ export default function FacultyManagement() {
                     }}
                   >
                     <TableCell>
-                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600, color:"#3e397b" }} variant="outlined" />
+                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600, color:"#0D0060" }} variant="outlined" />
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{faculty.name}</TableCell>
                     <TableCell>
@@ -401,7 +401,7 @@ export default function FacultyManagement() {
                       </Box>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined"  sx={{color:"#3e397b"}} />
+                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined"  sx={{color:"#0D0060"}} />
                     </TableCell>
                     <TableCell align="center">
                       <Switch
@@ -416,7 +416,7 @@ export default function FacultyManagement() {
                         <IconButton
                           size="small"
                           onClick={() => handleOpenDialog(faculty)}
-                          sx={{ color: "#3e397b", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
+                          sx={{ color: "#0D0060", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>

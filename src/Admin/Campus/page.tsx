@@ -143,9 +143,11 @@ export default function CampusManagement() {
       if (err.response?.data.code) {
         setCodeErrors(err.response?.data.code)
       }
-      if (err.response?.data.code) {
+      if (err.response?.data.name) {
         setNameErrors(err.response?.data.name)
       }
+      setIsLoading(false)
+      return
     }
     setIsLoading(false)
     handleDialogClose()
@@ -319,8 +321,8 @@ export default function CampusManagement() {
                       size="small"
                       variant="outlined"
                       sx={{
-                        borderColor: "#3e397b",
-                        color: "#3e397b",
+                        borderColor: "#0D0060",
+                        color: "#0D0060",
                         fontWeight: 500,
                       }}
                     />
@@ -332,7 +334,7 @@ export default function CampusManagement() {
                         size="small"
                         onClick={() => handleEditClick(campus)}
                         sx={{
-                          color:"#3e397b",
+                          color:"#0D0060",
                           "&:hover": {
                             backgroundColor: "#e3f2fd",
                           },
@@ -437,13 +439,12 @@ export default function CampusManagement() {
               fullWidth
               label="Email"
               name="email"
+              type="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="k'pla@ndu.ac.ug"
+              placeholder="campus@ndejje.ac.ug"
               variant="outlined"
               size="small"
-              multiline
-              rows={3}
             />
           </Box>
         </DialogContent>

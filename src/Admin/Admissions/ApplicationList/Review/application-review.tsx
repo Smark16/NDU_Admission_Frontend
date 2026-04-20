@@ -215,7 +215,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         {/* Main Content - Left Side */}
         <Grid size={{ xs: 12, lg: 8 }}>
           {/* Applicant Header Card */}
-          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #3e397b 0%, #764ba2 100%)", color: "white" }}>
+          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
             <CardContent sx={{ py: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
                 <Avatar
@@ -321,6 +321,24 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             <Divider />
             <CardContent>
               <Grid container spacing={2}>
+                {/* Program Choices */}
+                {application?.programs?.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      Program Choice(s)
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 0.5 }}>
+                      {application.programs.map((p: any, i: number) => (
+                        <Chip
+                          key={p.id}
+                          label={`${i + 1}. ${p.name}`}
+                          size="small"
+                          sx={{ backgroundColor: "#0D0060", color: "#fff", fontWeight: 600 }}
+                        />
+                      ))}
+                    </Box>
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Batch
@@ -489,12 +507,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
 
               <Box>
                 <Typography variant="caption" color="textSecondary">
+                  School Pay Reference
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                  {application.school_pay_reference || "—"}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="caption" color="textSecondary">
                   Application Date
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
                   {new Date(application.created_at).toLocaleDateString()}
                 </Typography>
               </Box>
+
+              {application.entered_by && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Entered By
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {application.entered_by}
+                    </Typography>
+                  </Box>
+                </>
+              )}
 
               {application.reviewed_by && (
                 <>
