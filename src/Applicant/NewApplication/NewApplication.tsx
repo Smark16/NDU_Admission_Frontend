@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import {
   Box,
   Card,
@@ -179,6 +179,9 @@ export default function NewApplicationForm() {
     externalReference: "",
     status: "submitted"
   })
+  const formDataRef = useRef(formData)
+  formDataRef.current = formData
+
   const [openSummary, setOpenSummary] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [notification, setNotification] = useState<{
@@ -427,13 +430,21 @@ export default function NewApplicationForm() {
     }
   }
 
+  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target
     if (files && files[0]) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files?.[0],
-      }))
+      if (files[0].size > MAX_FILE_SIZE) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: `File too large. Maximum allowed size is 100MB (selected: ${(files[0].size / (1024 * 1024)).toFixed(1)}MB).`,
+        }))
+        e.target.value = ""
+        return
+      }
+      setFormErrors((prev) => ({ ...prev, [name]: "" }))
+      setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
   }
 
@@ -560,7 +571,7 @@ export default function NewApplicationForm() {
  const saveDraft = async (showMessage = false) => {
   try {
     const draftData = {
-      ...formData,
+      ...formDataRef.current,
       applicant: loggeduser?.user_id,
       batch: batch?.id,
       status: "draft",

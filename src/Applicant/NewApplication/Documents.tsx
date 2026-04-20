@@ -85,8 +85,7 @@ const Documents: React.FC<DocumentProps> = ({
     <>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Alert severity="info" icon={<InfoIcon />}>
-          <strong>Note:</strong> Upload all required documents in PDF or image format. Ensure documents are clear and
-          legible.
+          <strong>Note:</strong> Upload all required documents in PDF or image format. Maximum file size is 100MB per file. Ensure documents are clear and legible.
         </Alert>
 
         {/* Passport Photo Section */}
@@ -98,7 +97,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload a recent passport-sized photo from a professional photo studio. Accepted formats: JPG, PNG (Max 2MB)
+            Upload a recent passport-sized photo from a professional photo studio. Accepted formats: JPG, PNG (Max 100MB)
           </Typography>
           <Paper
             sx={{
@@ -126,7 +125,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                JPG or PNG, ≤ 2MB
+                JPG or PNG, ≤ 100MB
               </Typography>
               {formData.passportPhoto && (
                 <Chip
@@ -191,7 +190,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF (Max 10MB)
+                PDF (Max 100MB)
               </Typography>
               {formData.oLevelDocuments && (
                 <Chip
@@ -256,7 +255,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF (Max 10MB)
+                PDF (Max 100MB)
               </Typography>
               {formData.aLevelDocuments && (
                 <Chip
@@ -322,7 +321,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP (Max 10MB) - Optional
+                PDF, ZIP (Max 100MB) - Optional
               </Typography>
               {formData.otherInstitutionDocuments && (
                 <Chip
