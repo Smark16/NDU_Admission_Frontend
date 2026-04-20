@@ -41,6 +41,8 @@ const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectAppli
 const DirectEntryList = lazy(() => import('../Admin/Admissions/DirectApplication/DirectEntryList'))
 const RejectedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Rejected'))
 const AllApplicantsReport = lazy(() => import('../Admin/Reports/AllApplicants'))
+const SystemUsageReport = lazy(() => import('../Admin/Reports/SystemUsage'))
+const SystemSettingsPage = lazy(() => import('../Admin/Settings/SystemSettings'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -270,6 +272,18 @@ function AppRoutes() {
                      <AdminRoute permission='payments.view_applicationpayment'>
                        <Suspense fallback={<LoadingSpinner />}><Finance /></Suspense>
                      </AdminRoute>
+                    } />
+
+                  <Route path='/reports/system-usage' element={
+                    <AdminRoute permission='audit.view_auditlog'>
+                      <Suspense fallback={<LoadingSpinner />}><SystemUsageReport /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/system-settings' element={
+                    <AdminRoute permission='accounts.view_user'>
+                      <Suspense fallback={<LoadingSpinner />}><SystemSettingsPage /></Suspense>
+                    </AdminRoute>
                     } />
                 </Routes>
               </Box>

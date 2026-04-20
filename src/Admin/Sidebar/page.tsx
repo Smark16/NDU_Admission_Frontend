@@ -33,6 +33,7 @@ import {
   CheckCircle,
   Logs,
   BanknoteArrowDown,
+  Activity,
 } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import { School as SchoolIcon, Cancel as CancelIcon } from '@mui/icons-material';
@@ -190,6 +191,13 @@ const navigationItems: NavItem[] = [
         path: "/admin/finance",
         requiredPermission: "payments.view_applicationpayment",
       },
+      {
+        id: "system-usage-report",
+        label: "System Usage",
+        icon: <Activity size={20} />,
+        path: "/admin/reports/system-usage",
+        requiredPermission: "audit.view_auditlog",
+      },
     ],
   },
 
@@ -220,6 +228,13 @@ const navigationItems: NavItem[] = [
     icon: <Logs size={20} />,
     path: "/admin/logs",
     requiredPermission: "audit.view_auditlog",
+  },
+  {
+    id: "system-settings",
+    label: "System Settings",
+    icon: <Settings size={20} />,
+    path: "/admin/system-settings",
+    requiredPermission: "accounts.view_user",
   },
 ]
 
