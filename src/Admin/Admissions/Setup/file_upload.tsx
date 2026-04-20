@@ -23,7 +23,6 @@ interface Program {
   name: string;
 }
 
-const HALLS = ["AKIIBUA", "NJUKI", "MUTEESA", "KAKUNGULU", "YOKANA", "RANDOM"]
 
 interface FileUploadProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
