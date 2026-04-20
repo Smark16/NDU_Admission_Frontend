@@ -185,7 +185,7 @@ export default function AdmittedStudents() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Admitted Students
           </Typography>
@@ -249,7 +249,7 @@ export default function AdmittedStudents() {
                 <TableHead>
                   <TableRow
                     sx={{
-                      backgroundColor: "#3e397b",
+                      backgroundColor: "#0D0060",
                       "& th": {
                         color: "white",
                         fontWeight: 700,

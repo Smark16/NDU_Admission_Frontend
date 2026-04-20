@@ -112,6 +112,7 @@ export default function AdmitStudentPage() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState("")
   const [showProgress, setShowProgress] = useState(false)
+  const [startDate, setStartDate] = useState("")
 
   // fetch campus
   const fetchCampus = async () => {
@@ -305,7 +306,7 @@ export default function AdmitStudentPage() {
       setProgress(0)
       setStatus("")
 
-      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
+      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`, { start_date: startDate })
       console.log(response.data)
       setIsLoading(false)
        setSnackbar({
@@ -383,7 +384,7 @@ export default function AdmitStudentPage() {
             value={progress}
             size={130}
             thickness={6}
-            sx={{ color: progress === 100 ? "#4caf50" : "#3e397b" }}
+            sx={{ color: progress === 100 ? "#4caf50" : "#0D0060" }}
           />
           <Typography variant="h5" sx={{ mt: 4, fontWeight: 700, color: "#1a1a1a" }}>
             Generating Offer Letter
@@ -403,11 +404,11 @@ export default function AdmitStudentPage() {
               borderRadius: 8,
               bgcolor: "#e0e0e0",
               "& .MuiLinearProgress-bar": {
-                bgcolor: progress === 100 ? "#4caf50" : "#3e397b",
+                bgcolor: progress === 100 ? "#4caf50" : "#0D0060",
               },
             }}
           />
-          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#3e397b" }}>
+          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#0D0060" }}>
             {progress}%
           </Typography>
         </Box>
@@ -425,7 +426,7 @@ export default function AdmitStudentPage() {
           }
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
-            backgroundColor: "#958fd6ff",
+            background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)",
             color: "white",
             "& .MuiCardHeader-avatar": {
               backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -559,9 +560,24 @@ export default function AdmitStudentPage() {
             />
           </FormSection>
 
+          {isAdmitted && (
+            <FormSection>
+              <TextField
+                fullWidth
+                label="Programme Start Date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                helperText="The date the student is expected to begin the programme (will appear on the offer letter)"
+                variant="outlined"
+              />
+            </FormSection>
+          )}
+
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
             {isAdmitted && (
-              <CustomButton 
+              <CustomButton
               icon={
                   isLoading ? (
                     <CircularProgress size={20} color="inherit" />

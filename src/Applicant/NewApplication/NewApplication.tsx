@@ -821,7 +821,7 @@ useEffect(() => {
           title="New Application"
           subheader="Complete all steps to submit your application"
           sx={{
-            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
+            background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)",
             color: "white",
             "& .MuiCardHeader-subheader": { color: "rgba(255,255,255,0.9)" },
           }}
@@ -844,7 +844,7 @@ useEffect(() => {
                             width: 40,
                             height: 40,
                             borderRadius: "50%",
-                            bgcolor: index <= activeStep ? "#3e397b" : "#e0e0e0",
+                            bgcolor: index <= activeStep ? "#0D0060" : "#e0e0e0",
                             color: index <= activeStep ? "white" : "#999",
                             fontWeight: 600,
                           }}
@@ -909,7 +909,7 @@ useEffect(() => {
       </Card>
 
       <Dialog open={openSummary} onClose={() => setOpenSummary(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)", color: "white" }}>
+        <DialogTitle sx={{ background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
           Application Submitted Successfully
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>

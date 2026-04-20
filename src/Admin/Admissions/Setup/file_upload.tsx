@@ -23,17 +23,23 @@ interface Program {
   name: string;
 }
 
+const HALLS = ["AKIIBUA", "NJUKI", "MUTEESA", "KAKUNGULU", "YOKANA", "RANDOM"]
+
 interface FileUploadProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   templateForm: {
     file: File | null;
     status: "active" | "inactive";
     programs: number[];
+    start_date: string;
+    hall_of_residence: string;
   };
   setTemplateForm: React.Dispatch<React.SetStateAction<{
     file: File | null;
     status: "active" | "inactive";
     programs: number[];
+    start_date: string;
+    hall_of_residence: string;
   }>>;
 }
 
@@ -42,7 +48,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
   const [programs, setPrograms] = useState<Program[]>([]);
 
   // === TYPE-SAFE FIELD UPDATER ===
-  type TemplateFormKeys = "file" | "status" | "programs";
+  type TemplateFormKeys = "file" | "status" | "programs" | "start_date" | "hall_of_residence";
   const handleFormChange = (field: TemplateFormKeys, value: any) => {
     setTemplateForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -148,6 +154,35 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
         noOptionsText="No programs found"
         sx={{ mt: 2 }}
       />
+
+      {/* Start Date */}
+      <TextField
+        fullWidth
+        label="Programme Start Date"
+        type="date"
+        value={templateForm.start_date}
+        onChange={(e) => handleFormChange("start_date", e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        helperText="This date will appear on all offer letters generated from this template"
+        sx={{ mt: 2 }}
+      />
+
+      {/* Hall of Residence */}
+      <FormControl fullWidth sx={{ mt: 2 }}>
+        <InputLabel>Hall of Residence</InputLabel>
+        <Select
+          value={templateForm.hall_of_residence}
+          label="Hall of Residence"
+          onChange={(e) => handleFormChange("hall_of_residence", e.target.value)}
+        >
+          <MenuItem value="AKIIBUA">AKIIBUA</MenuItem>
+          <MenuItem value="NJUKI">NJUKI</MenuItem>
+          <MenuItem value="MUTEESA">MUTEESA</MenuItem>
+          <MenuItem value="KAKUNGULU">KAKUNGULU</MenuItem>
+          <MenuItem value="YOKANA">YOKANA</MenuItem>
+          <MenuItem value="RANDOM">Assign Randomly</MenuItem>
+        </Select>
+      </FormControl>
 
       {/* Status */}
       <FormControl fullWidth sx={{ mt: 2 }}>

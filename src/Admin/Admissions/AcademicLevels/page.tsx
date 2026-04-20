@@ -188,7 +188,7 @@ export default function AcademicLevels() {
                 justifyContent: 'center',
               }}
             >
-              <SchoolIcon sx={{ color: '#3e397b', fontSize: 28 }} />
+              <SchoolIcon sx={{ color: '#0D0060', fontSize: 28 }} />
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
@@ -318,7 +318,7 @@ export default function AcademicLevels() {
                               size="small"
                               onClick={() => handleEditLevel(level)}
                               sx={{
-                                color: '#3e397b',
+                                color: '#0D0060',
                                 '&:hover': { backgroundColor: '#e3f2fd' },
                               }}
                             >

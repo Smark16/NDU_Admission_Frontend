@@ -59,7 +59,7 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
     <TableContainer component={Paper} sx={{ boxShadow: 2, mt: 3 }}>
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#3e397b" }}>
+          <TableRow sx={{ backgroundColor: "#0D0060" }}>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Program Name</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Short Form</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Code</TableCell>
@@ -117,13 +117,13 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
                 <Switch
                   checked={program.is_active}
                   onChange={() => onToggleStatus(program.id)}
-                  sx={{ color: "#3e397b" }}
+                  sx={{ color: "#0D0060" }}
                 />
               </TableCell>
               <TableCell align="right">
                 <IconButton
                   size="small"
-                  sx={{ color: "#3e397b" }}
+                  sx={{ color: "#0D0060" }}
                   onClick={() => onEdit(program)}
                 >
                   <EditIcon fontSize="small" />

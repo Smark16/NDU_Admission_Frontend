@@ -35,8 +35,10 @@ import {
   Eye,
 } from "lucide-react"
 
+import { useContext } from "react"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
+import { AuthContext } from "../../../Context/AuthContext"
 import CustomButton from "../../../ReUsables/custombutton"
 
 interface Stats {
@@ -81,6 +83,7 @@ interface Application {
 }
 
 const AdmissionDashboard = () => {
+  const { loggeduser } = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
   const [dashboardStats, setDashboardStats] = useState<Stats | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
@@ -214,18 +217,18 @@ const AdmissionDashboard = () => {
       <Container maxWidth="lg">
         {/* Header */}
         <Box mb={4}>
-          <Typography variant="h4" fontWeight={700} mb={1}>
-            Admin Dashboard
+          <Typography variant="h4" fontWeight={800} color="#000080" mb={0.5}>
+            Welcome back, Dear {loggeduser?.first_name} {loggeduser?.last_name}
           </Typography>
           <Typography color="textSecondary" variant="body2">
-            Welcome back! Here's what's happening with your admissions.
+            Here's what's happening with your admissions today.
           </Typography>
         </Box>
 
         {/* Stats Grid */}
         <Grid container spacing={2} mb={4}>
           <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#1976d2" />
+            <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#000080" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Pending" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
@@ -339,7 +342,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="Quick Actions"
-                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
+                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#000080" }} />}
               />
               <CardContent>
                 <Grid container spacing={2}>
@@ -363,7 +366,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="System Information"
-                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
+                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#000080" }} />}
               />
               <CardContent>
                 <Stack spacing={2}>

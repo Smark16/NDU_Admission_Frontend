@@ -40,7 +40,7 @@ function Statistics({
             <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Card
                     sx={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #0D0060 0%, #07003A 100%)',
                         color: 'white',
                         boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
                         '&:hover': {

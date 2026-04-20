@@ -159,7 +159,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         {/* Main Content - Left Side */}
         <Grid size={{ xs: 12, lg: 8 }}>
           {/* Applicant Header Card */}
-          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #3e397b 0%, #764ba2 100%)", color: "white" }}>
+          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
             <CardContent sx={{ py: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
                 <Avatar

@@ -60,7 +60,7 @@ export default function Charts({
                   <XAxis dataKey="faculty" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="admitted" fill="#667eea" />
+                  <Bar dataKey="admitted" fill="#0D0060" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -122,7 +122,7 @@ export default function Charts({
                         <TableCell align="center">
                           <Chip
                             label={`${((row.admitted / totalAdmitted) * 100).toFixed(1)}%`}
-                            sx={{ bgcolor: "#e0e7ff", color: "#667eea" }}
+                            sx={{ bgcolor: "#e0e7ff", color: "#0D0060" }}
                             size="small"
                           />
                         </TableCell>

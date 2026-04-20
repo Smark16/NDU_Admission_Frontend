@@ -45,6 +45,8 @@ interface Application {
   status: "submitted" | "accepted" | "rejected" | "under_review"
   created_at: string
   email: string
+  programs: { id: number; name: string }[]
+  academic_level: string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,7 +72,8 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all") 
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [academicLevelFilter, setAcademicLevelFilter] = useState<string>("all")
 
   // ───── FETCH APPLICATIONS ON MOUNT ─────
   useEffect(() => {
@@ -91,18 +94,22 @@ export default function ApplicationList() {
     fetchApplications()
   }, [AxiosInstance])
 
+  // ───── UNIQUE ACADEMIC LEVELS FOR FILTER DROPDOWN ─────
+  const allAcademicLevels = useMemo(() => {
+    return [...new Set(applications.map(a => a.academic_level).filter(Boolean))]
+  }, [applications])
+
   // ───── FILTERED + PAGINATED DATA ─────
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
       const matchesSearch =
         `${app.first_name} ${app.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.email.toLowerCase().includes(searchTerm.toLowerCase())
-
       const matchesStatus = statusFilter === "all" || app.status === statusFilter
-
-      return matchesSearch && matchesStatus
+      const matchesLevel = academicLevelFilter === "all" || app.academic_level === academicLevelFilter
+      return matchesSearch && matchesStatus && matchesLevel
     })
-  }, [applications, searchTerm, statusFilter])
+  }, [applications, searchTerm, statusFilter, academicLevelFilter])
 
   const paginatedApplications = filteredApplications.slice(
     page * rowsPerPage,
@@ -130,7 +137,7 @@ export default function ApplicationList() {
     <Box sx={{ p: 3, background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", minHeight: "100vh" }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: "#3e397b", fontWeight: "bold" }}>
+        <Typography variant="h4" sx={{ color: "#0D0060", fontWeight: "bold" }}>
           Applications
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -158,7 +165,7 @@ export default function ApplicationList() {
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card
               sx={{
-                background: 'linear-gradient(135deg, #958fceff 0%, #3e397b 100%)',
+                background: 'linear-gradient(135deg, #0D0060 0%, #0D0060 100%)',
               }}
             >
               <CardContent>
@@ -198,17 +205,14 @@ export default function ApplicationList() {
             />
           </Grid>
 
-          {/* Application status */}
-          <Grid size={{ xs: 12, sm: 4 }}>
+          {/* Status filter */}
+          <Grid size={{ xs: 12, sm: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
                 value={statusFilter}
                 label="Status"
-                onChange={(e) => {
-                  setStatusFilter(e.target.value)
-                  setPage(0)
-                }}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
               >
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="submitted">Submitted</MenuItem>
@@ -219,8 +223,25 @@ export default function ApplicationList() {
             </FormControl>
           </Grid>
 
+          {/* Academic level filter */}
+          <Grid size={{ xs: 12, sm: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Academic Level</InputLabel>
+              <Select
+                value={academicLevelFilter}
+                label="Academic Level"
+                onChange={(e) => { setAcademicLevelFilter(e.target.value); setPage(0) }}
+              >
+                <MenuItem value="all">All Levels</MenuItem>
+                {allAcademicLevels.map(level => (
+                  <MenuItem key={level} value={level}>{level}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
           {/* Application button */}
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 2 }}>
             <CustomButton text="Direct Application Entry" component={Link} to="/admin/direct_application" />
           </Grid>
         </Grid>
@@ -245,6 +266,7 @@ export default function ApplicationList() {
                   <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Program(s)</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Submitted</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }} align="center">
@@ -268,6 +290,9 @@ export default function ApplicationList() {
                         {app.email}
                       </TableCell>
                       <TableCell>{app.gender}</TableCell>
+                      <TableCell sx={{ fontSize: "0.875rem" }}>
+                        {app.programs.map(p => p.name).join(", ") || "—"}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={app.status.replace("_", " ")}
@@ -299,7 +324,7 @@ export default function ApplicationList() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
                       <Alert severity="info">No applications match your filters.</Alert>
                     </TableCell>
                   </TableRow>

@@ -463,7 +463,7 @@ const ProgramManagement: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Program Management
           </Typography>
@@ -476,7 +476,7 @@ const ProgramManagement: React.FC = () => {
       {/* Stats Cards - Using your original Grid size syntax */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Total Programs</Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -502,7 +502,7 @@ const ProgramManagement: React.FC = () => {
             <Card
               sx={{
                 background: index === 0
-                  ? "linear-gradient(135deg, #8c85daff 0%, #3e397b 100%)"
+                  ? "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)"
                   : "linear-gradient(135deg, #f07a7eff 0%, #7c1519 100%)",
                 color: "white",
               }}
