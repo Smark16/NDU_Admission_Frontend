@@ -1,11 +1,12 @@
 "use client"
 
-import { useContext, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Box, Card, CardContent, CardHeader, Typography, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Paper, Chip,
-  CircularProgress, Alert, Grid, Divider, TextField, InputAdornment,
+  TableCell, TableContainer, TableHead, TableRow, Chip,
+  CircularProgress, Alert, Divider, TextField, InputAdornment,
 } from "@mui/material"
+import { Grid } from "@mui/material"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -17,7 +18,7 @@ import {
   People as PeopleIcon,
   AccessTime as TimeIcon,
 } from "@mui/icons-material"
-import { AuthContext } from "../../Context/AuthContext"
+import useAxios from "../../AxiosInstance/UseAxios"
 
 interface UserStat {
   user__id: number
@@ -51,7 +52,7 @@ interface UsageData {
 }
 
 export default function SystemUsage() {
-  const { AxiosInstance } = useContext(AuthContext) || {}
+  const AxiosInstance = useAxios()
 
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,8 +64,9 @@ export default function SystemUsage() {
       try {
         const res = await AxiosInstance!.get("/api/accounts/system_usage_report")
         setData(res.data)
-      } catch {
-        setError("Failed to load system usage report.")
+      } catch (err: any) {
+        const msg = err?.response?.data?.detail || err?.message || "Failed to load system usage report."
+        setError(msg)
       } finally {
         setLoading(false)
       }
@@ -119,7 +121,7 @@ export default function SystemUsage() {
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
-          <Grid item xs={12} sm={4} key={card.label}>
+          <Grid size={{ xs: 12, sm: 4 }} key={card.label}>
             <Card sx={{ border: "1px solid #e0eef7" }}>
               <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: card.color + "15", color: card.color }}>
@@ -176,12 +178,14 @@ export default function SystemUsage() {
               placeholder="Search user..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
               }}
               sx={{ width: 220 }}
             />

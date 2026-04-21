@@ -41,6 +41,7 @@ const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectAppli
 const DirectEntryList = lazy(() => import('../Admin/Admissions/DirectApplication/DirectEntryList'))
 const RejectedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Rejected'))
 const AllApplicantsReport = lazy(() => import('../Admin/Reports/AllApplicants'))
+const ProspectiveStudents = lazy(() => import('../Admin/ProspectiveStudents/page'))
 const SystemUsageReport = lazy(() => import('../Admin/Reports/SystemUsage'))
 const SystemSettingsPage = lazy(() => import('../Admin/Settings/SystemSettings'))
 
@@ -272,6 +273,12 @@ function AppRoutes() {
                      <AdminRoute permission='payments.view_applicationpayment'>
                        <Suspense fallback={<LoadingSpinner />}><Finance /></Suspense>
                      </AdminRoute>
+                    } />
+
+                  <Route path='/prospective-students' element={
+                    <AdminRoute permission='accounts.view_user'>
+                      <Suspense fallback={<LoadingSpinner />}><ProspectiveStudents /></Suspense>
+                    </AdminRoute>
                     } />
 
                   <Route path='/reports/system-usage' element={

@@ -1,9 +1,9 @@
 "use client"
 
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react" // useContext needed for AuthContext
 import {
   Box, Card, CardContent, CardHeader, Typography, TextField,
-  Button, Alert, CircularProgress, Divider, Grid, Chip,
+  Button, Alert, CircularProgress, Divider, Chip, Grid,
 } from "@mui/material"
 import {
   Settings as SettingsIcon,
@@ -13,6 +13,7 @@ import {
   School as StudentIcon,
 } from "@mui/icons-material"
 import { AuthContext } from "../../Context/AuthContext"
+import useAxios from "../../AxiosInstance/UseAxios"
 
 interface SystemSettingsData {
   student_session_timeout: number
@@ -22,7 +23,8 @@ interface SystemSettingsData {
 }
 
 export default function SystemSettings() {
-  const { AxiosInstance, showSuccessAlert, showErrorAlert } = useContext(AuthContext) || {}
+  const { showSuccessAlert, showErrorAlert } = useContext(AuthContext) || {}
+  const AxiosInstance = useAxios()
 
   const [settings, setSettings] = useState<SystemSettingsData>({
     student_session_timeout: 30,
@@ -34,6 +36,25 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  const normalizeTimeout = (value: string, fallback: number) => {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isFinite(parsed)) return fallback
+    return Math.min(480, Math.max(1, parsed))
+  }
+
+  const extractErrorMessage = (err: any) => {
+    const apiData = err?.response?.data
+    if (apiData?.detail) return apiData.detail
+    if (apiData?.errors && typeof apiData.errors === "object") {
+      const [field, fieldErrors] = Object.entries(apiData.errors)[0] || []
+      if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+        return `${field}: ${fieldErrors[0]}`
+      }
+      return "Invalid settings values."
+    }
+    return "Failed to save settings."
+  }
 
   useEffect(() => {
     const fetch = async () => {
@@ -52,13 +73,20 @@ export default function SystemSettings() {
   const handleSave = async () => {
     setError(null)
     setSuccess(null)
+    if (
+      !Number.isInteger(settings.student_session_timeout) ||
+      !Number.isInteger(settings.admin_session_timeout)
+    ) {
+      setError("Timeout values must be whole numbers.")
+      return
+    }
     if (settings.student_session_timeout < 1 || settings.admin_session_timeout < 1) {
       setError("Timeout values must be at least 1 minute.")
       return
     }
     try {
       setSaving(true)
-      const { data } = await AxiosInstance!.patch("/api/accounts/update_system_settings", {
+      const { data } = await AxiosInstance!.put("/api/accounts/update_system_settings", {
         student_session_timeout: settings.student_session_timeout,
         admin_session_timeout: settings.admin_session_timeout,
       })
@@ -66,7 +94,7 @@ export default function SystemSettings() {
       setSuccess("Settings saved successfully.")
       showSuccessAlert?.("System settings updated.")
     } catch (err: any) {
-      const msg = err.response?.data?.detail || "Failed to save settings."
+      const msg = extractErrorMessage(err)
       setError(msg)
       showErrorAlert?.(msg)
     } finally {
@@ -110,7 +138,7 @@ export default function SystemSettings() {
         <Divider />
         <CardContent>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ p: 2, bgcolor: "#f8fbff", borderRadius: 2, border: "1px solid #e0eef7" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <StudentIcon sx={{ color: "#5ba3f5" }} />
@@ -124,17 +152,20 @@ export default function SystemSettings() {
                   onChange={(e) =>
                     setSettings((prev) => ({
                       ...prev,
-                      student_session_timeout: Math.max(1, Number(e.target.value)),
+                      student_session_timeout: normalizeTimeout(
+                        e.target.value,
+                        prev.student_session_timeout
+                      ),
                     }))
                   }
-                  inputProps={{ min: 1, max: 480 }}
+                  slotProps={{ htmlInput: { min: 1, max: 480, step: 1 } }}
                   helperText="Recommended: 20–60 minutes"
                   size="small"
                 />
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ p: 2, bgcolor: "#fff8f0", borderRadius: 2, border: "1px solid #ffe0b2" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <AdminIcon sx={{ color: "#f57c00" }} />
@@ -148,10 +179,13 @@ export default function SystemSettings() {
                   onChange={(e) =>
                     setSettings((prev) => ({
                       ...prev,
-                      admin_session_timeout: Math.max(1, Number(e.target.value)),
+                      admin_session_timeout: normalizeTimeout(
+                        e.target.value,
+                        prev.admin_session_timeout
+                      ),
                     }))
                   }
-                  inputProps={{ min: 1, max: 480 }}
+                  slotProps={{ htmlInput: { min: 1, max: 480, step: 1 } }}
                   helperText="Recommended: 60–240 minutes"
                   size="small"
                 />

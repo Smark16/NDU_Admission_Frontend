@@ -34,6 +34,7 @@ import {
   Logs,
   BanknoteArrowDown,
   Activity,
+  UserSearch,
 } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import { School as SchoolIcon, Cancel as CancelIcon } from '@mui/icons-material';
@@ -103,6 +104,13 @@ const navigationItems: NavItem[] = [
         icon: <BookOpen size={20} />,
         path: "/admin/intake",
         requiredPermission: "admissions.view_batch",
+      },
+      {
+        id: "prospective-students",
+        label: "Prospective Students",
+        icon: <UserSearch size={20} />,
+        path: "/admin/prospective-students",
+        requiredPermission: "accounts.view_user",
       },
     ],
   },

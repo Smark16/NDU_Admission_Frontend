@@ -52,7 +52,6 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
     setTemplateForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  console.log('template file', templateForm)
   // === FETCH PROGRAMS ===
   const fetchPrograms = async () => {
     try {
@@ -78,7 +77,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-          Upload your Admission Template as a word document
+          Upload your Admission Template as a Word or PDF document
         </Typography>
         <Paper
           sx={{
@@ -95,7 +94,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
             type="file"
             name="Admission Templates"
             onChange={handleFileChange}
-            accept=".doc, .docx"
+            accept=".doc, .docx, .pdf"
             style={{ display: "none" }}
             id="template-upload"
           />
@@ -105,7 +104,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
               Click to upload or drag and drop
             </Typography>
             <Typography variant="caption" sx={{ color: "#666" }}>
-              Word Documents (Max 10MB)
+              Word or PDF documents (Max 100MB)
             </Typography>
             {templateForm.file && (
               <Chip
@@ -161,7 +160,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
         type="date"
         value={templateForm.start_date}
         onChange={(e) => handleFormChange("start_date", e.target.value)}
-        InputLabelProps={{ shrink: true }}
+        slotProps={{ inputLabel: { shrink: true } }}
         helperText="This date will appear on all offer letters generated from this template"
         sx={{ mt: 2 }}
       />
