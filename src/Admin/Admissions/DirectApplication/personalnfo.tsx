@@ -16,6 +16,10 @@ import {
 import type { SelectChangeEvent } from "@mui/material/Select"
 import ReactSelect from "react-select"
 import countryList from "react-select-country-list"
+import { DatePicker } from "@mui/x-date-pickers/DatePicker"
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
+import dayjs from "dayjs"
 
 interface PersonalInfoProps {
   formData: {
@@ -136,18 +140,22 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
         </Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              fullWidth
-              label="Date of Birth"
-              name="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={handleInputChange}
-              required
-              InputLabelProps={{ shrink: true }}
-              error={!!formErrors.dateOfBirth}
-              helperText={formErrors.dateOfBirth}
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Date of Birth *"
+                value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
+                onChange={(val) => handleInputChange({ target: { name: "dateOfBirth", value: val ? val.format("YYYY-MM-DD") : "" } } as any)}
+                minDate={dayjs("1940-01-01")}
+                maxDate={dayjs().subtract(15, "year")}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !!formErrors.dateOfBirth,
+                    helperText: formErrors.dateOfBirth,
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -340,7 +348,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 value={formData.school_pay_reference || ""}
                 onChange={handleInputChange}
                 required
-                inputProps={{ maxLength: 50 }}
+                slotProps={{ htmlInput: { maxLength: 50 } }}
                 error={!!formErrors.school_pay_reference}
                 helperText={
                   formErrors.school_pay_reference ||

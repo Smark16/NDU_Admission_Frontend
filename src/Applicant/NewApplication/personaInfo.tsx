@@ -16,7 +16,10 @@ import { CheckCircle as CheckCircleIcon } from "@mui/icons-material"
 import type { SelectChangeEvent } from "@mui/material/Select"
 import ReactSelect from "react-select"
 import countryList from "react-select-country-list"
-import DateDropdownPicker from "../../ReUsables/DateDropdownPicker"
+import { DatePicker } from "@mui/x-date-pickers/DatePicker"
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
+import dayjs from "dayjs"
 
 interface PersonalInfoProps {
   formData: {
@@ -142,16 +145,22 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
         </Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <DateDropdownPicker
-              label="Date of Birth"
-              value={formData.dateOfBirth}
-              onChange={(val) => handleInputChange({ target: { name: "dateOfBirth", value: val } } as any)}
-              required
-              error={!!formErrors.dateOfBirth}
-              helperText={formErrors.dateOfBirth}
-              maxYear={new Date().getFullYear() - 15}
-              minYear={1940}
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Date of Birth *"
+                value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
+                onChange={(val) => handleInputChange({ target: { name: "dateOfBirth", value: val ? val.format("YYYY-MM-DD") : "" } } as any)}
+                minDate={dayjs("1940-01-01")}
+                maxDate={dayjs().subtract(15, "year")}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !!formErrors.dateOfBirth,
+                    helperText: formErrors.dateOfBirth,
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>

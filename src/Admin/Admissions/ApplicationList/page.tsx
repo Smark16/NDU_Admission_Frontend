@@ -240,10 +240,6 @@ export default function ApplicationList() {
             </FormControl>
           </Grid>
 
-          {/* Application button */}
-          <Grid size={{ xs: 12, sm: 2 }}>
-            <CustomButton text="Direct Application Entry" component={Link} to="/admin/direct_application" />
-          </Grid>
         </Grid>
       </Paper>
 

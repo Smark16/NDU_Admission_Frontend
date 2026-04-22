@@ -35,6 +35,7 @@ interface Applicant {
   batch: string
   campus: string
   programs: string
+  faculty: string
   status: string
   created_at: string
   is_direct_entry: boolean
@@ -77,6 +78,7 @@ export default function AllApplicantsReport() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [genderFilter, setGenderFilter] = useState("all")
   const [entryFilter, setEntryFilter] = useState("all")
+  const [facultyFilter, setFacultyFilter] = useState("all")
   const [programSearch, setProgramSearch] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
@@ -104,6 +106,10 @@ export default function AllApplicantsReport() {
   const batches = useMemo(() => [...new Set(applicants.map(a => a.batch).filter(Boolean))], [applicants])
   const levels = useMemo(() => [...new Set(applicants.map(a => a.academic_level).filter(Boolean))], [applicants])
   const campuses = useMemo(() => [...new Set(applicants.map(a => a.campus).filter(Boolean))], [applicants])
+  const faculties = useMemo(() => {
+    const all = applicants.flatMap(a => a.faculty ? a.faculty.split(", ") : [])
+    return [...new Set(all)].filter(Boolean).sort()
+  }, [applicants])
 
   const filtered = useMemo(() => {
     return applicants.filter(a => {
@@ -119,12 +125,13 @@ export default function AllApplicantsReport() {
         (statusFilter === "all" || a.status === statusFilter) &&
         (genderFilter === "all" || a.gender === genderFilter) &&
         (entryFilter === "all" || (entryFilter === "direct" ? a.is_direct_entry : !a.is_direct_entry)) &&
+        (facultyFilter === "all" || (a.faculty || "").toLowerCase().includes(facultyFilter.toLowerCase())) &&
         (programSearch === "" || (a.programs || "").toLowerCase().includes(programSearch.toLowerCase())) &&
         (!from || appliedDate >= from) &&
         (!to || appliedDate <= to)
       )
     })
-  }, [applicants, search, batchFilter, levelFilter, campusFilter, statusFilter, genderFilter, entryFilter, programSearch, dateFrom, dateTo])
+  }, [applicants, search, batchFilter, levelFilter, campusFilter, statusFilter, genderFilter, entryFilter, facultyFilter, programSearch, dateFrom, dateTo])
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -139,7 +146,7 @@ export default function AllApplicantsReport() {
   const resetFilters = () => {
     setSearch(""); setBatchFilter("all"); setLevelFilter("all")
     setCampusFilter("all"); setStatusFilter("all"); setGenderFilter("all")
-    setEntryFilter("all"); setProgramSearch(""); setDateFrom(""); setDateTo("")
+    setEntryFilter("all"); setFacultyFilter("all"); setProgramSearch(""); setDateFrom(""); setDateTo("")
     setPage(0)
   }
 
@@ -150,14 +157,15 @@ export default function AllApplicantsReport() {
     statusFilter !== "all" ? statusFilter : "",
     genderFilter !== "all" ? genderFilter : "",
     entryFilter !== "all" ? entryFilter : "",
+    facultyFilter !== "all" ? facultyFilter : "",
     programSearch, dateFrom, dateTo,
   ].filter(Boolean).length
 
   const exportCSV = () => {
-    const headers = ["#", "Name", "Email", "Gender", "Academic Level", "Batch", "Campus", "Program(s)", "Status", "Entry Type", "Date Applied"]
+    const headers = ["#", "Name", "Email", "Gender", "Academic Level", "Faculty", "Batch", "Campus", "Program(s)", "Status", "Entry Type", "Date Applied"]
     const rows = filtered.map((a, i) => [
       i + 1, `${a.first_name} ${a.last_name}`, a.email, a.gender,
-      a.academic_level, a.batch, a.campus, a.programs,
+      a.academic_level, a.faculty || "", a.batch, a.campus, a.programs,
       a.status, a.is_direct_entry ? "Direct Entry" : "Online", new Date(a.created_at).toLocaleDateString()
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n")
@@ -309,6 +317,9 @@ export default function AllApplicantsReport() {
                   </Select>
                 </FormControl>
               </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                <FilterSelect label="Faculty" value={facultyFilter} onChange={v => { setFacultyFilter(v); setPage(0) }} options={faculties} />
+              </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
                 <TextField
                   fullWidth size="small" label="Program contains…"
@@ -350,6 +361,7 @@ export default function AllApplicantsReport() {
             {campusFilter !== "all" && <Chip size="small" label={`Campus: ${campusFilter}`} onDelete={() => setCampusFilter("all")} />}
             {genderFilter !== "all" && <Chip size="small" label={`Gender: ${genderFilter}`} onDelete={() => setGenderFilter("all")} />}
             {entryFilter !== "all" && <Chip size="small" label={`Entry: ${entryFilter}`} onDelete={() => setEntryFilter("all")} />}
+            {facultyFilter !== "all" && <Chip size="small" label={`Faculty: ${facultyFilter}`} onDelete={() => setFacultyFilter("all")} />}
             {programSearch && <Chip size="small" label={`Program: "${programSearch}"`} onDelete={() => setProgramSearch("")} />}
             {dateFrom && <Chip size="small" label={`From: ${dateFrom}`} onDelete={() => setDateFrom("")} />}
             {dateTo && <Chip size="small" label={`To: ${dateTo}`} onDelete={() => setDateTo("")} />}
@@ -368,7 +380,7 @@ export default function AllApplicantsReport() {
             <Table sx={{ minWidth: 900 }}>
               <TableHead sx={{ backgroundColor: NAVY }}>
                 <TableRow>
-                  {["#", "Name", "Gender", "Academic Level", "Intake", "Campus", "Program(s)", "Status", "Entry", "Date"].map(h => (
+                  {["#", "Name", "Gender", "Academic Level", "Faculty", "Intake", "Campus", "Program(s)", "Status", "Entry", "Date"].map(h => (
                     <TableCell key={h} sx={{ color: "#fff", fontWeight: 700, fontSize: "0.8rem" }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -383,6 +395,7 @@ export default function AllApplicantsReport() {
                     </TableCell>
                     <TableCell sx={{ fontSize: "0.875rem" }}>{a.gender}</TableCell>
                     <TableCell sx={{ fontSize: "0.875rem" }}>{a.academic_level}</TableCell>
+                    <TableCell sx={{ fontSize: "0.875rem" }}>{a.faculty || "—"}</TableCell>
                     <TableCell sx={{ fontSize: "0.875rem" }}>{a.batch}</TableCell>
                     <TableCell sx={{ fontSize: "0.875rem" }}>{a.campus}</TableCell>
                     <TableCell sx={{ fontSize: "0.8rem", maxWidth: 180 }}>{a.programs || "—"}</TableCell>
@@ -411,7 +424,7 @@ export default function AllApplicantsReport() {
                   </TableRow>
                 )) : (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={11} align="center" sx={{ py: 6 }}>
                       <Alert severity="info">No applicants match your filters.</Alert>
                     </TableCell>
                   </TableRow>

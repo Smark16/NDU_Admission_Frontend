@@ -32,8 +32,9 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Schedule as ScheduleIcon,
+  Add as AddIcon,
 } from "@mui/icons-material"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
 
 interface Application {
@@ -60,6 +61,7 @@ const statusConfig: Record<
 
 export default function DirectEntryList() {
   const AxiosInstance = useAxios()
+  const navigate = useNavigate()
 
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
@@ -124,13 +126,23 @@ export default function DirectEntryList() {
 
   return (
     <Box sx={{ p: 3, background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", minHeight: "100vh" }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: "#000080", fontWeight: "bold" }}>
-          Direct Entry Applicants
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Students submitted through the direct entry (walk-in) process
-        </Typography>
+      <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ color: "#000080", fontWeight: "bold" }}>
+            Direct Entry Applicants
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Students submitted through the direct entry (walk-in) process
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate("/admin/direct_application")}
+          sx={{ bgcolor: "#000080", "&:hover": { bgcolor: "#000066" }, textTransform: "none", fontWeight: 700 }}
+        >
+          Create Application
+        </Button>
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
