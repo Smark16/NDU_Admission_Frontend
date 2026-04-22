@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Box, TextField, Chip, TablePagination, Button, Alert,
   Card, CardContent, Grid, InputAdornment, Select, MenuItem,
-  FormControl, InputLabel, CircularProgress, Typography, Checkbox, Tooltip,
+  FormControl, InputLabel, CircularProgress, Typography, Checkbox,
 } from "@mui/material"
 import {
   Search as SearchIcon, Visibility as VisibilityIcon,
@@ -164,13 +164,11 @@ export default function DirectEntryList() {
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
-              InputProps={{
-                startAdornment: (
+              slotProps={{ input: { startAdornment: (
                   <InputAdornment position="start">
                     <SearchIcon sx={{ color: "#999" }} />
                   </InputAdornment>
-                ),
-              }}
+                ) } }}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 3 }}>
