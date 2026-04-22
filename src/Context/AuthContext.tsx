@@ -56,8 +56,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
   const [noAccount, setNoAccount] = useState("");
- 
-  console.log(loggeduser)
 
   const loginUser = async (username: string, password: string) => {
     setLoginLoading(true);
