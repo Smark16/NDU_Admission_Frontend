@@ -2,40 +2,19 @@
 
 import React, { useEffect, useMemo, useState } from "react"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
-  TextField,
-  Chip,
-  TablePagination,
-  Button,
-  Alert,
-  Card,
-  CardContent,
-  Grid,
-  InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  CircularProgress,
-  Typography,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Box, TextField, Chip, TablePagination, Button, Alert,
+  Card, CardContent, Grid, InputAdornment, Select, MenuItem,
+  FormControl, InputLabel, CircularProgress, Typography, Checkbox, Tooltip,
 } from "@mui/material"
 import {
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Schedule as ScheduleIcon,
-  Add as AddIcon,
+  Search as SearchIcon, Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon, Cancel as CancelIcon,
+  Schedule as ScheduleIcon, Add as AddIcon, Campaign as CampaignIcon,
 } from "@mui/icons-material"
 import { Link, useNavigate } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
+import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 
 interface Application {
   id: number
@@ -72,6 +51,8 @@ export default function DirectEntryList() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [academicLevelFilter, setAcademicLevelFilter] = useState<string>("all")
+  const [selected, setSelected] = useState<number[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -142,6 +123,13 @@ export default function DirectEntryList() {
           sx={{ bgcolor: "#000080", "&:hover": { bgcolor: "#000066" }, textTransform: "none", fontWeight: 700 }}
         >
           Create Application
+        </Button>
+        <Button
+          variant="outlined" startIcon={<CampaignIcon />}
+          onClick={() => setDialogOpen(true)}
+          sx={{ borderColor: "#000080", color: "#000080", "&:hover": { bgcolor: "#000080", color: "white" }, textTransform: "none", fontWeight: 700 }}
+        >
+          {selected.length > 0 ? `Send to ${selected.length} selected` : "Send Communication"}
         </Button>
       </Box>
 
@@ -232,6 +220,17 @@ export default function DirectEntryList() {
             <Table sx={{ minWidth: 750 }}>
               <TableHead sx={{ backgroundColor: "#f5f7fa" }}>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      indeterminate={paginatedApplications.some(a => selected.includes(a.id)) && !paginatedApplications.every(a => selected.includes(a.id))}
+                      checked={paginatedApplications.length > 0 && paginatedApplications.every(a => selected.includes(a.id))}
+                      onChange={() => {
+                        const ids = paginatedApplications.map(a => a.id)
+                        const allSelected = ids.every(id => selected.includes(id))
+                        allSelected ? setSelected(p => p.filter(id => !ids.includes(id))) : setSelected(p => [...new Set([...p, ...ids])])
+                      }}
+                    />
+                  </TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
@@ -245,7 +244,10 @@ export default function DirectEntryList() {
               <TableBody>
                 {paginatedApplications.length > 0 ? (
                   paginatedApplications.map((app, idx) => (
-                    <TableRow key={app.id} hover sx={{ "&:hover": { backgroundColor: "#fafafa" } }}>
+                    <TableRow key={app.id} hover selected={selected.includes(app.id)} sx={{ "&:hover": { backgroundColor: "#fafafa" } }}>
+                      <TableCell padding="checkbox">
+                        <Checkbox checked={selected.includes(app.id)} onChange={() => setSelected(p => p.includes(app.id) ? p.filter(x => x !== app.id) : [...p, app.id])} />
+                      </TableCell>
                       <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>{app.first_name} {app.last_name}</TableCell>
                       <TableCell sx={{ fontSize: "0.875rem", color: "#555" }}>{app.email}</TableCell>
@@ -305,6 +307,12 @@ export default function DirectEntryList() {
           />
         </>
       )}
+
+      <AnnouncementDialog
+        open={dialogOpen} onClose={() => setDialogOpen(false)}
+        selectedIds={selected.length > 0 ? selected : undefined}
+        context="direct entry applicant"
+      />
     </Box>
   )
 }

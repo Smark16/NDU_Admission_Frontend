@@ -2,29 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from "react"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
-  TextField,
-  Chip,
-  TablePagination,
-  Button,
-  Alert,
-  Card,
-  CardContent,
-  Grid,
-  InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  CircularProgress,
-  Typography,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Box, TextField, Chip, TablePagination, Button, Alert,
+  Card, CardContent, Grid, InputAdornment, Select, MenuItem,
+  FormControl, InputLabel, CircularProgress, Typography, Checkbox, Tooltip,
 } from "@mui/material"
 import {
   Search as SearchIcon,
@@ -32,10 +13,11 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Schedule as ScheduleIcon,
+  Campaign as CampaignIcon,
 } from "@mui/icons-material"
-import {Link} from "react-router-dom"
+import { Link } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
-import CustomButton from "../../../ReUsables/custombutton"
+import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 
 interface Application {
   id: number
@@ -49,19 +31,16 @@ interface Application {
   academic_level: string
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Status → Chip config (icon is now a ReactElement)
 const statusConfig: Record<
   Application["status"],
   { color: "default" | "info" | "warning" | "success" | "error"; icon: React.ReactElement }
 > = {
-  submitted: { color: "info", icon: <ScheduleIcon fontSize="small" /> },
+  submitted:    { color: "info",    icon: <ScheduleIcon fontSize="small" /> },
   under_review: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
-  accepted: { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
-  rejected: { color: "error", icon: <CancelIcon fontSize="small" /> },
+  accepted:     { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+  rejected:     { color: "error",   icon: <CancelIcon fontSize="small" /> },
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ApplicationList() {
   const AxiosInstance = useAxios()
 
@@ -75,7 +54,9 @@ export default function ApplicationList() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [academicLevelFilter, setAcademicLevelFilter] = useState<string>("all")
 
-  // ───── FETCH APPLICATIONS ON MOUNT ─────
+  const [selected, setSelected] = useState<number[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   useEffect(() => {
     const fetchApplications = async () => {
       try {
@@ -85,21 +66,16 @@ export default function ApplicationList() {
         setApplications(res.data)
       } catch (err: any) {
         setError(err.response?.data?.detail || "Failed to load applications")
-        console.error(err)
       } finally {
         setLoading(false)
       }
     }
-
     fetchApplications()
   }, [AxiosInstance])
 
-  // ───── UNIQUE ACADEMIC LEVELS FOR FILTER DROPDOWN ─────
-  const allAcademicLevels = useMemo(() => {
-    return [...new Set(applications.map(a => a.academic_level).filter(Boolean))]
-  }, [applications])
+  const allAcademicLevels = useMemo(() => [...new Set(applications.map(a => a.academic_level).filter(Boolean))], [applications])
+  const allBatches = useMemo(() => [...new Set(applications.map((a: any) => a.batch).filter(Boolean))], [applications])
 
-  // ───── FILTERED + PAGINATED DATA ─────
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
       const matchesSearch =
@@ -111,70 +87,65 @@ export default function ApplicationList() {
     })
   }, [applications, searchTerm, statusFilter, academicLevelFilter])
 
-  const paginatedApplications = filteredApplications.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  )
+  const paginatedApplications = filteredApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
-  // ───── PAGINATION HANDLERS ─────
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
+  const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }
 
-  const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(e.target.value, 10))
-    setPage(0)
+  const formatDate = (date: string) => new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+
+  // ── Selection helpers ──
+  const allPageIds = paginatedApplications.map(a => a.id)
+  const allFilteredIds = filteredApplications.map(a => a.id)
+  const allPageSelected = allPageIds.length > 0 && allPageIds.every(id => selected.includes(id))
+  const somePageSelected = allPageIds.some(id => selected.includes(id))
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      setSelected(prev => prev.filter(id => !allPageIds.includes(id)))
+    } else {
+      setSelected(prev => [...new Set([...prev, ...allPageIds])])
+    }
   }
 
-  // ───── DATE FORMATTER ─────
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
+  const toggleOne = (id: number) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
-  // ───── RENDER ─────
+  const selectAllFiltered = () => setSelected(allFilteredIds)
+  const clearSelection = () => setSelected([])
+
   return (
     <Box sx={{ p: 3, background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", minHeight: "100vh" }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: "#0D0060", fontWeight: "bold" }}>
-          Applications
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Manage and review all student applications
-        </Typography>
+      <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ color: "#0D0060", fontWeight: "bold" }}>Applications</Typography>
+          <Typography variant="body2" color="text.secondary">Manage and review all student applications</Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<CampaignIcon />}
+          onClick={() => setDialogOpen(true)}
+          sx={{ bgcolor: "#0D0060", "&:hover": { bgcolor: "#0a004a" }, textTransform: "none", fontWeight: 700 }}
+        >
+          {selected.length > 0 ? `Send to ${selected.length} selected` : "Send Communication"}
+        </Button>
       </Box>
 
       {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Total", value: filteredApplications.length},
-          {
-            label: "Accepted",
-            value: filteredApplications.filter((a) => a.status === "accepted").length
-          },
-          {
-            label: "Under Review",
-            value: filteredApplications.filter((a) => a.status === "under_review").length
-          },
-          {
-            label: "Rejected",
-            value: filteredApplications.filter((a) => a.status === "rejected").length
-          },
+          { label: "Total",        value: filteredApplications.length },
+          { label: "Accepted",     value: filteredApplications.filter(a => a.status === "accepted").length },
+          { label: "Under Review", value: filteredApplications.filter(a => a.status === "under_review").length },
+          { label: "Rejected",     value: filteredApplications.filter(a => a.status === "rejected").length },
         ].map((stat, i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card
-              sx={{
-                background: 'linear-gradient(135deg, #0D0060 0%, #0D0060 100%)',
-              }}
-            >
+            <Card sx={{ background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)" }}>
               <CardContent>
-                <Typography variant="h4" sx={{ color: "white", fontWeight: "bold" }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>
-                  {stat.label}
-                </Typography>
+                <Typography variant="h4" sx={{ color: "white", fontWeight: "bold" }}>{stat.value}</Typography>
+                <Typography variant="body2" sx={{ color: "white", opacity: 0.9 }}>{stat.label}</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -183,37 +154,19 @@ export default function ApplicationList() {
 
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
-        <Grid container spacing={2}>
-          {/* Application search */}
+        <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
-              fullWidth
-              size="small"
-              placeholder="Search by name or email..."
+              fullWidth size="small" placeholder="Search by name or email..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setPage(0)
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "#999" }} />
-                  </InputAdornment>
-                ),
-              }}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#999" }} /></InputAdornment> } }}
             />
           </Grid>
-
-          {/* Status filter */}
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
-              >
+              <Select value={statusFilter} label="Status" onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}>
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="submitted">Submitted</MenuItem>
                 <MenuItem value="under_review">Under Review</MenuItem>
@@ -222,96 +175,90 @@ export default function ApplicationList() {
               </Select>
             </FormControl>
           </Grid>
-
-          {/* Academic level filter */}
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Academic Level</InputLabel>
-              <Select
-                value={academicLevelFilter}
-                label="Academic Level"
-                onChange={(e) => { setAcademicLevelFilter(e.target.value); setPage(0) }}
-              >
+              <Select value={academicLevelFilter} label="Academic Level" onChange={(e) => { setAcademicLevelFilter(e.target.value); setPage(0) }}>
                 <MenuItem value="all">All Levels</MenuItem>
-                {allAcademicLevels.map(level => (
-                  <MenuItem key={level} value={level}>{level}</MenuItem>
-                ))}
+                {allAcademicLevels.map(level => <MenuItem key={level} value={level}>{level}</MenuItem>)}
               </Select>
             </FormControl>
           </Grid>
-
+          {selected.length > 0 && (
+            <Grid size={{ xs: 12, sm: 2 }}>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Tooltip title="Select all matching the current filters">
+                  <Button size="small" variant="outlined" onClick={selectAllFiltered} sx={{ textTransform: "none", fontSize: "0.75rem" }}>
+                    Select all {filteredApplications.length}
+                  </Button>
+                </Tooltip>
+                <Button size="small" onClick={clearSelection} sx={{ textTransform: "none", fontSize: "0.75rem", color: "#c0001a" }}>
+                  Clear
+                </Button>
+              </Box>
+            </Grid>
+          )}
         </Grid>
       </Paper>
 
-      {/* Loading / Error / Table */}
+      {/* Table */}
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
-        </Box>
+        <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
       ) : (
         <>
           <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 3, mb: 1 }}>
             <Table sx={{ minWidth: 750 }}>
               <TableHead sx={{ backgroundColor: "#f5f7fa" }}>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      indeterminate={somePageSelected && !allPageSelected}
+                      checked={allPageSelected}
+                      onChange={toggleSelectAll}
+                    />
+                  </TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Academic Level</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Program(s)</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Submitted</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }} align="center">
-                    Action
-                  </TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }} align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paginatedApplications.length > 0 ? (
                   paginatedApplications.map((app, idx) => (
                     <TableRow
-                      key={app.id}
-                      hover
+                      key={app.id} hover
+                      selected={selected.includes(app.id)}
                       sx={{ "&:hover": { backgroundColor: "#fafafa" } }}
                     >
+                      <TableCell padding="checkbox">
+                        <Checkbox checked={selected.includes(app.id)} onChange={() => toggleOne(app.id)} />
+                      </TableCell>
                       <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {app.first_name} {app.last_name}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: "0.875rem", color: "#555" }}>
-                        {app.email}
-                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>{app.first_name} {app.last_name}</TableCell>
+                      <TableCell sx={{ fontSize: "0.875rem" }}>{app.academic_level}</TableCell>
                       <TableCell>{app.gender}</TableCell>
-                      <TableCell sx={{ fontSize: "0.875rem" }}>
-                        {app.programs.map(p => p.name).join(", ") || "—"}
-                      </TableCell>
+                      <TableCell sx={{ fontSize: "0.875rem" }}>{app.programs.map(p => p.name).join(", ") || "—"}</TableCell>
                       <TableCell>
                         <Chip
                           label={app.status.replace("_", " ")}
                           color={statusConfig[app.status]?.color}
                           icon={statusConfig[app.status]?.icon}
-                          size="small"
-                          sx={{ minWidth: 100 }}
+                          size="small" sx={{ minWidth: 100 }}
                         />
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center">
                         <Button
-                          component={Link}
-                          to={`/admin/application_review/${app.id}`}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<VisibilityIcon />}
-                          sx={{
-                            textTransform: "none",
-                            borderColor: "#1976d2",
-                            color: "#1976d2",
-                            "&:hover": { bgcolor: "#1976d2", color: "white" },
-                          }}
+                          component={Link} to={`/admin/application_review/${app.id}`}
+                          variant="outlined" size="small" startIcon={<VisibilityIcon />}
+                          sx={{ textTransform: "none", borderColor: "#1976d2", color: "#1976d2", "&:hover": { bgcolor: "#1976d2", color: "white" } }}
                         >
                           View
                         </Button>
@@ -320,7 +267,7 @@ export default function ApplicationList() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                       <Alert severity="info">No applications match your filters.</Alert>
                     </TableCell>
                   </TableRow>
@@ -328,8 +275,6 @@ export default function ApplicationList() {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {/* Pagination */}
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50]}
             component="div"
@@ -342,6 +287,15 @@ export default function ApplicationList() {
           />
         </>
       )}
+
+      <AnnouncementDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        selectedIds={selected.length > 0 ? selected : undefined}
+        batches={allBatches}
+        academicLevels={allAcademicLevels}
+        context="applicant"
+      />
     </Box>
   )
 }
