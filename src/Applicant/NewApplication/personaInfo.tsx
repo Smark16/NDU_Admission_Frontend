@@ -16,6 +16,7 @@ import { CheckCircle as CheckCircleIcon } from "@mui/icons-material"
 import type { SelectChangeEvent } from "@mui/material/Select"
 import ReactSelect from "react-select"
 import countryList from "react-select-country-list"
+import DateDropdownPicker from "../../ReUsables/DateDropdownPicker"
 
 interface PersonalInfoProps {
   formData: {
@@ -141,17 +142,15 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
         </Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              fullWidth
+            <DateDropdownPicker
               label="Date of Birth"
-              name="dateOfBirth"
-              type="date"
               value={formData.dateOfBirth}
-              onChange={handleInputChange}
+              onChange={(val) => handleInputChange({ target: { name: "dateOfBirth", value: val } } as any)}
               required
-              InputLabelProps={{ shrink: true }}
               error={!!formErrors.dateOfBirth}
               helperText={formErrors.dateOfBirth}
+              maxYear={new Date().getFullYear() - 15}
+              minYear={1940}
             />
           </Grid>
 

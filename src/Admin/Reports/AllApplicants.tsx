@@ -15,7 +15,11 @@ import {
   Schedule as ScheduleIcon,
   PeopleAlt as PeopleIcon,
   HourglassEmpty as PendingIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  FilterList as FilterIcon,
 } from "@mui/icons-material"
+import { Collapse } from "@mui/material"
 import useAxios from "../../AxiosInstance/UseAxios"
 
 const NAVY = "#000080"
@@ -73,6 +77,10 @@ export default function AllApplicantsReport() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [genderFilter, setGenderFilter] = useState("all")
   const [entryFilter, setEntryFilter] = useState("all")
+  const [programSearch, setProgramSearch] = useState("")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(15)
@@ -100,6 +108,9 @@ export default function AllApplicantsReport() {
   const filtered = useMemo(() => {
     return applicants.filter(a => {
       const name = `${a.first_name} ${a.last_name}`.toLowerCase()
+      const appliedDate = new Date(a.created_at)
+      const from = dateFrom ? new Date(dateFrom) : null
+      const to = dateTo ? new Date(dateTo + "T23:59:59") : null
       return (
         (search === "" || name.includes(search.toLowerCase()) || a.email.toLowerCase().includes(search.toLowerCase())) &&
         (batchFilter === "all" || a.batch === batchFilter) &&
@@ -107,10 +118,13 @@ export default function AllApplicantsReport() {
         (campusFilter === "all" || a.campus === campusFilter) &&
         (statusFilter === "all" || a.status === statusFilter) &&
         (genderFilter === "all" || a.gender === genderFilter) &&
-        (entryFilter === "all" || (entryFilter === "direct" ? a.is_direct_entry : !a.is_direct_entry))
+        (entryFilter === "all" || (entryFilter === "direct" ? a.is_direct_entry : !a.is_direct_entry)) &&
+        (programSearch === "" || (a.programs || "").toLowerCase().includes(programSearch.toLowerCase())) &&
+        (!from || appliedDate >= from) &&
+        (!to || appliedDate <= to)
       )
     })
-  }, [applicants, search, batchFilter, levelFilter, campusFilter, statusFilter, genderFilter, entryFilter])
+  }, [applicants, search, batchFilter, levelFilter, campusFilter, statusFilter, genderFilter, entryFilter, programSearch, dateFrom, dateTo])
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -124,9 +138,20 @@ export default function AllApplicantsReport() {
 
   const resetFilters = () => {
     setSearch(""); setBatchFilter("all"); setLevelFilter("all")
-    setCampusFilter("all"); setStatusFilter("all"); setGenderFilter("all"); setEntryFilter("all")
+    setCampusFilter("all"); setStatusFilter("all"); setGenderFilter("all")
+    setEntryFilter("all"); setProgramSearch(""); setDateFrom(""); setDateTo("")
     setPage(0)
   }
+
+  const activeFilterCount = [
+    search, batchFilter !== "all" ? batchFilter : "",
+    levelFilter !== "all" ? levelFilter : "",
+    campusFilter !== "all" ? campusFilter : "",
+    statusFilter !== "all" ? statusFilter : "",
+    genderFilter !== "all" ? genderFilter : "",
+    entryFilter !== "all" ? entryFilter : "",
+    programSearch, dateFrom, dateTo,
+  ].filter(Boolean).length
 
   const exportCSV = () => {
     const headers = ["#", "Name", "Email", "Gender", "Academic Level", "Batch", "Campus", "Program(s)", "Status", "Entry Type", "Date Applied"]
@@ -197,69 +222,137 @@ export default function AllApplicantsReport() {
 
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+
+        {/* ── Row 1: always-visible filters ── */}
         <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
-              fullWidth size="small" placeholder="Search by name or email…"
+              fullWidth size="small" placeholder="Search by name, email or program…"
               value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
-              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#aaa" }} /></InputAdornment> }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#aaa" }} /></InputAdornment> } }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FilterSelect label="Intake" value={batchFilter} onChange={setBatchFilter} options={batches} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FilterSelect label="Academic Level" value={levelFilter} onChange={setLevelFilter} options={levels} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FilterSelect label="Campus" value={campusFilter} onChange={setCampusFilter} options={campuses} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select value={statusFilter} label="Status" onChange={e => { setStatusFilter(e.target.value); setPage(0) }}>
-                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="submitted">Submitted</MenuItem>
                 <MenuItem value="under_review">Under Review</MenuItem>
                 <MenuItem value="accepted">Accepted</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
+                <MenuItem value="draft">Draft</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Gender</InputLabel>
-              <Select value={genderFilter} label="Gender" onChange={e => { setGenderFilter(e.target.value); setPage(0) }}>
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+            <FilterSelect label="Intake" value={batchFilter} onChange={v => { setBatchFilter(v); setPage(0) }} options={batches} />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Entry Type</InputLabel>
-              <Select value={entryFilter} label="Entry Type" onChange={e => { setEntryFilter(e.target.value); setPage(0) }}>
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="online">Online</MenuItem>
-                <MenuItem value="direct">Direct Entry</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                fullWidth
+                variant={showMoreFilters ? "contained" : "outlined"}
+                size="small"
+                startIcon={<FilterIcon />}
+                endIcon={showMoreFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                onClick={() => setShowMoreFilters(p => !p)}
+                sx={{
+                  textTransform: "none", fontWeight: 600,
+                  borderColor: NAVY, color: showMoreFilters ? "#fff" : NAVY,
+                  bgcolor: showMoreFilters ? NAVY : "transparent",
+                  "&:hover": { bgcolor: showMoreFilters ? NAVY_DARK : "#e8eaf6" },
+                }}
+              >
+                More Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+              {activeFilterCount > 0 && (
+                <Button size="small" onClick={resetFilters} variant="outlined"
+                  sx={{ textTransform: "none", borderColor: "#c0001a", color: "#c0001a", whiteSpace: "nowrap" }}>
+                  Clear All
+                </Button>
+              )}
+            </Box>
           </Grid>
         </Grid>
 
-        {/* Active filter summary */}
-        {[search, batchFilter, levelFilter, campusFilter, statusFilter, genderFilter, entryFilter].some(v => v !== "" && v !== "all") && (
-          <Stack direction="row" spacing={1} mt={2} alignItems="center" flexWrap="wrap">
-            <Typography variant="caption" color="text.secondary">Active filters:</Typography>
-            {search && <Chip size="small" label={`"${search}"`} onDelete={() => setSearch("")} />}
+        {/* ── Row 2: expandable advanced filters ── */}
+        <Collapse in={showMoreFilters}>
+          <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed #e0e0e0" }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, display: "block", textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Advanced Filters
+            </Typography>
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                <FilterSelect label="Academic Level" value={levelFilter} onChange={v => { setLevelFilter(v); setPage(0) }} options={levels} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                <FilterSelect label="Campus" value={campusFilter} onChange={v => { setCampusFilter(v); setPage(0) }} options={campuses} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Gender</InputLabel>
+                  <Select value={genderFilter} label="Gender" onChange={e => { setGenderFilter(e.target.value); setPage(0) }}>
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="Male">Male</MenuItem>
+                    <MenuItem value="Female">Female</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Entry Type</InputLabel>
+                  <Select value={entryFilter} label="Entry Type" onChange={e => { setEntryFilter(e.target.value); setPage(0) }}>
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="online">Online</MenuItem>
+                    <MenuItem value="direct">Direct Entry</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+                <TextField
+                  fullWidth size="small" label="Program contains…"
+                  value={programSearch} onChange={e => { setProgramSearch(e.target.value); setPage(0) }}
+                  placeholder="e.g. Computer Science"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 1.25 }}>
+                <TextField
+                  fullWidth size="small" label="Applied from"
+                  type="date" value={dateFrom}
+                  onChange={e => { setDateFrom(e.target.value); setPage(0) }}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 1.25 }}>
+                <TextField
+                  fullWidth size="small" label="Applied to"
+                  type="date" value={dateTo}
+                  onChange={e => { setDateTo(e.target.value); setPage(0) }}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Collapse>
+
+        {/* ── Active filter chips ── */}
+        {activeFilterCount > 0 && (
+          <Stack direction="row" spacing={1} mt={2} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <FilterIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+              <Typography variant="caption" color="text.secondary">Active:</Typography>
+            </Box>
+            {search && <Chip size="small" label={`Search: "${search}"`} onDelete={() => setSearch("")} />}
+            {statusFilter !== "all" && <Chip size="small" label={`Status: ${statusFilter.replace("_", " ")}`} onDelete={() => setStatusFilter("all")} />}
             {batchFilter !== "all" && <Chip size="small" label={`Intake: ${batchFilter}`} onDelete={() => setBatchFilter("all")} />}
             {levelFilter !== "all" && <Chip size="small" label={`Level: ${levelFilter}`} onDelete={() => setLevelFilter("all")} />}
             {campusFilter !== "all" && <Chip size="small" label={`Campus: ${campusFilter}`} onDelete={() => setCampusFilter("all")} />}
-            {statusFilter !== "all" && <Chip size="small" label={`Status: ${statusFilter}`} onDelete={() => setStatusFilter("all")} />}
             {genderFilter !== "all" && <Chip size="small" label={`Gender: ${genderFilter}`} onDelete={() => setGenderFilter("all")} />}
             {entryFilter !== "all" && <Chip size="small" label={`Entry: ${entryFilter}`} onDelete={() => setEntryFilter("all")} />}
-            <Chip size="small" label="Clear all" onClick={resetFilters} sx={{ backgroundColor: "#c0001a", color: "#fff" }} />
+            {programSearch && <Chip size="small" label={`Program: "${programSearch}"`} onDelete={() => setProgramSearch("")} />}
+            {dateFrom && <Chip size="small" label={`From: ${dateFrom}`} onDelete={() => setDateFrom("")} />}
+            {dateTo && <Chip size="small" label={`To: ${dateTo}`} onDelete={() => setDateTo("")} />}
           </Stack>
         )}
       </Paper>
