@@ -39,6 +39,7 @@ interface Applicant {
   status: string
   created_at: string
   is_direct_entry: boolean
+  entered_by: string
 }
 
 const statusConfig: Record<string, { color: "default" | "info" | "warning" | "success" | "error" }> = {
@@ -162,11 +163,11 @@ export default function AllApplicantsReport() {
   ].filter(Boolean).length
 
   const exportCSV = () => {
-    const headers = ["#", "Name", "Email", "Gender", "Academic Level", "Faculty", "Batch", "Campus", "Program(s)", "Status", "Entry Type", "Date Applied"]
+    const headers = ["#", "Name", "Email", "Gender", "Academic Level", "Faculty", "Batch", "Campus", "Program(s)", "Status", "Entered By", "Date Applied"]
     const rows = filtered.map((a, i) => [
       i + 1, `${a.first_name} ${a.last_name}`, a.email, a.gender,
       a.academic_level, a.faculty || "", a.batch, a.campus, a.programs,
-      a.status, a.is_direct_entry ? "Direct Entry" : "Online", new Date(a.created_at).toLocaleDateString()
+      a.status, a.entered_by, new Date(a.created_at).toLocaleDateString()
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
