@@ -41,7 +41,9 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import ChevronRightIcon from "@mui/icons-material/ChevronRight"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
-import { Visibility } from "@mui/icons-material"
+import { Visibility, Campaign as CampaignIcon } from "@mui/icons-material"
+import { Checkbox } from "@mui/material"
+import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 
 interface Admitted {
   id: number
@@ -78,7 +80,10 @@ export default function AdmittedStudents() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
-  const [isDeletingAdmitted, setIsDeletingAdmitted] = useState(false)
+
+  // Communication selection (use application IDs for emailing)
+  const [selectedAppIds, setSelectedAppIds] = useState<number[]>([])
+  const [commDialogOpen, setCommDialogOpen] = useState(false)
 
   // Fetch admitted students
   useEffect(() => {
@@ -170,17 +175,14 @@ export default function AdmittedStudents() {
 
   const confirmDelete = async () => {
     if (!selectedStudent) return
-   
+
     try {
-      setIsDeletingAdmitted(true)
-      await AxiosInstance.delete(`/api/admissions/delete_admission/${selectedStudent.id}/`)
+      await AxiosInstance.delete(`/api/admissions/admitted_students/${selectedStudent.id}/`)
       setAdmittedStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id))
       setDeleteDialogOpen(false)
       setSelectedStudent(null)
     } catch (err) {
       console.error("Delete failed:", err)
-    } finally {
-      setIsDeletingAdmitted(false)
     }
   }
 
@@ -188,11 +190,18 @@ export default function AdmittedStudents() {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Admitted Students
-          </Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3, flexWrap: "wrap", gap: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Admitted Students</Typography>
+          </Stack>
+          <Button
+            variant="contained" startIcon={<CampaignIcon />}
+            onClick={() => setCommDialogOpen(true)}
+            sx={{ bgcolor: "#0D0060", "&:hover": { bgcolor: "#0a004a" }, textTransform: "none", fontWeight: 700 }}
+          >
+            {selectedAppIds.length > 0 ? `Send to ${selectedAppIds.length} selected` : "Send Communication"}
+          </Button>
         </Stack>
 
         {/* Search + Filter */}
@@ -253,7 +262,7 @@ export default function AdmittedStudents() {
                 <TableHead>
                   <TableRow
                     sx={{
-                      backgroundColor: "#3e397b",
+                      backgroundColor: "#0D0060",
                       "& th": {
                         color: "white",
                         fontWeight: 700,
@@ -261,6 +270,18 @@ export default function AdmittedStudents() {
                       },
                     }}
                   >
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        sx={{ color: "white", "&.Mui-checked": { color: "white" } }}
+                        indeterminate={paginatedStudents.some(s => selectedAppIds.includes(s.application)) && !paginatedStudents.every(s => selectedAppIds.includes(s.application))}
+                        checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedAppIds.includes(s.application))}
+                        onChange={() => {
+                          const ids = paginatedStudents.map(s => s.application)
+                          const allSel = ids.every(id => selectedAppIds.includes(id))
+                          allSel ? setSelectedAppIds(p => p.filter(id => !ids.includes(id))) : setSelectedAppIds(p => [...new Set([...p, ...ids])])
+                        }}
+                      />
+                    </TableCell>
                     <TableCell>Student ID</TableCell>
                     <TableCell>Reg No</TableCell>
                     <TableCell>Name</TableCell>
@@ -293,6 +314,12 @@ export default function AdmittedStudents() {
                           transition: "background-color 0.2s",
                         }}
                       >
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedAppIds.includes(student.application)}
+                            onChange={() => setSelectedAppIds(p => p.includes(student.application) ? p.filter(x => x !== student.application) : [...p, student.application])}
+                          />
+                        </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{student.student_id}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{student.reg_no}</TableCell>
                         <TableCell>{student.name}</TableCell>
@@ -461,10 +488,17 @@ export default function AdmittedStudents() {
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={confirmDelete}>
-            {isDeletingAdmitted ? "Deleting..." : "Delete"}
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AnnouncementDialog
+        open={commDialogOpen}
+        onClose={() => setCommDialogOpen(false)}
+        selectedIds={selectedAppIds.length > 0 ? selectedAppIds : undefined}
+        context="admitted student"
+      />
     </Container>
   )
 }

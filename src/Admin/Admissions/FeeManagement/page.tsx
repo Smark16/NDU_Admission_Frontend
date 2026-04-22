@@ -315,7 +315,7 @@ export default function FeeManagement() {
                                                     <TableCell>
                                                         <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
                                                             {fee.academic_level?.map((level) => (
-                                                                <Chip key={level.id} label={level.name} size="small" sx={{ backgroundColor: "#3e397b", color: "white" }} />
+                                                                <Chip key={level.id} label={level.name} size="small" sx={{ backgroundColor: "#0D0060", color: "white" }} />
                                                             ))}
                                                         </Stack>
                                                     </TableCell>

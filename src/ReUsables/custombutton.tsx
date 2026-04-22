@@ -26,17 +26,26 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   const defaultStyles: SxProps<Theme> = {
     borderRadius: 2,
     textTransform: "none",
+    fontWeight: 600,
     px: 3,
     py: 1.5,
-    boxShadow: (theme) => theme.shadows[4],
+    transition: "all 0.25s ease",
     ...(variant === 'contained' ? {
-        bgcolor: "#7c1519",
-        "&:hover": {
-          bgcolor: "#7c1519",
-        },
+      background: "linear-gradient(135deg, #c0001a 0%, #8b0014 100%)",
+      color: "#fff",
+      boxShadow: "0 4px 14px rgba(192,0,26,0.3)",
+      "&:hover": {
+        background: "linear-gradient(135deg, #a0001a 0%, #6b0010 100%)",
+        boxShadow: "0 6px 20px rgba(192,0,26,0.45)",
+        transform: "translateY(-1px)",
+      },
     } : {
-    borderColor: "#7c1519", 
-    color: "#7c1519"
+      borderColor: "#c0001a",
+      color: "#c0001a",
+      "&:hover": {
+        borderColor: "#a0001a",
+        backgroundColor: "rgba(192,0,26,0.06)",
+      },
     })
   };
 

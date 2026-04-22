@@ -440,7 +440,7 @@ export default function UserManagement() {
                     <Tooltip title="Edit User">
                       <IconButton
                         size="small"
-                        sx={{color:"#3e397b"}}
+                        sx={{color:"#0D0060"}}
                         onClick={() => handleOpenDialog(user)}
                       >
                         <EditIcon fontSize="small" />

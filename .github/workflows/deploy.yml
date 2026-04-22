@@ -26,13 +26,13 @@ jobs:
           
           script: |
             set -e
-            cd /home/admissions/NDU_Admission_Frontend
+            cd /home/sfmis/NDU_Admission_Frontend
             git reset --hard
             git pull origin main
             npm install
             npm run build
 
-            TARGET_DIR="/var/www/admissions-frontend"
+            TARGET_DIR="/var/www/admission-portal"
 
             sudo rm -rf ${TARGET_DIR}/*
 

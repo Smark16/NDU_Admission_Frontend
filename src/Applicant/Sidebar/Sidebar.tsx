@@ -13,10 +13,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
-  Chip,
   Collapse,
-  Card,
   CircularProgress,
 } from "@mui/material"
 import {
@@ -30,13 +27,17 @@ import {
   Notifications as NotificationsIcon,
   ExpandLess as ExpandLessIcon,
   ExpandMore as ExpandMoreIcon,
+  Circle as CircleIcon,
 } from "@mui/icons-material"
 import { useLocation, useNavigate } from "react-router-dom"
 import useHook from "../../Hooks/useHook"
 import { AuthContext } from "../../Context/AuthContext"
 import useAxios from "../../AxiosInstance/UseAxios"
-import moment from "moment";
+import moment from "moment"
 import logo from '../../Images/Ndejje_University_Logo.jpg'
+
+const NAVY = "#0D0060"
+const NAVY_DARK = "#07003A"
 
 interface Notification {
   id: number
@@ -51,10 +52,9 @@ interface SidebarProps {
   onNavigate?: (path: string) => void
 }
 
-// Reusable Sidebar Content (used in both mobile drawer & desktop sidebar)
 const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
-  onNavigate = () => { },
-  onClose = () => { },
+  onNavigate = () => {},
+  onClose = () => {},
 }) => {
   const AxiosInstance = useAxios()
   const location = useLocation()
@@ -65,15 +65,15 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  // fetch notifications
   const fetchNotifications = async () => {
     try {
       setIsLoading(true)
       const response = await AxiosInstance.get('/api/admissions/list_user_notification')
       setNotifications(response.data)
-      setIsLoading(false)
     } catch (err) {
       console.log(err)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -92,116 +92,158 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
     ),
   ]
 
-  const quickLinks = [
-    { id: "edit", label: "Edit Profile", icon: EditIcon, path: "/applicant/profile" },
-    { id: "logout", label: "Logout", icon: LogoutIcon, path: "/logout" },
-  ]
-
   const handleClick = (path: string) => {
     navigate(path)
     onNavigate(path)
     onClose()
   }
 
+  // User initials avatar
+  const initials = `${loggeduser?.first_name?.[0] ?? ""}${loggeduser?.last_name?.[0] ?? ""}`.toUpperCase()
+
   return (
-    <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* User Profile Card */}
-      <Box sx={{
-        p: 3,
-        background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
-        color: "white",
-        textAlign: "center",
-        borderRadius: 0,
-      }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,                   
-            px: 3,                   
-            py: 2.5,                
-            borderBottom: "1px solid", 
-            borderColor: "divider",
-            backgroundColor: "background.paper",
-          }}
-        >
-          {/* Professional small logo */}
+    <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#fff" }}>
+
+      {/* ── Header ── */}
+      <Box
+        sx={{
+          background: `linear-gradient(160deg, ${NAVY} 0%, ${NAVY_DARK} 100%)`,
+          px: 3,
+          pt: 3,
+          pb: 2.5,
+        }}
+      >
+        {/* Logo row */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2.5 }}>
           <Box
             component="img"
             src={logo}
-            alt="Ndejje University Logo"
-            sx={{
-              width: 38,        
-              height: 38,
-              borderRadius: 1.5, 
-              objectFit: "contain",
-              boxShadow: 1,    
-              backgroundColor: "white", 
-              p: 0.5,          
-            }}
+            alt="Ndejje University"
+            sx={{ width: 36, height: 36, objectFit: "contain", borderRadius: 1, backgroundColor: "#fff", p: 0.4 }}
           />
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: "0.78rem", color: "#fff", lineHeight: 1.1 }}>
+              NDEJJE UNIVERSITY
+            </Typography>
+            <Typography sx={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.65)" }}>
+              Applications Portal
+            </Typography>
+          </Box>
+        </Box>
 
-          {/* Clean, bold title */}
-          <Typography
-            variant="h6"
+        {/* User avatar + name */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
             sx={{
-              fontWeight: 700,
-              fontSize: "12px",
-              color: "text.primary",
-              letterSpacing: "0.2px",
+              width: 42, height: 42,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #c0001a 0%, #8b0014 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 800, fontSize: "1rem", color: "#fff",
+              flexShrink: 0,
+              border: "2px solid rgba(255,255,255,0.3)",
             }}
           >
-            NDU Applications Portal
-          </Typography>
+            {initials}
+          </Box>
+          <Box sx={{ overflow: "hidden" }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: "#fff", textTransform: "capitalize", lineHeight: 1.2 }}>
+              {loggeduser?.first_name} {loggeduser?.last_name}
+            </Typography>
+            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {loggeduser?.email}
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant="h6" fontWeight={700} noWrap>{loggeduser?.first_name} {loggeduser?.last_name}</Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
-          {loggeduser?.email}
-        </Typography>
       </Box>
 
-      {/* Notifications */}
-      <Box sx={{ p: 2 }}>
-        <Card elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
-          <ListItemButton onClick={() => setExpandNotifications(!expandNotifications)}>
-            <ListItemIcon><NotificationsIcon sx={{ color: "#0066cc" }} /></ListItemIcon>
-            <ListItemText primary="Notifications" primaryTypographyProps={{ fontWeight: 600 }} />
-            {unreadCount > 0 && <Chip label={unreadCount} size="small" color="primary" />}
-            {expandNotifications ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      {/* ── Notifications ── */}
+      <Box sx={{ px: 2, pt: 2 }}>
+        <Box
+          sx={{
+            border: "1px solid #e8eaf6",
+            borderRadius: 2,
+            overflow: "hidden",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <ListItemButton onClick={() => setExpandNotifications(!expandNotifications)} sx={{ py: 1.2 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <Box sx={{ position: "relative" }}>
+                <NotificationsIcon sx={{ color: NAVY, fontSize: 22 }} />
+                {unreadCount > 0 && (
+                  <Box
+                    sx={{
+                      position: "absolute", top: -3, right: -3,
+                      width: 16, height: 16, borderRadius: "50%",
+                      background: "#c0001a", color: "#fff",
+                      fontSize: "0.6rem", fontWeight: 800,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    {unreadCount}
+                  </Box>
+                )}
+              </Box>
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography fontWeight={700} fontSize="0.875rem" color={NAVY}>
+                  Notifications
+                </Typography>
+              }
+            />
+            {expandNotifications ? <ExpandLessIcon sx={{ color: NAVY }} /> : <ExpandMoreIcon sx={{ color: NAVY }} />}
           </ListItemButton>
+
           <Collapse in={expandNotifications}>
-            <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+            <Box sx={{ maxHeight: 220, overflowY: "auto" }}>
               {isLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
-                  <CircularProgress size={20} />
+                <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                  <CircularProgress size={20} sx={{ color: NAVY }} />
                 </Box>
               ) : notifications.length === 0 ? (
-                <Box sx={{ textAlign: "center", py: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
+                <Box sx={{ textAlign: "center", py: 2.5 }}>
+                  <Typography variant="caption" color="text.secondary">
                     No notifications to show
                   </Typography>
                 </Box>
               ) : (
                 notifications.map(n => (
-                  <Box key={n.id} sx={{ p: 2, borderTop: "1px solid #f0f0f0", bgcolor: n.is_read ? "white" : "#f0f7ff" }}>
-                    <Typography variant="subtitle2" fontWeight={n.is_read ? 500 : 600}>
-                      {n.title}
-                    </Typography>
-                    {n.message && <Typography variant="caption" color="text.secondary">{n.message}</Typography>}
-                    <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
-                      {moment(n.created_at).fromNow()}
-                    </Typography>
+                  <Box
+                    key={n.id}
+                    sx={{
+                      px: 2, py: 1.5,
+                      borderTop: "1px solid #f0f0f0",
+                      backgroundColor: n.is_read ? "#fff" : "#e8eaf6",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                      {!n.is_read && <CircleIcon sx={{ fontSize: 8, color: NAVY, mt: 0.8, flexShrink: 0 }} />}
+                      <Box>
+                        <Typography variant="caption" fontWeight={n.is_read ? 500 : 700} display="block">
+                          {n.title}
+                        </Typography>
+                        {n.message && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {n.message}
+                          </Typography>
+                        )}
+                        <Typography variant="caption" color="text.secondary" display="block" mt={0.3}>
+                          {moment(n.created_at).fromNow()}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </Box>
                 ))
               )}
-
             </Box>
           </Collapse>
-        </Card>
+        </Box>
       </Box>
 
-      {/* Main Menu */}
-      <List sx={{ px: 2, flexGrow: 1 }}>
+      {/* ── Main Menu ── */}
+      <List sx={{ px: 2, pt: 2, flexGrow: 1 }}>
         {menuItems.map(item => {
           const Icon = item.icon
           const isActive = location.pathname.startsWith(item.path)
@@ -209,95 +251,123 @@ const SidebarContent: React.FC<SidebarProps & { onClose?: () => void }> = ({
             <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => handleClick(item.path)}
-                selected={isActive}
                 sx={{
                   borderRadius: 2,
-                  bgcolor: isActive ? "#cdcaf0ff" : "transparent",
-                  color: isActive ? "#655fa1ff" : "inherit",
-                  "&:hover": { bgcolor: isActive ? "#e8f1ff" : "#f5f5f5" },
+                  backgroundColor: isActive ? "rgba(0,0,128,0.08)" : "transparent",
+                  borderLeft: isActive ? `4px solid ${NAVY}` : "4px solid transparent",
+                  "&:hover": { backgroundColor: "rgba(0,0,128,0.05)" },
+                  transition: "all 0.2s ease",
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: isActive ? "#0066cc" : "inherit" }}>
-                  <Icon />
+                <ListItemIcon sx={{ minWidth: 38, color: isActive ? NAVY : "#666" }}>
+                  <Icon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          )
-        })}
-      </List>
-      <Divider />
-
-      {/* Quick Links */}
-      <List sx={{ px: 2, pb: 2 }}>
-        {quickLinks.map(item => {
-          const Icon = item.icon
-          return (
-            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton onClick={() => handleClick(item.path)} sx={{ borderRadius: 2 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Icon />
-                </ListItemIcon>
-                <ListItemText primary={item.label} />
+                <ListItemText
+                  primary={
+                    <Typography fontSize="0.9rem" fontWeight={isActive ? 700 : 500} color={isActive ? NAVY : "text.primary"}>
+                      {item.label}
+                    </Typography>
+                  }
+                />
               </ListItemButton>
             </ListItem>
           )
         })}
       </List>
 
-      {/* Footer */}
-      <Box sx={{ p: 2, textAlign: "center", borderTop: "1px solid #e9ecef" }}>
-        <Typography variant="caption" color="text.secondary">
-          © 2025 Admissions Portal
+      {/* ── Quick Links ── */}
+      <Box sx={{ px: 2, pb: 1 }}>
+        <ListItemButton
+          onClick={() => handleClick("/applicant/profile")}
+          sx={{ borderRadius: 2, mb: 0.5, "&:hover": { backgroundColor: "rgba(0,0,128,0.05)" } }}
+        >
+          <ListItemIcon sx={{ minWidth: 38, color: "#666" }}>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary={<Typography fontSize="0.9rem" fontWeight={500}>Edit Profile</Typography>}
+          />
+        </ListItemButton>
+      </Box>
+
+      {/* ── Logout ── */}
+      <Box sx={{ px: 2, pb: 2, borderTop: "1px solid #e0e0e0", pt: 1.5 }}>
+        <Box
+          component="a"
+          href="/logout"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            px: 2,
+            py: 1.4,
+            borderRadius: 2,
+            background: "linear-gradient(135deg, #c0001a 0%, #8b0014 100%)",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            boxShadow: "0 4px 14px rgba(192,0,26,0.3)",
+            transition: "all 0.25s ease",
+            "&:hover": {
+              background: "linear-gradient(135deg, #a0001a 0%, #6b0010 100%)",
+              boxShadow: "0 6px 20px rgba(192,0,26,0.45)",
+              transform: "translateY(-1px)",
+            },
+          }}
+        >
+          <LogoutIcon sx={{ fontSize: 18 }} />
+          Sign Out
+        </Box>
+      </Box>
+
+      {/* ── Footer ── */}
+      <Box sx={{ px: 2, pb: 2, textAlign: "center" }}>
+        <Typography variant="caption" color="text.secondary" fontSize="0.68rem">
+          © {new Date().getFullYear()} Ndejje University
         </Typography>
       </Box>
     </Box>
   )
 }
 
-// Main Sidebar Component (Now with Top Menu Button!)
 const Sidebar: React.FC<SidebarProps> = (props) => {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("md")) // Mobile + Tablet
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"))
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
-  // This is the NEW top bar with menu button
   const TopBar = () => (
-    <Box sx={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 64,
-      bgcolor: "white",
-      borderBottom: "1px solid #e9ecef",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      px: 2,
-      zIndex: 1200,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-    }}>
-      <Typography variant="h6" fontWeight={600} color="#1a1a1a">
-        Admissions Portal
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        height: 64,
+        background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY_DARK} 100%)`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        px: 2,
+        zIndex: 1200,
+        boxShadow: "0 2px 8px rgba(0,0,128,0.3)",
+      }}
+    >
+      <Typography variant="h6" fontWeight={700} color="#fff" fontSize="0.95rem">
+        Ndejje University Portal
       </Typography>
-
-      <IconButton onClick={handleDrawerToggle} size="large">
+      <IconButton onClick={handleDrawerToggle} size="large" sx={{ color: "#fff" }}>
         {mobileOpen ? <CloseIcon /> : <MenuIcon />}
       </IconButton>
     </Box>
   )
 
-  const drawerWidth = 300
+  const drawerWidth = 290
 
   return (
     <>
-      {/* Top Bar with Menu Icon (Visible only on mobile/tablet) */}
       {isMobile && <TopBar />}
 
-      {/* Sidebar Drawer */}
       <Drawer
         variant={isMobile ? "temporary" : "permanent"}
         open={isMobile ? mobileOpen : true}
@@ -309,9 +379,8 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            bgcolor: "#f8f9fa",
             borderRight: isMobile ? "none" : "1px solid #e9ecef",
-            mt: isMobile ? "64px" : "0", // Push below top bar on mobile
+            mt: isMobile ? "64px" : "0",
             height: isMobile ? "calc(100% - 64px)" : "100%",
           },
         }}
@@ -319,7 +388,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         <SidebarContent {...props} onClose={handleDrawerToggle} />
       </Drawer>
 
-      {/* Optional: Add padding to main content so it doesn't hide under sidebar */}
       {!isMobile && <Box sx={{ width: drawerWidth, flexShrink: 0 }} />}
     </>
   )

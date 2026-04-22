@@ -116,7 +116,6 @@ const ProgramManagement: React.FC = () => {
   const [bulkUploadProgress, setBulkUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [downloadProgram, setDownLoadProgram] = useState(false);
-  const [isLoadingProgram, setIsLoadingProgram] = useState(false);
 
   const initialForm = {
     name: "",
@@ -145,13 +144,10 @@ const ProgramManagement: React.FC = () => {
   // Fetch Programs
   const fetchPrograms = async () => {
     try {
-      setIsLoadingProgram(true);
       const response = await AxiosInstance.get("/api/program/list_programs");
       setPrograms(response.data);
     } catch (e) {
       console.error("Failed to fetch programs", e);
-    } finally {
-      setIsLoadingProgram(false);
     }
   };
 
@@ -214,12 +210,12 @@ const ProgramManagement: React.FC = () => {
     return matchesSearch && matchesFaculty && matchesCampus && matchesLevel;
   });
 
-  // const resetFilters = () => {
-  //   setSearchQuery("");
-  //   setSelectedFaculty("");
-  //   setSelectedCampus("");
-  //   setSelectedLevel("");
-  // };
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedFaculty("");
+    setSelectedCampus("");
+    setSelectedLevel("");
+  };
 
   // Handle Campus Multi-Select Change
   const handleCampusChange = (event: SelectChangeEvent<number[]>) => {
@@ -467,7 +463,7 @@ const ProgramManagement: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Program Management
           </Typography>
@@ -480,7 +476,7 @@ const ProgramManagement: React.FC = () => {
       {/* Stats Cards - Using your original Grid size syntax */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Total Programs</Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -506,7 +502,7 @@ const ProgramManagement: React.FC = () => {
             <Card
               sx={{
                 background: index === 0
-                  ? "linear-gradient(135deg, #8c85daff 0%, #3e397b 100%)"
+                  ? "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)"
                   : "linear-gradient(135deg, #f07a7eff 0%, #7c1519 100%)",
                 color: "white",
               }}
@@ -523,30 +519,6 @@ const ProgramManagement: React.FC = () => {
           </Grid>
         ))}
       </Grid>
-
-      {/* Action Buttons */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
-        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Program" />
-        <CustomButton
-          icon={<CloudUploadIcon />}
-          onClick={() => setOpenBulkDialog(true)}
-          variant="outlined"
-          text="Upload"
-          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
-        />
-        <CustomButton
-          variant="outlined"
-          icon={<FileDownloadIcon />}
-          onClick={handleExportExcel}
-          text={isLoading ? <CircularProgress size={20} /> : "Download sheet"}
-          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
-        />
-        <CustomButton
-          icon={<FileDownloadIcon />}
-          text={downloadProgram ? "Downloading..." : "DownLoad Programs"}
-          onClick={handleExport}
-        />
-      </Box>
 
       {/* Search + Filters + Actions */}
       <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
@@ -623,16 +595,39 @@ const ProgramManagement: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
           <CustomButton variant="text" onClick={resetFilters} text="Clear Filters" size="small" />
-        </Box> */}
+        </Box>
       </Paper>
+
+      {/* Action Buttons */}
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexDirection: { xs: "column", sm: "row" } }}>
+        <CustomButton icon={<AddIcon />} onClick={() => handleOpenDialog()} text="Add Program" />
+        <CustomButton
+          icon={<CloudUploadIcon />}
+          onClick={() => setOpenBulkDialog(true)}
+          variant="outlined"
+          text="Upload"
+          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+        />
+        <CustomButton
+          variant="outlined"
+          icon={<FileDownloadIcon />}
+          onClick={handleExportExcel}
+          text={isLoading ? <CircularProgress size={20} /> : "Download sheet"}
+          sx={{ borderColor: "#7c1519", color: "#7c1519" }}
+        />
+        <CustomButton
+          icon={<FileDownloadIcon />}
+          text={downloadProgram ? "Downloading..." : "DownLoad Programs"}
+          onClick={handleExport}
+        />
+      </Box>
 
       {/* Table */}
       <ListPrograms
         programs={filteredPrograms}
         onEdit={handleOpenDialog}
-        loading={isLoadingProgram}
         onDelete={setDeleteConfirm}
         onToggleStatus={handleToggleStatus}
       />

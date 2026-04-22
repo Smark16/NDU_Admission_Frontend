@@ -29,6 +29,7 @@ import {
     Card,
     CardContent,
     Snackbar,
+    Tooltip,
 } from "@mui/material"
 import {
     Edit as EditIcon,
@@ -37,9 +38,11 @@ import {
     Check as CheckIcon,
     Close as CloseIcon,
     Book,
+    Map as MapIcon,
 } from "@mui/icons-material"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import FileUpload from "./file_upload"
+import PDFFieldMapper from "./PDFFieldMapper"
 import CustomButton from "../../../ReUsables/custombutton"
 
 interface Subject {
@@ -105,10 +108,14 @@ export default function SetUpPage() {
         file: File | null;
         status: "active" | "inactive";
         programs: number[];
+        start_date: string;
+        hall_of_residence: string;
     }>({
         file: null,
         status: "active",
         programs: [],
+        start_date: "",
+        hall_of_residence: "",
     });
 
     // Mock data
@@ -119,6 +126,7 @@ export default function SetUpPage() {
     const [templates, setTemplates] = useState<Template[]>([])
 
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [mapperTemplate, setMapperTemplate] = useState<{ id: number; name: string } | null>(null);
 
     // fetch Olevel
     const fetchOlevel = async () => {
@@ -193,20 +201,22 @@ export default function SetUpPage() {
             if ("code" in item) {
                 // It's a subject
                 setSubjectForm({ name: item.name, code: item.code })
-                setTemplateForm({ file: null, status: "active", programs: [] })
+                setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
             } else {
                 // It's a template
                 setTemplateForm({
                     file: item.file,
                     status: item.status,
-                    programs: item.programs.map((p) => p.id)
+                    programs: item.programs.map((p) => p.id),
+                    start_date: (item as any).start_date || "",
+                    hall_of_residence: (item as any).hall_of_residence || "",
                 })
                 setSubjectForm({ name: "", code: "" })
             }
         } else {
             setEditingId(null)
             setSubjectForm({ name: "", code: "" })
-            setTemplateForm({ file: null, status: "active", programs: [] })
+            setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
         }
         setOpenDialog(true)
     }
@@ -215,7 +225,7 @@ export default function SetUpPage() {
         setOpenDialog(false)
         setEditingId(null)
         setSubjectForm({ name: "", code: "" })
-        setTemplateForm({ file: null, status: "active", programs: [] })
+        setTemplateForm({ file: null, status: "active", programs: [], start_date: "", hall_of_residence: "" })
     }
 
     const handleSave = async () => {
@@ -228,6 +238,8 @@ export default function SetUpPage() {
             }
 
             formData.append("status", templateForm.status)
+            if (templateForm.start_date) formData.append("start_date", templateForm.start_date)
+            if (templateForm.hall_of_residence) formData.append("hall_of_residence", templateForm.hall_of_residence)
             templateForm.programs.forEach((id) => {
                 formData.append("programs", id.toString());
             });
@@ -501,6 +513,17 @@ export default function SetUpPage() {
                                 />
                             </TableCell>
                             <TableCell align="right">
+                                {(template as any).file_type === 'pdf' && (
+                                    <Tooltip title="Map field positions on PDF">
+                                        <IconButton
+                                            size="small"
+                                            sx={{ mr: 1, color: "#0D0060" }}
+                                            onClick={() => setMapperTemplate({ id: template.id, name: template.name || `Template ${template.id}` })}
+                                        >
+                                            <MapIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
                                 <IconButton size="small" color="primary" onClick={() => handleOpenDialog(template)} sx={{ mr: 1 }}>
                                     <EditIcon fontSize="small" sx={{color:"#7c1519"}}/>
                                 </IconButton>
@@ -508,7 +531,6 @@ export default function SetUpPage() {
                                     size="small"
                                     color="error"
                                     onClick={() => handleDelete(template.id)}
-                                    // disabled={deletingId === template.id}
                                 >
                                     {deletingId === template.id && isLoading ? (
                                         <CircularProgress size={20} color="error" />
@@ -533,7 +555,7 @@ export default function SetUpPage() {
                     sx={{
                         fontWeight: 700,
                         mb: 1,
-                        background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
+                        background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
                         backgroundClip: "text",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
@@ -663,6 +685,20 @@ export default function SetUpPage() {
                     <CustomButton onClick={handleSave} text={isLoading ? (editingId ? "Updating..." : "Saving....") :(editingId ? "Update" : "Save")}/>
                 </DialogActions>
             </Dialog>
+
+            {/* PDF Field Mapper Dialog */}
+            {mapperTemplate && (
+                <PDFFieldMapper
+                    open={!!mapperTemplate}
+                    templateId={mapperTemplate.id}
+                    templateName={mapperTemplate.name}
+                    onClose={() => setMapperTemplate(null)}
+                    onSaved={() => {
+                        setMapperTemplate(null)
+                        setSnackbar({ open: true, message: "Field positions saved!", severity: "success" })
+                    }}
+                />
+            )}
 
             <Snackbar
                 open={snackbar.open}

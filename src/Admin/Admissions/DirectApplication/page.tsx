@@ -69,6 +69,7 @@ interface FormData {
   firstName: string
   lastName: string
   application_fee_paid: boolean
+  school_pay_reference?: string
   externalReference?: string;
   middleName: string
   dateOfBirth: string
@@ -124,6 +125,7 @@ export default function DirectApplicationForm() {
     lastName: loggeduser?.last_name ?? '',
     middleName: "",
     application_fee_paid: false,
+    school_pay_reference: "",
     dateOfBirth: "",
     gender: "",
     nationality: "",
@@ -210,6 +212,10 @@ export default function DirectApplicationForm() {
           if (!isValidUgandaNIN(formData.nin)) {
             errors.nin = "Invalid Uganda NIN format (e.g., CM1234567890AB or CF1234567890AB)";
           }
+        }
+
+        if (formData.application_fee_paid && !formData.school_pay_reference?.trim()) {
+          errors.school_pay_reference = "School Pay Reference is required when the application fee is marked as paid";
         }
         break;
 
@@ -417,6 +423,10 @@ export default function DirectApplicationForm() {
       formDataToSend.append("academic_level", formData.academic_level);
       
       formDataToSend.append("status", "submitted");
+      formDataToSend.append("application_fee_paid", String(formData.application_fee_paid));
+      if (formData.school_pay_reference?.trim()) {
+        formDataToSend.append("school_pay_reference", formData.school_pay_reference.trim());
+      }
 
       // Append nin or passportNumber if present (add these lines)
       if (formData.nin) formDataToSend.append("nin", formData.nin);
@@ -587,6 +597,18 @@ export default function DirectApplicationForm() {
               <strong>Campus:</strong> {selectedCampus ? selectedCampus.name : "Not selected"}
             </Typography>
           </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" sx={{ color: "#666" }}>
+              <strong>Application Fee Paid:</strong> {formData.application_fee_paid ? "Yes" : "No"}
+            </Typography>
+          </Grid>
+          {formData.application_fee_paid && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" sx={{ color: "#666" }}>
+                <strong>School Pay Reference:</strong> {formData.school_pay_reference || "—"}
+              </Typography>
+            </Grid>
+          )}
         </Grid>
       </Paper>
 
@@ -664,7 +686,7 @@ export default function DirectApplicationForm() {
           title="Direct Application Form"
           subheader="Complete all steps to submit your application"
           sx={{
-            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
+            background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
             color: "white",
             "& .MuiCardHeader-subheader": { color: "rgba(255,255,255,0.9)" },
           }}
@@ -687,7 +709,7 @@ export default function DirectApplicationForm() {
                             width: 40,
                             height: 40,
                             borderRadius: "50%",
-                            bgcolor: index <= activeStep ? "#3e397b" : "#e0e0e0",
+                            bgcolor: index <= activeStep ? "#0D0060" : "#e0e0e0",
                             color: index <= activeStep ? "white" : "#999",
                             fontWeight: 600,
                           }}
@@ -733,7 +755,7 @@ export default function DirectApplicationForm() {
       </Card>
 
       <Dialog open={openSummary} onClose={() => setOpenSummary(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)", color: "white" }}>
+        <DialogTitle sx={{ background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)", color: "white" }}>
           Application Submitted Successfully
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>

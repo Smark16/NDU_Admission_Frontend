@@ -38,7 +38,12 @@ const EditAdmittedStudentPage = lazy(() => import('../Admin/Admissions/AdmitStud
 const AuditLogs = lazy(() => import('../Admin/AuditLogs/page'))
 const Finance = lazy(() => import('../Admin/Finance/page'))
 const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectApplication/page'))
+const DirectEntryList = lazy(() => import('../Admin/Admissions/DirectApplication/DirectEntryList'))
 const RejectedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Rejected'))
+const AllApplicantsReport = lazy(() => import('../Admin/Reports/AllApplicants'))
+const ProspectiveStudents = lazy(() => import('../Admin/ProspectiveStudents/page'))
+const SystemUsageReport = lazy(() => import('../Admin/Reports/SystemUsage'))
+const SystemSettingsPage = lazy(() => import('../Admin/Settings/SystemSettings'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -187,6 +192,18 @@ function AppRoutes() {
                      </AdminRoute>
                     } />
 
+                    <Route path='/direct_entry_list' element={
+                     <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><DirectEntryList /></Suspense>
+                     </AdminRoute>
+                    } />
+
+                    <Route path='/reports/all-applicants' element={
+                     <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><AllApplicantsReport /></Suspense>
+                     </AdminRoute>
+                    } />
+
                   <Route path='/intake' element={
                      <AdminRoute permission='admissions.view_batch'>
                        <Suspense fallback={<LoadingSpinner />}><BatchManagement /></Suspense>
@@ -256,6 +273,24 @@ function AppRoutes() {
                      <AdminRoute permission='payments.view_applicationpayment'>
                        <Suspense fallback={<LoadingSpinner />}><Finance /></Suspense>
                      </AdminRoute>
+                    } />
+
+                  <Route path='/prospective-students' element={
+                    <AdminRoute permission='accounts.view_user'>
+                      <Suspense fallback={<LoadingSpinner />}><ProspectiveStudents /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/reports/system-usage' element={
+                    <AdminRoute permission='audit.view_auditlog'>
+                      <Suspense fallback={<LoadingSpinner />}><SystemUsageReport /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/system-settings' element={
+                    <AdminRoute permission='accounts.view_user'>
+                      <Suspense fallback={<LoadingSpinner />}><SystemSettingsPage /></Suspense>
+                    </AdminRoute>
                     } />
                 </Routes>
               </Box>

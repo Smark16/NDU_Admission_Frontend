@@ -56,8 +56,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
   const [noAccount, setNoAccount] = useState("");
- 
-  console.log(loggeduser)
 
   const loginUser = async (username: string, password: string) => {
     setLoginLoading(true);
@@ -91,25 +89,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const showSuccessAlert = (message: string) => {
     Swal.fire({
-      title: message,
-      icon: "success",
+      html: `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">✅</span>
+          <span style="font-size:0.92rem;font-weight:600;color:#fff;">${message}</span>
+        </div>`,
       toast: true,
-      timer: 6000,
+      timer: 5000,
       position: "top-right",
       timerProgressBar: true,
       showConfirmButton: false,
+      background: "#000080",
+      color: "#fff",
+      padding: "12px 20px",
+      width: "auto",
+      customClass: { popup: "ndu-toast" },
     });
   };
 
   const showErrorAlert = (message: string) => {
     Swal.fire({
-      title: message,
-      icon: "error",
+      html: `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">❌</span>
+          <span style="font-size:0.92rem;font-weight:600;color:#fff;">${message}</span>
+        </div>`,
       toast: true,
-      timer: 6000,
+      timer: 5000,
       position: "top-right",
       timerProgressBar: true,
       showConfirmButton: false,
+      background: "#c0001a",
+      color: "#fff",
+      padding: "12px 20px",
+      width: "auto",
+      customClass: { popup: "ndu-toast" },
     });
   };
 
