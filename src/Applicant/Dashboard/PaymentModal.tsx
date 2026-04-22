@@ -60,8 +60,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
 
- console.log(extRef)
-
   const handleClose = () => {
     setPhoneNumber('');
     setStatus('idle');
@@ -76,6 +74,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const phoneRegex = /^(\+?256|0)?[7][0-9]{8,9}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
+
+  // useEffect(() => {
+  //   if (status === 'success' && onPaymentSuccess) {
+  //     onPaymentSuccess(extRef || undefined);
+
+  //     // Auto-close modal after showing success for 1.8 seconds
+  //     // const timer = setTimeout(() => {
+  //     //   handleClose();
+  //     // }, 100);
+
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [status, onPaymentSuccess, extRef]);
 
 // Clean up polling on unmount/close
 useEffect(() => {
@@ -113,8 +124,6 @@ const handlePayment = async () => {
 
     const data = res.data;
 
-    console.log('payment_data', data);
-
     // ✅ Save references
     setExtRef(data.external_reference);
 
@@ -130,8 +139,6 @@ const handlePayment = async () => {
 
         const statusData = statusRes.data;
 
-        console.log('Poll result:', statusData);
-
         // ✅ SUCCESS
         if (statusData.status === 'PAID') {
           clearInterval(interval);
@@ -145,9 +152,9 @@ const handlePayment = async () => {
 
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
-          
+
           // success callback
-           onPaymentSuccess?.(extRef || data.external_reference);   
+          onPaymentSuccess?.(extRef || data.external_reference);  
 
           return;
         }
@@ -192,8 +199,6 @@ const handlePayment = async () => {
   }
 };
 
-console.log('transactionId', transactionId)
-
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length > 12) return value.substring(0, value.length - 1);
@@ -218,7 +223,7 @@ console.log('transactionId', transactionId)
       {/* Header */}
       <DialogTitle
         sx={{
-          background: 'linear-gradient(135deg, #000080 0%, #000066 100%)',
+          background: 'linear-gradient(135deg, #3e397b 0%, #3e397b 100%)',
           color: 'white',
           display: 'flex',
           justifyContent: 'space-between',
@@ -269,7 +274,7 @@ console.log('transactionId', transactionId)
                     animation: 'scaleIn 0.5s ease-out',
                   }}
                 >
-                  <CheckCircle size={48} color="#000080 " />
+                  <CheckCircle size={48} color="#3e397b " />
                 </Box>
               </Box>
 
@@ -299,7 +304,7 @@ console.log('transactionId', transactionId)
                 <Card
                   sx={{
                     backgroundColor: '#f0fdf4',
-                    border: '2px solid #000080 ',
+                    border: '2px solid #3e397b ',
                     p: 2,
                     mb: 3,
                   }}
@@ -318,7 +323,7 @@ console.log('transactionId', transactionId)
                     sx={{
                       fontFamily: 'monospace',
                       fontWeight: 700,
-                      color: '#000080 ',
+                      color: '#3e397b ',
                       wordBreak: 'break-all',
                     }}
                   >
@@ -413,31 +418,11 @@ console.log('transactionId', transactionId)
         {status === 'idle' && (
           <Fade in timeout={300}>
             <Box>
-              {/* Payment Info */}
-              <Box
-                sx={{
-                  backgroundColor: '#e8eaf6',
-                  border: '1px solid #000080',
-                  borderRadius: 2,
-                  p: 2,
-                  mb: 2.5,
-                }}
-              >
-                <Typography variant="caption" color="#000080" fontWeight={700} display="block" mb={0.5}>
-                  Payment Information
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" lineHeight={1.6}>
-                  After submitting your application, you are required to pay an application fee of{' '}
-                  <strong>UGX 50,000</strong> via mobile money. You will receive a prompt on your
-                  phone to enter your mobile money PIN to complete the payment securely.
-                </Typography>
-              </Box>
-
               {/* Payment Details Summary */}
               <Card
                 sx={{
                   backgroundColor: '#f0fdf4',
-                  border: '2px solid #000080',
+                  border: '2px solid #3e397b',
                   p: 2.5,
                   mb: 3,
                   borderRadius: 2,
@@ -460,7 +445,7 @@ console.log('transactionId', transactionId)
                 {/* Amount */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DollarSign size={18} color="#000080" />
+                    <DollarSign size={18} color="#3e397b" />
                     <Typography sx={{ color: '#6b7280', fontWeight: 600 }}>
                       Amount
                     </Typography>
@@ -468,7 +453,7 @@ console.log('transactionId', transactionId)
                   <Typography
                     sx={{
                       fontWeight: 800,
-                      color: '#000080',
+                      color: '#3e397b',
                       fontSize: '1.1rem',
                     }}
                   >
@@ -481,7 +466,7 @@ console.log('transactionId', transactionId)
                 {/* Reason */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FileText size={18} color="#000080" />
+                    <FileText size={18} color="#3e397b" />
                     <Typography sx={{ color: '#6b7280', fontWeight: 600 }}>
                       Reason
                     </Typography>
@@ -513,7 +498,7 @@ console.log('transactionId', transactionId)
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Phone size={20} color="#000080" />
+                      <Phone size={20} color="#3e397b" />
                     </InputAdornment>
                   ),
                 }}
@@ -522,10 +507,10 @@ console.log('transactionId', transactionId)
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
                     '&:hover fieldset': {
-                      borderColor: '#000080',
+                      borderColor: '#3e397b',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: '#000080',
+                      borderColor: '#3e397b',
                       borderWidth: 2,
                     },
                   },
@@ -577,7 +562,7 @@ console.log('transactionId', transactionId)
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <CircularProgress
                 sx={{
-                  color: '#000080',
+                  color: '#3e397b',
                   mb: 2,
                 }}
               />
@@ -624,7 +609,7 @@ console.log('transactionId', transactionId)
                onPaymentSuccess?.(extRef || "");   
               handleClose();
              }}  
-            text='Done'/>
+            text='Submit Application'/>
         )}
 
         {status === 'error' && (

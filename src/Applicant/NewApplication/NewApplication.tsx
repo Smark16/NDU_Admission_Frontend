@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useContext, useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useState} from "react"
 import {
   Box,
   Card,
@@ -43,7 +43,7 @@ import type { SelectChangeEvent } from '@mui/material/Select';
 import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
 import CustomButton from "../../ReUsables/custombutton"
-// import PaymentModal from "../Dashboard/PaymentModal"
+import PaymentModal from "../Dashboard/PaymentModal"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -130,10 +130,17 @@ interface FormData {
 
 export default function NewApplicationForm() {
   const AxiosInstance = useAxios()
+  const [isSubmitting, setIsSubmitting] = useState(false);   
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser, showSuccessAlert =()=>{} } = useContext(AuthContext) || {}
+  const { loggeduser} = useContext(AuthContext) || {}
+
+  // drafts
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true)
+  const [hasDraft, setHasDraft] = useState<boolean | null>(null)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+
   const [activeStep, setActiveStep] = useState(0)
   const [fees, setFees] = useState<Fee[]>([]);
   const [campus, setCampus] = useState<Campus[]>([])
@@ -152,8 +159,6 @@ export default function NewApplicationForm() {
     email: loggeduser?.email ?? '',
     address: "",
     nextOfKinName: "",
-    // class_of_award: "",
-    // study_mode: '',
     nextOfKinContact: "",
     nextOfKinRelationship: "",
     campus: "",
@@ -179,9 +184,6 @@ export default function NewApplicationForm() {
     externalReference: "",
     status: "submitted"
   })
-  const formDataRef = useRef(formData)
-  formDataRef.current = formData
-
   const [openSummary, setOpenSummary] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [notification, setNotification] = useState<{
@@ -189,19 +191,15 @@ export default function NewApplicationForm() {
     type: "success" | "error" | "info"
   } | null>(null)
 
-  // const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-
-  // auto save
-  // const [isDraftSaved, setIsDraftSaved] = useState(false);
-  // const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // payment modal handlers
-  // const handleOpenPaymentModal = () => {
-  //   if (!selectedFee?.amount) {
-  //     return;
-  //   }
-  //   setPaymentModalOpen(true);
-  // };
+  const handleOpenPaymentModal = () => {
+    if (!selectedFee?.amount) {
+      return;
+    }
+    setPaymentModalOpen(true);
+  };
 
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
@@ -227,8 +225,6 @@ export default function NewApplicationForm() {
 
   // Validate forms
   const validateStep = (step: number): boolean => {
-    const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
-    const isLocal = LOCAL_COUNTRIES.includes(formData.nationality);
     const errors: Record<string, string> = {};
 
     switch (step) {
@@ -245,14 +241,6 @@ export default function NewApplicationForm() {
         if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
 
-        // Require nin or passportNumber based on nationality
-        if (isLocal && !formData.nin?.trim()) {
-          errors.nin = "NIN is required for local applicants";
-        }
-        if (!isLocal && !formData.passportNumber?.trim()) {
-          errors.passportNumber = "Passport number is required for international applicants";
-        }
-
         // Validate Uganda NIN format if applicable
         if (formData.nationality === "Uganda" && formData.nin?.trim()) {
           if (!isValidUgandaNIN(formData.nin)) {
@@ -267,7 +255,6 @@ export default function NewApplicationForm() {
         }
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
-        // if (!formData.study_mode) errors.study_mode = "Study mode is required";
         break;
 
       case 2: // Academic Results
@@ -313,18 +300,6 @@ export default function NewApplicationForm() {
     setFormErrors(errors);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return Object.keys(errors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (!validateStep(activeStep)) {
-      return;
-    }
-
-    setFormErrors({});
-
-    if (activeStep < steps.length - 1) {
-      setActiveStep(activeStep + 1);
-    }
   };
 
   const handleBack = () => {
@@ -430,6 +405,16 @@ export default function NewApplicationForm() {
     }
   }
 
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, files } = e.target
+  //   if (files && files[0]) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       [name]: files?.[0],
+  //     }))
+  //   }
+  // }
+
   const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -443,10 +428,102 @@ export default function NewApplicationForm() {
         e.target.value = ""
         return
       }
-      setFormErrors((prev) => ({ ...prev, [name]: "" }))
+       setFormErrors((prev) => ({ ...prev, [name]: "" }))
       setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
   }
+
+  // HANDLE SAVE DRAFT
+  const saveDraft = async (showMessage = false) => {
+  try {
+    // Create clean payload - REMOVE ALL FILES and non-serializable data
+    const draftPayload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      middleName: formData.middleName,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      nationality: formData.nationality,
+      nin: formData.nin,
+      passportNumber: formData.passportNumber,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      disabled: formData.disabled,
+      nextOfKinName: formData.nextOfKinName,
+      nextOfKinContact: formData.nextOfKinContact,
+      nextOfKinRelationship: formData.nextOfKinRelationship,
+      campus: formData.campus,
+      academic_level: formData.academic_level,
+      programs: formData.programs,
+      oLevelYear: formData.oLevelYear,
+      oLevelIndexNumber: formData.oLevelIndexNumber,
+      oLevelSchool: formData.oLevelSchool,
+      oLevelSubjects: formData.oLevelSubjects,
+      aLevelYear: formData.aLevelYear,
+      aLevelIndexNumber: formData.aLevelIndexNumber,
+      aLevelSchool: formData.aLevelSchool,
+      aLevelSubjects: formData.aLevelSubjects,
+      alevel_combination: formData.alevel_combination,
+      additionalQualifications: formData.additionalQualifications,
+      application_fee_paid: formData.application_fee_paid,
+      externalReference: formData.externalReference,
+      status: "draft",
+      applicant: loggeduser?.user_id,
+      batch: batch?.id,
+    };
+
+    await AxiosInstance.post(
+      "/api/drafts/save_draft/",
+      draftPayload
+    );
+  
+    if (showMessage) showNotification("Draft saved successfully", "success");
+
+  } catch (err) {
+    console.error("Failed to save draft", err);
+    if (showMessage) {
+      showNotification("Failed to save draft", "error");
+    }
+  }
+};
+
+  // handle next
+//   const handleNext = async () => {
+//   if (!validateStep(activeStep)) {
+//     return;
+//   }
+
+//   setFormErrors({});
+
+//   if (activeStep < steps.length - 1) {
+//     setIsSavingDraft(true); 
+//     // Save draft with CURRENT formData BEFORE changing step
+//     await saveDraft(false);       
+    
+//     // Then move to next step
+//     setActiveStep(activeStep + 1);
+//     setIsSavingDraft(false);
+//   }
+// };
+  // handle next
+  const handleNext = async () => {
+    if (!validateStep(activeStep)) {
+      return;
+    }
+
+    setFormErrors({});
+
+    if (activeStep < steps.length - 1) {
+      setIsSavingDraft(true);
+
+      // Save draft ONLY when moving to next step
+      await saveDraft(false);
+
+      setActiveStep(activeStep + 1);
+      setIsSavingDraft(false);
+    }
+  };
 
   // selected application amount
   const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
@@ -466,9 +543,18 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-  console.log('applicant Data', formData)
-
   const handleSubmit = async () => {
+    if (isSubmitting) return;   
+
+    if (!formData.application_fee_paid) {
+    showNotification("Please complete payment before submitting", "error");
+    return;
+  }
+
+   setIsSubmitting(true);  
+  // if (isSubmittingRef.current) return; 
+  //   isSubmittingRef.current = true; 
+
     try {
       setSubmitLoader(true);
 
@@ -561,86 +647,137 @@ export default function NewApplicationForm() {
         showNotification("Submission failed. Please check your connection and try again.", "error")
       }
       console.error("Submission failed:", err);
+    }finally{
       setSubmitLoader(false);
+      setIsSubmitting(false);   
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
     }
   };
 
-  // HANDLE SAVE DRAFT
- const saveDraft = async (showMessage = false) => {
-  try {
-    const draftData = {
-      ...formDataRef.current,
-      applicant: loggeduser?.user_id,
-      batch: batch?.id,
-      status: "draft",
-    };
-
-    const response = await AxiosInstance.post("/api/drafts/save_draft/", draftData);
-
-    // setLastSaved(new Date());
-
-    if (showMessage) {
-      showSuccessAlert(`${response?.data?.message}`)
-    }
-  } catch (err) {
-    console.error("Failed to save draft", err);
-    if (showMessage) {
-      showNotification("Failed to save draft", "error");
-    }
-  }
-};
-
 const loadDraft = async () => {
   try {
+    setIsLoadingDraft(true)
     const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
     if (data?.draft_exists && data?.data) {
-      setFormData((prev) => {
-        const draftData = data.data;
+       setHasDraft(true)
+      const draft = data.data;
 
-        return {
-          ...prev,                    
-          ...draftData,             
+      setFormData(prev => ({
+        ...prev,
+        firstName: draft.first_name || prev.firstName,
+        lastName: draft.last_name || prev.lastName,
+        middleName: draft.middle_name || "",
+        dateOfBirth: draft.dateOfBirth || "",
+        gender: draft.gender || "",
+        nationality: draft.nationality || "",
+        nin: draft.nin || "",
+        passportNumber: draft.passportNumber|| "",
+        phone: draft.phone || prev.phone,
+        email: draft.email || prev.email,
+        address: draft.address || "",
+        disabled: draft.disabled || "",
+        nextOfKinName: draft.nextOfKinName || "",
+        nextOfKinContact: draft.nextOfKinContact || "",
+        nextOfKinRelationship: draft.nextOfKinRelationship || "",
 
-          // ←←← PRESERVE FILE FIELDS (they are never in draft)
-          passportPhoto: prev.passportPhoto,
-          oLevelDocuments: prev.oLevelDocuments,
-          aLevelDocuments: prev.aLevelDocuments,
-          otherInstitutionDocuments: prev.otherInstitutionDocuments,
+        // Programs section
+        campus: draft.campus ? String(draft.campus) : "",
+        academic_level: draft.academic_level ? String(draft.academic_level) : "",
+        programs: Array.isArray(draft.programs) ? draft.programs : [],
+        
+        // JSON Fields
+        oLevelYear: draft.oLevelYear || "",
+        oLevelIndexNumber: draft.oLevelIndexNumber || "",
+        oLevelSchool: draft.oLevelSchool || "",
+        oLevelSubjects: draft.oLevelSubjects || prev.oLevelSubjects,
 
-          // Ensure arrays are not overwritten incorrectly
-          oLevelSubjects: draftData.oLevelSubjects || prev.oLevelSubjects,
-          aLevelSubjects: draftData.aLevelSubjects || prev.aLevelSubjects,
-          additionalQualifications: draftData.additionalQualifications || prev.additionalQualifications,
-          programs: draftData.programs || prev.programs,
-        };
-      });
+        aLevelYear: draft.aLevelYear || "",
+        aLevelIndexNumber: draft.aLevelIndexNumber || "",
+        aLevelSchool: draft.aLevelSchool || "",
+        alevel_combination: draft.alevel_combination || "",
+        aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
 
-      showSuccessAlert("Previous draft loaded successfully");
+        additionalQualifications: draft.additionalQualifications || [],
+        application_fee_paid: draft.application_fee_paid || false,
+        externalReference: draft.externalReference || "",
+      }));
+
     }
   } catch (err) {
-    console.log("No draft found or error loading draft");
-    // Optional: remove this alert if it's annoying on every refresh
-    // showErrorAlert("No draft found or error loading draft");
+    console.log("No previous draft found");
+  }finally {
+    setIsLoadingDraft(false)
   }
 };
 
-// Main useEffect - Runs once on mount + when activeStep changes
-// Initial load + auto-save setup (runs ONLY ONCE when component mounts)
 useEffect(() => {
   loadDraft();
+}, []);   
 
-  // Auto-save every 8 seconds (silent)
-  const interval = setInterval(() => {
-    if (activeStep <= 5) {           
-      saveDraft(false);
-    }
-  }, 8000);
+// useEffect(() => {
+//   if (activeStep > 0) {           
+//     saveDraft(false);
+//     // loadDraft();
+//   }
+// }, [activeStep]);
 
-  return () => clearInterval(interval);
-}, []); // ←←← Empty dependency = runs only once
+// ====================== LOADING OVERLAY ======================
+  if (isLoadingDraft && hasDraft === null) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 8 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '70vh',
+          textAlign: 'center'
+        }}>
+          <CircularProgress size={80} thickness={4} sx={{ color: '#3e397b', mb: 4 }} />
+          
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
+            Loading your draft...
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#666', maxWidth: 400 }}>
+            Please wait while we restore your previous application data
+          </Typography>
+        </Box>
+      </Container>
+    )
+  }
+
+  // Application submission Loader
+  if (submitLoader) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 8 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: '80vh',
+          textAlign: 'center',
+          bgcolor: 'rgba(255,255,255,0.95)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999
+        }}>
+          <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 5 }} />
+          
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#1a3a52' }}>
+            Submitting Your Application...
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#555', maxWidth: 500 }}>
+            Please wait while we process and submit your application. Do not refresh the page.
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   // personal details
   const renderPersonalDetails = () => (
@@ -801,7 +938,7 @@ useEffect(() => {
 
       <Alert>
         <Typography>
-          Note: Your Required to pay a unrefundable application fee of {" "}
+          Note: Your Required to pay a nonrefundable application fee of {" "}
           <strong>UGX {selectedFee?.amount}</strong> before application submission
         </Typography>
       </Alert>
@@ -832,7 +969,7 @@ useEffect(() => {
           title="New Application"
           subheader="Complete all steps to submit your application"
           sx={{
-            background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)",
+            background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)",
             color: "white",
             "& .MuiCardHeader-subheader": { color: "rgba(255,255,255,0.9)" },
           }}
@@ -855,7 +992,7 @@ useEffect(() => {
                             width: 40,
                             height: 40,
                             borderRadius: "50%",
-                            bgcolor: index <= activeStep ? "#0D0060" : "#e0e0e0",
+                            bgcolor: index <= activeStep ? "#3e397b" : "#e0e0e0",
                             color: index <= activeStep ? "white" : "#999",
                             fontWeight: 600,
                           }}
@@ -877,26 +1014,14 @@ useEffect(() => {
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
             <CustomButton variant="outlined" onClick={handleBack} icon={<NavigateBeforeIcon />} disabled={activeStep === 0} text='Previous' />
             {activeStep === steps.length - 1 ? (
-              // !formData.application_fee_paid ? (
-              //   <CustomButton
-              //     icon={<CheckCircleIcon />}
-              //     text="Pay Application Fee"
-              //     onClick={handleOpenPaymentModal}
-              //   />
-              // ) : (
-              //   <CustomButton
-              //     onClick={handleSubmit}
-              //     endIcon={<CheckCircleIcon />}
-              //     text={
-              //       submitLoader ? (
-              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-              //       ) : (
-              //         "Submit Application"
-              //       )
-              //     }
-              //   />
-              // )
-              <CustomButton
+              !formData.application_fee_paid ? (
+                <CustomButton
+                  icon={<CheckCircleIcon />}
+                  text="Pay and Submit Application"
+                  onClick={handleOpenPaymentModal}
+                />
+              ) : (
+                <CustomButton
                   onClick={handleSubmit}
                   endIcon={<CheckCircleIcon />}
                   text={
@@ -907,11 +1032,25 @@ useEffect(() => {
                     )
                   }
                 />
+              )
+
+              // <CustomButton
+              //     onClick={handleSubmit}
+              //     endIcon={<CheckCircleIcon />}
+              //     text={
+              //       submitLoader ? (
+              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
+              //       ) : (
+              //         "Submit Application"
+              //       )
+              //     }
+              //   />
             ) : (
               <CustomButton
                 onClick={handleNext}
                 endIcon={<NavigateNextIcon />}
-                text="Next"
+                text={isSavingDraft ? "Saving Draft..." : "Next"}
+                disabled={isSavingDraft}
               />
             )}
 
@@ -920,7 +1059,7 @@ useEffect(() => {
       </Card>
 
       <Dialog open={openSummary} onClose={() => setOpenSummary(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
+        <DialogTitle sx={{ background: "linear-gradient(135deg, #3e397b 0%, #3e397b 100%)", color: "white" }}>
           Application Submitted Successfully
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
@@ -938,24 +1077,37 @@ useEffect(() => {
           <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
-
-      {/* <PaymentModal
+      
+      <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
+        amountPaid={selectedFee?.amount ?? 0}
         onPaymentSuccess={(externalRef?: string) => {
-          setFormData(prev => ({
+          // 1. Update form state
+          setFormData((prev) => ({
             ...prev,
             application_fee_paid: true,
-            externalReference: externalRef || ""
+            externalReference: externalRef || "",
           }));
 
+          // 2. Save draft again (now with paid = true)
+          saveDraft(false);
+
           showNotification(
-            "Application fee paid successfully! You can now submit your application.",
+            "Payment successful! Submitting your application now...",
             "success"
           );
+
+          // Close modal immediately
+          // setPaymentModalOpen(false);
+
+          // 3. Auto-submit after a tiny delay
+          // setTimeout(() => {
+          //   handleSubmit();
+          // }, 800);
+           handleSubmit();
         }}
-        amountPaid={selectedFee?.amount ?? 0}
-      /> */}
+       />
     </Container>
   )
 }
