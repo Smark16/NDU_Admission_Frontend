@@ -644,7 +644,7 @@ export default function NewApplicationForm() {
       if (err.response?.data.detail) {
         showNotification(`${err.response?.data.detail}`, "error")
       } else {
-        showNotification("Submission failed. Please check your connection and try again.", "error")
+        showNotification("Submission failed. Please check your connection and try again or Refresh and submit again.", "error")
       }
       console.error("Submission failed:", err);
     }finally{
