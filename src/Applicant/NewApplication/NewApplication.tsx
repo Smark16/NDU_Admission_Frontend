@@ -125,6 +125,8 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  hasOLevel: boolean;
+  hasALevel: boolean;
   status: string
 }
 
@@ -182,6 +184,8 @@ export default function NewApplicationForm() {
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
     externalReference: "",
+    hasOLevel: false,
+    hasALevel: false,
     status: "submitted"
   })
   const [openSummary, setOpenSummary] = useState(false)
@@ -253,43 +257,95 @@ export default function NewApplicationForm() {
         if (formData.programs.length === 0) {
           errors.programs = "Please select at least one program";
         }
+
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
         break;
 
       case 2: // Academic Results
-        if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
-        if (!formData.oLevelIndexNumber.trim()) errors.oLevelIndexNumber = "O-Level index number required";
-        if (!formData.oLevelSchool.trim()) errors.oLevelSchool = "O-Level school required";
+        const hasOLevel = !!formData.hasOLevel;
+        const hasALevel = !!formData.hasALevel;
 
-        // Check at least one valid O-Level subject
-        const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
-        if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
-
-        if(formData.oLevelSubjects.length < 8){
-          errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        if (hasOLevel) {
+          if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
+          if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
+          if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
+          // if (formData.oLevelSubjects.length < 8) {
+          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
+          // }
         }
 
-        // Only validate A-Level if applicant has A-Level
-
-        if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
-        if (!formData.aLevelIndexNumber.trim()) errors.aLevelIndexNumber = "A-Level index required";
-        if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
-        if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
-
-        if(formData.aLevelSubjects.length < 5){
-          errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        if (hasALevel) {
+          if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
+          if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
+          if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
+          if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
+          // if (formData.aLevelSubjects.length < 5) {
+          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
+          // }
         }
 
+        // Allow proceeding if they have either O/A Level OR Additional Qualifications
+        // const requiresAdditionalQuals = !hasOLevel && !hasALevel;
+        if(!formData.hasOLevel && !formData.hasALevel){
+              if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
+            errors.additionalQualifications = "Please add at least one Additional Qualification";
+          } else {
+            // Validate each additional qualification entry
+            const hasEmptyQual = formData.additionalQualifications.some((qual: any) => 
+              !qual.institution?.trim() || 
+              !qual.type?.trim() || 
+              !qual.year || 
+              !qual.class_of_award?.trim()
+            );
+
+            if (hasEmptyQual) {
+              errors.additionalQualifications = "Please fill all fields (Institution, Type, Award Year, Class of Award) for each additional qualification";
+            }
+          }
+    
+        }
+          
         break;
+        // if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
+        // if (!formData.oLevelIndexNumber.trim()) errors.oLevelIndexNumber = "O-Level index number required";
+        // if (!formData.oLevelSchool.trim()) errors.oLevelSchool = "O-Level school required";
+
+        // // Check at least one valid O-Level subject
+        // const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
+        // if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
+
+        // if(formData.oLevelSubjects.length < 8){
+        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
+        // }
+
+        // // Only validate A-Level if applicant has A-Level
+
+        // if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
+        // if (!formData.aLevelIndexNumber.trim()) errors.aLevelIndexNumber = "A-Level index required";
+        // if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
+        // if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
+
+        // if(formData.aLevelSubjects.length < 5){
+        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
+        // }
+
+        // break;
 
       case 3: // Documents
         if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
-        if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
-        // Only require A-Level doc if they have A-Level
-        if (!formData.aLevelDocuments) {
-          errors.aLevelDocuments = "A-Level certificate is required";
+
+        if(formData.hasOlevel){
+          if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
         }
+
+        // Only require A-Level doc if they have A-Level
+        if(formData.hasAlevel){
+          if (!formData.aLevelDocuments) {
+            errors.aLevelDocuments = "A-Level certificate is required";
+          }
+        }
+        
         if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
         break;
 
@@ -468,6 +524,8 @@ export default function NewApplicationForm() {
       additionalQualifications: formData.additionalQualifications,
       application_fee_paid: formData.application_fee_paid,
       externalReference: formData.externalReference,
+      hasOlevel: formData.hasOLevel,
+      hasAlevel: formData.hasALevel,
       status: "draft",
       applicant: loggeduser?.user_id,
       batch: batch?.id,
@@ -589,13 +647,18 @@ export default function NewApplicationForm() {
       formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
 
       // Academic Details
-      formDataToSend.append("olevel_year", formData.oLevelYear || "");
-      formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
-      formDataToSend.append("olevel_school", formData.oLevelSchool || "");
-      formDataToSend.append("alevel_year", formData.aLevelYear || "");
-      formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
-      formDataToSend.append("alevel_school", formData.aLevelSchool || "");
-      formDataToSend.append("alevel_combination", formData.alevel_combination || "");
+      formDataToSend.append("has_olevel", formData.hasOLevel)
+      formDataToSend.append("has_alevel", formData.hasALevel)
+      
+      if(formData.hasOLevel || formData.hasALevel){
+        formDataToSend.append("olevel_year", formData.oLevelYear || "");
+        formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
+        formDataToSend.append("olevel_school", formData.oLevelSchool || "");
+        formDataToSend.append("alevel_year", formData.aLevelYear || "");
+        formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
+        formDataToSend.append("alevel_school", formData.aLevelSchool || "");
+        formDataToSend.append("alevel_combination", formData.alevel_combination || "");
+      }
 
       // additional Qualifications
       formDataToSend.append(
@@ -604,8 +667,13 @@ export default function NewApplicationForm() {
       );
 
       // Results as JSON strings
-      formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
-      formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
+      if(formData.hasOLevel){
+        formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
+      }
+
+      if(formData.hasALevel){
+        formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
+      }
 
       // Passport Photo (optional)
       if (formData.passportPhoto) {
@@ -697,6 +765,9 @@ const loadDraft = async () => {
         aLevelSchool: draft.aLevelSchool || "",
         alevel_combination: draft.alevel_combination || "",
         aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
+
+        hasOLevel: draft.hasOlevel || false,
+        hasALevel: draft.hasAlevel || false,
 
         additionalQualifications: draft.additionalQualifications || [],
         application_fee_paid: draft.application_fee_paid || false,

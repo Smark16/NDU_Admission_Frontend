@@ -272,6 +272,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.batch}
                   </Typography>
                 </Grid>
+                 {application.address && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Address
@@ -280,6 +281,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.address}
                   </Typography>
                 </Grid>
+                )}
+
+                {application.olevel_school ? (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     O-Level School
@@ -288,7 +292,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.olevel_school} ({application.olevel_year})
                   </Typography>
                 </Grid>
-                {application.alevel_school && (
+                ) : (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    O-Level School
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color:"#c9672e" }}>
+                    The Above Student never Went through Olevel, 
+                    Please find there Additional Qualifications Below if provided
+                  </Typography>
+                </Grid>
+                )}
+
+                {application.alevel_school ? (
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="textSecondary">
                       A-Level School
@@ -296,6 +312,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {application.alevel_school} ({application.alevel_year})
                     </Typography>
+                  </Grid>
+                ) : (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      A-Level School
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color:"#e95656" }}>
+                    The Above Student never Went through Alevel, 
+                    Please find there Additional Qualifications Below if provided
+                  </Typography>
                   </Grid>
                 )}
               </Grid>

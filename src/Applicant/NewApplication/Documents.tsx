@@ -64,6 +64,8 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  hasOLevel: boolean;
+  hasALevel: boolean;
   status: string
 }
 
@@ -154,71 +156,74 @@ const Documents: React.FC<DocumentProps> = ({
         </Paper>
 
         {/* O-Level Documents Section */}
-        <Paper sx={{ p: 3, bgcolor: "#f8fbff", border: "1px solid #e0eef7" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-            <BookIcon sx={{ color: "#5ba3f5", fontSize: 28 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a3a52" }}>
-              O-Level Documents
-            </Typography>
-          </Box>
-          <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF
-            file.
-          </Typography>
-          <Paper
-            sx={{
-              p: 3,
-              textAlign: "center",
-              border: formErrors.oLevelDocuments ? "2px dashed #d32f2f" : "2px dashed #5ba3f5",
-              borderRadius: 2,
-              cursor: "pointer",
-              transition: "all 0.3s",
-              "&:hover": { bgcolor: "#f0f7ff", borderColor: "#3b82f6" },
-            }}
-          >
-            <input
-              type="file"
-              name="oLevelDocuments"
-              onChange={handleFileChange}
-              accept=".pdf"
-              style={{ display: "none" }}
-              id="olevel-docs"
-            />
-            <label htmlFor="olevel-docs" style={{ cursor: "pointer", display: "block" }}>
-              <CloudUploadIcon sx={{ fontSize: 40, color: "#5ba3f5", mb: 1 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Click to upload or drag and drop
+        {formData.hasOLevel && (
+            <Paper sx={{ p: 3, bgcolor: "#f8fbff", border: "1px solid #e0eef7" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+                <BookIcon sx={{ color: "#5ba3f5", fontSize: 28 }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a3a52" }}>
+                  O-Level Documents
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+                Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF
+                file.
               </Typography>
-              <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF (Max 100MB)
-              </Typography>
-              {formData.oLevelDocuments && (
-                <Chip
-                  label={formData.oLevelDocuments.name}
-                  onDelete={() => setFormData((prev) => ({ ...prev, oLevelDocuments: null }))}
-                  sx={{ mt: 2 }}
-                  color="primary"
+              <Paper
+                sx={{
+                  p: 3,
+                  textAlign: "center",
+                  border: formErrors.oLevelDocuments ? "2px dashed #d32f2f" : "2px dashed #5ba3f5",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  transition: "all 0.3s",
+                  "&:hover": { bgcolor: "#f0f7ff", borderColor: "#3b82f6" },
+                }}
+              >
+                <input
+                  type="file"
+                  name="oLevelDocuments"
+                  onChange={handleFileChange}
+                  accept=".pdf"
+                  style={{ display: "none" }}
+                  id="olevel-docs"
                 />
+                <label htmlFor="olevel-docs" style={{ cursor: "pointer", display: "block" }}>
+                  <CloudUploadIcon sx={{ fontSize: 40, color: "#5ba3f5", mb: 1 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Click to upload or drag and drop
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#666" }}>
+                    PDF (Max 100MB)
+                  </Typography>
+                  {formData.oLevelDocuments && (
+                    <Chip
+                      label={formData.oLevelDocuments.name}
+                      onDelete={() => setFormData((prev) => ({ ...prev, oLevelDocuments: null }))}
+                      sx={{ mt: 2 }}
+                      color="primary"
+                    />
+                  )}
+                </label>
+              </Paper>
+              {formErrors.oLevelDocuments && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "#d32f2f",
+                    fontWeight: 500,
+                    display: "block",
+                    mt: 1,
+                    ml: 1,
+                  }}
+                >
+                  {formErrors.oLevelDocuments}
+                </Typography>
               )}
-            </label>
-          </Paper>
-           {formErrors.oLevelDocuments && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: "#d32f2f",
-                fontWeight: 500,
-                display: "block",
-                mt: 1,
-                ml: 1,
-              }}
-            >
-              {formErrors.oLevelDocuments}
-            </Typography>
-          )}
-        </Paper>
+            </Paper>
+        )}
 
         {/* A-Level Documents Section */}
+        {formData.hasALevel && (
         <Paper sx={{ p: 3, bgcolor: "#f8fbff", border: "1px solid #e0eef7" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
             <SchoolIcon sx={{ color: "#5ba3f5", fontSize: 28 }} />
@@ -282,6 +287,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           )}
         </Paper>
+        )}
 
         {/* Other Institution Academic Documents Section */}
         {formData.additionalQualifications.length > 0 && (

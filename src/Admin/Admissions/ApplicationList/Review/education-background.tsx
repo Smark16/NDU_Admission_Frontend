@@ -219,7 +219,7 @@ export default function EducationalBackgroundSection({
             )
           ) : (
             <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
-              No O Level results added yet
+              No O Level results where Added by this student
             </Typography>
           )}
 
@@ -233,7 +233,7 @@ export default function EducationalBackgroundSection({
             )
           ) : (
             <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
-              No A Level results added yet
+              No A Level results where Added by this student
             </Typography>
           )}
           
