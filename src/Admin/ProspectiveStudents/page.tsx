@@ -5,6 +5,7 @@ import {
   Box, Card, CardContent, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress,
   Alert, TextField, InputAdornment, Button, Tooltip, Grid,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from "@mui/material"
 import {
   Search as SearchIcon,
@@ -13,6 +14,8 @@ import {
   People as PeopleIcon,
   EditNote as DraftIcon,
   PersonOff as NeverIcon,
+  FileDownload as DownloadIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material"
 import useAxios from "../../AxiosInstance/UseAxios"
 
@@ -39,6 +42,11 @@ export default function ProspectiveStudents() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Draft Started" | "Never Started">("all")
   const [sendingId, setSendingId] = useState<number | null>(null)
   const [reminderSent, setReminderSent] = useState<number[]>([])
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
 
   useEffect(() => {
     const fetch = async () => {
@@ -67,13 +75,53 @@ export default function ProspectiveStudents() {
     }
   }
 
+  const handleDelete = async () => {
+    if (confirmDeleteId === null) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await AxiosInstance.delete(`/api/accounts/delete_prospective/${confirmDeleteId}/`)
+      setStudents((prev) => prev.filter((s) => s.id !== confirmDeleteId))
+      setTotal((prev) => prev - 1)
+      setConfirmDeleteId(null)
+    } catch (err: any) {
+      setDeleteError(err?.response?.data?.detail || "Failed to delete.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Registered", "Last Login", "Days Since Joined", "Status"]
+    const rows = filtered.map((s) => [
+      s.name,
+      s.email,
+      s.phone || "",
+      s.date_joined ? new Date(s.date_joined).toLocaleDateString() : "",
+      s.last_login ? new Date(s.last_login).toLocaleDateString() : "Never",
+      s.days_since_joined !== null ? s.days_since_joined : "",
+      s.status,
+    ])
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `prospective_students_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const filtered = students.filter((s) => {
     const matchSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase()) ||
       (s.phone || "").includes(search)
     const matchStatus = statusFilter === "all" || s.status === statusFilter
-    return matchSearch && matchStatus
+    const joined = s.date_joined ? new Date(s.date_joined) : null
+    const matchFrom = !dateFrom || (joined !== null && joined >= new Date(dateFrom))
+    const matchTo = !dateTo || (joined !== null && joined <= new Date(dateTo + "T23:59:59"))
+    return matchSearch && matchStatus && matchFrom && matchTo
   })
 
   const draftCount = students.filter((s) => s.status === "Draft Started").length
@@ -147,8 +195,8 @@ export default function ProspectiveStudents() {
         </Grid>
       </Grid>
 
-      {/* Filters */}
-      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+      {/* Filters + Export */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
         <TextField
           size="small"
           placeholder="Search name, email or phone..."
@@ -175,6 +223,33 @@ export default function ProspectiveStudents() {
             sx={{ cursor: "pointer" }}
           />
         ))}
+        <TextField
+          size="small"
+          label="Registered from"
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ width: 170 }}
+        />
+        <TextField
+          size="small"
+          label="Registered to"
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ width: 170 }}
+        />
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={exportCSV}
+          disabled={filtered.length === 0}
+          sx={{ ml: "auto", textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
+        >
+          Export CSV
+        </Button>
       </Box>
 
       {/* Table */}
@@ -190,12 +265,13 @@ export default function ProspectiveStudents() {
               <TableCell><strong>Days Since Joined</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Reminder</strong></TableCell>
+              <TableCell><strong>Delete</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 5, color: "text.secondary" }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 5, color: "text.secondary" }}>
                   No prospective students found.
                 </TableCell>
               </TableRow>
@@ -261,12 +337,50 @@ export default function ProspectiveStudents() {
                       </span>
                     </Tooltip>
                   </TableCell>
+                  <TableCell>
+                    <Tooltip title="Delete this prospective student">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteIcon fontSize="small" />}
+                        onClick={() => setConfirmDeleteId(s.id)}
+                        sx={{ fontSize: "0.7rem" }}
+                      >
+                        Delete
+                      </Button>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={confirmDeleteId !== null} onClose={() => !deleting && setConfirmDeleteId(null)}>
+        <DialogTitle>Delete Prospective Student?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will permanently delete the account. This cannot be undone.
+            Only accounts with no submitted application can be deleted.
+          </DialogContentText>
+          {deleteError && <Alert severity="error" sx={{ mt: 1 }}>{deleteError}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)} disabled={deleting}>Cancel</Button>
+          <Button
+            onClick={handleDelete}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <DeleteIcon />}
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

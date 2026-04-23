@@ -33,6 +33,9 @@ import {
   Building,
   BarChart3,
   Eye,
+  Globe,
+  UserPlus,
+  DollarSign,
 } from "lucide-react"
 
 import { useContext } from "react"
@@ -43,11 +46,14 @@ import CustomButton from "../../../ReUsables/custombutton"
 
 interface Stats {
   totalApplication: number
+  onlineApplications: number
+  directApplications: number
   pendingApplications: number
   admittedStudents: number
   rejectedStudents: number
   total_batches: number
-  activeBatches:number
+  activeBatches: number
+  onlineFeeIncome: number
 }
 
 interface Application {
@@ -225,19 +231,40 @@ const AdmissionDashboard = () => {
           </Typography>
         </Box>
 
-        {/* Stats Grid */}
-        <Grid container spacing={2} mb={4}>
+        {/* Stats Grid — Row 1: Application volume */}
+        <Grid container spacing={2} mb={2}>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#000080" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Pending" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
+            <StatCard title="Online Applications" value={dashboardStats?.onlineApplications ?? 0} icon={Globe} color="#1565c0" />
+          </Grid>
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <StatCard title="Direct Applications" value={dashboardStats?.directApplications ?? 0} icon={UserPlus} color="#6a1b9a" />
+          </Grid>
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <StatCard
+              title="Application Fee Income"
+              value={`UGX ${(dashboardStats?.onlineFeeIncome ?? 0).toLocaleString()}`}
+              icon={DollarSign}
+              color="#2e7d32"
+            />
+          </Grid>
+        </Grid>
+
+        {/* Stats Grid — Row 2: Pipeline status */}
+        <Grid container spacing={2} mb={4}>
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <StatCard title="Pending Review" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Accepted" value={dashboardStats?.admittedStudents ?? 0} icon={CheckCircle} color="#388e3c" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Rejected" value={dashboardStats?.rejectedStudents ?? 0} icon={Cancel} color="#d32f2f" />
+          </Grid>
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <StatCard title="Active Intakes" value={dashboardStats?.activeBatches ?? 0} icon={BarChart3} color="#00838f" />
           </Grid>
         </Grid>
 
