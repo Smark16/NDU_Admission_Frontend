@@ -335,12 +335,12 @@ export default function NewApplicationForm() {
       case 3: // Documents
         if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
 
-        if(formData.hasOlevel){
+        if(formData.hasOLevel){
           if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
         }
 
         // Only require A-Level doc if they have A-Level
-        if(formData.hasAlevel){
+        if(formData.hasALevel){
           if (!formData.aLevelDocuments) {
             errors.aLevelDocuments = "A-Level certificate is required";
           }
@@ -647,8 +647,8 @@ export default function NewApplicationForm() {
       formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
 
       // Academic Details
-      formDataToSend.append("has_olevel", formData.hasOLevel)
-      formDataToSend.append("has_alevel", formData.hasALevel)
+      formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false")
+      formDataToSend.append("has_alevel", formData.hasALevel ? "true" : "false")
       
       if(formData.hasOLevel || formData.hasALevel){
         formDataToSend.append("olevel_year", formData.oLevelYear || "");
