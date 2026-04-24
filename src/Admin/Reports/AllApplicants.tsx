@@ -5,7 +5,7 @@ import {
   Box, Card, CardContent, Grid, Typography, TextField, Select, MenuItem,
   FormControl, InputLabel, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, TablePagination, InputAdornment,
-  CircularProgress, Alert, Button, Stack,
+  CircularProgress, Alert, Button, Stack, Autocomplete,
 } from "@mui/material"
 import {
   Search as SearchIcon,
@@ -109,6 +109,11 @@ export default function AllApplicantsReport() {
   const campuses = useMemo(() => [...new Set(applicants.map(a => a.campus).filter(Boolean))], [applicants])
   const faculties = useMemo(() => {
     const all = applicants.flatMap(a => a.faculty ? a.faculty.split(", ") : [])
+    return [...new Set(all)].filter(Boolean).sort()
+  }, [applicants])
+
+  const programOptions = useMemo(() => {
+    const all = applicants.flatMap(a => a.programs ? a.programs.split(", ") : [])
     return [...new Set(all)].filter(Boolean).sort()
   }, [applicants])
 
@@ -303,8 +308,8 @@ export default function AllApplicantsReport() {
                   <InputLabel>Gender</InputLabel>
                   <Select value={genderFilter} label="Gender" onChange={e => { setGenderFilter(e.target.value); setPage(0) }}>
                     <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -322,10 +327,15 @@ export default function AllApplicantsReport() {
                 <FilterSelect label="Faculty" value={facultyFilter} onChange={v => { setFacultyFilter(v); setPage(0) }} options={faculties} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-                <TextField
-                  fullWidth size="small" label="Program contains…"
-                  value={programSearch} onChange={e => { setProgramSearch(e.target.value); setPage(0) }}
-                  placeholder="e.g. Computer Science"
+                <Autocomplete
+                  options={programOptions}
+                  value={programSearch || null}
+                  onChange={(_, val) => { setProgramSearch(val ?? ""); setPage(0) }}
+                  renderInput={(params) => (
+                    <TextField {...params} size="small" label="Program" placeholder="Type to search…" />
+                  )}
+                  clearOnEscape
+                  size="small"
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 1.25 }}>
