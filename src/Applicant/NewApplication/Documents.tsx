@@ -183,7 +183,7 @@ const Documents: React.FC<DocumentProps> = ({
                   type="file"
                   name="oLevelDocuments"
                   onChange={handleFileChange}
-                  accept=".pdf"
+                  accept=".pdf, .jpg, .png, .jpeg"
                   style={{ display: "none" }}
                   id="olevel-docs"
                 />
@@ -250,7 +250,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="aLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf"
+              accept=".pdf, .jpg, .png, .jpeg"
               style={{ display: "none" }}
               id="alevel-docs"
             />
