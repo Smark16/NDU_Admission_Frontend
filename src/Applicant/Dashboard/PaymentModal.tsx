@@ -404,7 +404,7 @@ const handlePayment = async () => {
                 }}
               >
                  {errorMessage || 
-                    `Insufficient balance on your phone. Please make sure you have at least UGX ${amountPaid + 1000} to complete this payment successfully.`
+                    `Insufficient balance on your phone. Please make sure you have enough Mobile money to complete this payment successfully.`
                   }
               </Alert>
 
