@@ -604,6 +604,8 @@ export default function NewApplicationForm() {
   const handleSubmit = async () => {
     if (isSubmitting) return;   
 
+    if (submitLoader) return;
+
     if (!formData.application_fee_paid) {
     showNotification("Please complete payment before submitting", "error");
     return;
@@ -1170,13 +1172,13 @@ useEffect(() => {
           );
 
           // Close modal immediately
-          // setPaymentModalOpen(false);
+          setPaymentModalOpen(false);
 
           // 3. Auto-submit after a tiny delay
-          // setTimeout(() => {
-          //   handleSubmit();
-          // }, 800);
-           handleSubmit();
+          setTimeout(() => {
+            handleSubmit();
+          }, 1800);
+          
         }}
        />
     </Container>

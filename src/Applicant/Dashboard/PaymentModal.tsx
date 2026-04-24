@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -75,18 +75,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-  // useEffect(() => {
-  //   if (status === 'success' && onPaymentSuccess) {
-  //     onPaymentSuccess(extRef || undefined);
+  const hasCalledSuccess = useRef(false);
 
-  //     // Auto-close modal after showing success for 1.8 seconds
-  //     // const timer = setTimeout(() => {
-  //     //   handleClose();
-  //     // }, 100);
+useEffect(() => {
+  if (status === 'success' && onPaymentSuccess && !hasCalledSuccess.current) {
+    hasCalledSuccess.current = true;        // Prevent running again
 
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [status, onPaymentSuccess, extRef]);
+    onPaymentSuccess(extRef || undefined);
+
+    // Optional: Auto-close modal after showing success for a short time
+    // const timer = setTimeout(() => {
+    //   handleClose();
+    // }, 1800);
+
+    // return () => clearTimeout(timer);
+  }
+}, [status, onPaymentSuccess, extRef]); 
 
 // Clean up polling on unmount/close
 useEffect(() => {
@@ -399,7 +403,9 @@ const handlePayment = async () => {
                   },
                 }}
               >
-                {errorMessage}
+                 {errorMessage || 
+                    `Insufficient balance on your phone. Please make sure you have at least UGX ${amountPaid + 1000} to complete this payment successfully.`
+                  }
               </Alert>
 
               <Typography
@@ -589,40 +595,43 @@ const handlePayment = async () => {
         )}
       </DialogContent>
 
-      <DialogActions
-        sx={{
-          p: 2,
-          gap: 1,
-          borderTop: '1px solid #e5e7eb',
-        }}
-      >
-        {status === 'idle' && (
-          <>
-          <CustomButton onClick={handleClose} text='Cancel' variant='outlined'/>
-          <CustomButton endIcon={<ArrowRight size={18} />} onClick={handlePayment} text='Complete Payment' />
-          </>
-        )}
+      <DialogActions sx={{ p: 2, gap: 1, borderTop: '1px solid #e5e7eb' }}>
+          {status === 'idle' && (
+            <>
+              <CustomButton onClick={handleClose} text="Cancel" variant="outlined" />
+              <CustomButton 
+                endIcon={<ArrowRight size={18} />} 
+                onClick={handlePayment} 
+                text="Complete Payment" 
+              />
+            </>
+          )}
 
-        {status === 'success' && (
+          {status === 'success' && (
             <CustomButton 
-             onClick={() => {
-               onPaymentSuccess?.(extRef || "");   
-              handleClose();
-             }}  
-            text='Submit Application'/>
-        )}
+              onClick={() => {
+                onPaymentSuccess?.(extRef || "");
+                handleClose();
+              }}  
+              text="Continue to Submit Application"
+              color="success"
+              variant="contained"
+            />
+          )}
 
-        {status === 'error' && (
-          <>
-          <CustomButton onClick={handleClose} text='Close' variant='outlined'/>
-            <CustomButton onClick={() => {
-                setStatus('idle');
-                setErrorMessage('');
-              }} text='Try Again'/>
-           
-          </>
-        )}
-      </DialogActions>
+          {status === 'error' && (
+            <>
+              <CustomButton onClick={handleClose} text="Close" variant="outlined"/>
+              <CustomButton 
+                onClick={() => {
+                  setStatus('idle');
+                  setErrorMessage('');
+                }} 
+                text="Try Again"
+              />
+            </>
+          )}
+        </DialogActions>
 
       <style>{`
         @keyframes scaleIn {

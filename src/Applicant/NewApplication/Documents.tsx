@@ -116,7 +116,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="passportPhoto"
               onChange={handleFileChange}
-              accept="image/jpeg,image/png"
+              accept="image/jpeg,image/png, image/jpg, image/heic"
               style={{ display: "none" }}
               id="passport-photo"
               required
