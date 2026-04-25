@@ -31,8 +31,6 @@ interface Application {
   address: string;
   status: string;
   application_fee_amount: string;
-  application_fee_paid: boolean;
-  school_pay_reference?: string;
   nin: string;
   passport_number: string;
   disabled: boolean;
@@ -40,7 +38,6 @@ interface Application {
   reviewed_by: string;
   reviewed_at: string | null;
   passport_photo: File | null;
-  entered_by?: string | null;
 }
 
 interface Subject {

@@ -34,6 +34,7 @@ import {
 } from "@mui/icons-material";
 
 import BulkUpload from "./bulk_upload";
+import CurriculumManager from "./CurriculumManager";
 import ListPrograms from "./list_programs";
 import Manage from "./manage";
 import CustomButton from "../../../ReUsables/custombutton";
@@ -65,6 +66,11 @@ interface Program {
   faculty: string;
   min_years?: number;
   max_years?: number;
+  calendar_type: "semester" | "trimester";
+  minimum_graduation_load?: number;
+  has_specialization: boolean;
+  specialization_entry_year?: number;
+  specialization_entry_term?: number;
   is_active: boolean;
 }
 
@@ -117,6 +123,9 @@ const ProgramManagement: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [downloadProgram, setDownLoadProgram] = useState(false);
 
+  // Curriculum manager
+  const [curriculumProgram, setCurriculumProgram] = useState<Program | null>(null);
+
   const initialForm = {
     name: "",
     short_form: "",
@@ -126,18 +135,28 @@ const ProgramManagement: React.FC = () => {
     faculty: null as number | null,
     min_years: undefined as number | undefined,
     max_years: undefined as number | undefined,
+    calendar_type: "semester" as "semester" | "trimester",
+    minimum_graduation_load: undefined as number | undefined,
+    has_specialization: false,
+    specialization_entry_year: undefined as number | undefined,
+    specialization_entry_term: undefined as number | undefined,
     is_active: true,
   };
 
   const [formData, setFormData] = useState(initialForm);
 
-  // Fetch Academic Levels
-  const fetchAcademicLevels = async () => {
+  // All levels for admin (active + inactive) so new/edited levels show in the programme form
+  const fetchAcademicLevels = async (): Promise<AcademicLevel[]> => {
     try {
-      const response = await AxiosInstance.get<AcademicLevel[]>("/api/admissions/list_academic_level");
-      setAcademicLevels(response.data);
+      const { data } = await AxiosInstance.get("/api/admissions/list_admin_academic_level", {
+        params: { _: Date.now() },
+      });
+      const list: AcademicLevel[] = Array.isArray(data) ? data : data?.results ?? [];
+      setAcademicLevels(list);
+      return list;
     } catch (err) {
       console.error("Failed to fetch academic levels", err);
+      return [];
     }
   };
 
@@ -225,11 +244,12 @@ const ProgramManagement: React.FC = () => {
   };
 
   // open dialog
-  const handleOpenDialog = (program?: Program) => {
+  const handleOpenDialog = async (program?: Program) => {
+    const levels = await fetchAcademicLevels();
     if (program) {
       setEditingId(program.id);
       const facultyObj = faculties.find((f) => f.name === program.faculty);
-      const academicLevelObj = academicLevels.find((al) => al.name === program.academic_level);
+      const academicLevelObj = levels.find((al) => al.name === program.academic_level);
       setFormData({
         name: program.name,
         short_form: program.short_form,
@@ -239,6 +259,11 @@ const ProgramManagement: React.FC = () => {
         faculty: facultyObj?.id ?? null,
         min_years: program.min_years,
         max_years: program.max_years,
+        calendar_type: program.calendar_type ?? "semester",
+        minimum_graduation_load: program.minimum_graduation_load,
+        has_specialization: program.has_specialization ?? false,
+        specialization_entry_year: program.specialization_entry_year,
+        specialization_entry_term: program.specialization_entry_term,
         is_active: program.is_active,
       });
     } else {
@@ -463,7 +488,7 @@ const ProgramManagement: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Program Management
           </Typography>
@@ -476,7 +501,7 @@ const ProgramManagement: React.FC = () => {
       {/* Stats Cards - Using your original Grid size syntax */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
+          <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
             <CardContent>
               <Typography color="inherit" variant="body2" sx={{ mb: 1 }}>Total Programs</Typography>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -502,7 +527,7 @@ const ProgramManagement: React.FC = () => {
             <Card
               sx={{
                 background: index === 0
-                  ? "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)"
+                  ? "linear-gradient(135deg, #8c85daff 0%, #3e397b 100%)"
                   : "linear-gradient(135deg, #f07a7eff 0%, #7c1519 100%)",
                 color: "white",
               }}
@@ -630,6 +655,18 @@ const ProgramManagement: React.FC = () => {
         onEdit={handleOpenDialog}
         onDelete={setDeleteConfirm}
         onToggleStatus={handleToggleStatus}
+        onManageCurriculum={(program) => setCurriculumProgram(program)}
+      />
+
+      {/* Curriculum Manager */}
+      <CurriculumManager
+        open={curriculumProgram !== null}
+        programId={curriculumProgram?.id ?? null}
+        programName={curriculumProgram?.name ?? ""}
+        calendarType={curriculumProgram?.calendar_type ?? "semester"}
+        minYears={curriculumProgram?.min_years}
+        hasSpecialization={curriculumProgram?.has_specialization ?? false}
+        onClose={() => setCurriculumProgram(null)}
       />
 
       {/* Add/Edit Dialog */}

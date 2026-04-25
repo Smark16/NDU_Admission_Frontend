@@ -23,22 +23,17 @@ interface Program {
   name: string;
 }
 
-
 interface FileUploadProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   templateForm: {
     file: File | null;
     status: "active" | "inactive";
     programs: number[];
-    start_date: string;
-    hall_of_residence: string;
   };
   setTemplateForm: React.Dispatch<React.SetStateAction<{
     file: File | null;
     status: "active" | "inactive";
     programs: number[];
-    start_date: string;
-    hall_of_residence: string;
   }>>;
 }
 
@@ -47,11 +42,12 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
   const [programs, setPrograms] = useState<Program[]>([]);
 
   // === TYPE-SAFE FIELD UPDATER ===
-  type TemplateFormKeys = "file" | "status" | "programs" | "start_date" | "hall_of_residence";
+  type TemplateFormKeys = "file" | "status" | "programs";
   const handleFormChange = (field: TemplateFormKeys, value: any) => {
     setTemplateForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  console.log('template file', templateForm)
   // === FETCH PROGRAMS ===
   const fetchPrograms = async () => {
     try {
@@ -77,7 +73,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-          Upload your Admission Template as a Word or PDF document
+          Upload your Admission Template as a word document
         </Typography>
         <Paper
           sx={{
@@ -94,7 +90,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
             type="file"
             name="Admission Templates"
             onChange={handleFileChange}
-            accept=".doc, .docx, .pdf"
+            accept=".doc, .docx"
             style={{ display: "none" }}
             id="template-upload"
           />
@@ -104,7 +100,7 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
               Click to upload or drag and drop
             </Typography>
             <Typography variant="caption" sx={{ color: "#666" }}>
-              Word or PDF documents (Max 100MB)
+              Word Documents (Max 10MB)
             </Typography>
             {templateForm.file && (
               <Chip
@@ -152,35 +148,6 @@ function FileUpload({ handleFileChange, templateForm, setTemplateForm }: FileUpl
         noOptionsText="No programs found"
         sx={{ mt: 2 }}
       />
-
-      {/* Start Date */}
-      <TextField
-        fullWidth
-        label="Programme Start Date"
-        type="date"
-        value={templateForm.start_date}
-        onChange={(e) => handleFormChange("start_date", e.target.value)}
-        slotProps={{ inputLabel: { shrink: true } }}
-        helperText="This date will appear on all offer letters generated from this template"
-        sx={{ mt: 2 }}
-      />
-
-      {/* Hall of Residence */}
-      <FormControl fullWidth sx={{ mt: 2 }}>
-        <InputLabel>Hall of Residence</InputLabel>
-        <Select
-          value={templateForm.hall_of_residence}
-          label="Hall of Residence"
-          onChange={(e) => handleFormChange("hall_of_residence", e.target.value)}
-        >
-          <MenuItem value="AKIIBUA">AKIIBUA</MenuItem>
-          <MenuItem value="NJUKI">NJUKI</MenuItem>
-          <MenuItem value="MUTEESA">MUTEESA</MenuItem>
-          <MenuItem value="KAKUNGULU">KAKUNGULU</MenuItem>
-          <MenuItem value="YOKANA">YOKANA</MenuItem>
-          <MenuItem value="RANDOM">Assign Randomly</MenuItem>
-        </Select>
-      </FormControl>
 
       {/* Status */}
       <FormControl fullWidth sx={{ mt: 2 }}>

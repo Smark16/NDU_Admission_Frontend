@@ -44,6 +44,24 @@ interface Program {
   short_form: string
 }
 
+function normalizeProgramRow(p: { id: number; name?: string; short_form?: string }): Program {
+  return {
+    id: p.id,
+    name: p.name ?? "",
+    short_form: p.short_form ?? "",
+  }
+}
+
+/** Merge API list with programmes already on an intake (so edit still shows legacy links). */
+function mergeProgramOptions(base: Program[], extra: Program[]): Program[] {
+  const m = new Map<number, Program>()
+  for (const p of base) m.set(p.id, p)
+  for (const p of extra) {
+    if (!m.has(p.id)) m.set(p.id, normalizeProgramRow(p))
+  }
+  return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name))
+}
+
 interface Batch {
   id: number
   name: string
@@ -123,19 +141,25 @@ export default function BatchManagement() {
     }
   }
 
-  // === FETCH PROGRAMS ===
-  const fetchPrograms = async () => {
+  // Programmes that already have academic batches (ProgramBatch) — same rule as enrollment
+  const loadProgramOptions = async (mergeExisting?: Program[]) => {
     try {
-      const response = await AxiosInstance.get("/api/program/list_programs")
-      setPrograms(response.data)
+      const response = await AxiosInstance.get<{
+        results?: Program[]
+        count?: number
+        message?: string
+      }>("/api/program/list_programs_with_batches")
+      const raw = response.data?.results
+      const list: Program[] = Array.isArray(raw) ? raw.map(normalizeProgramRow) : []
+      setPrograms(mergeExisting?.length ? mergeProgramOptions(list, mergeExisting) : list)
     } catch (error: any) {
-      showNotification("Failed to load programs", "error")
+      showNotification("Failed to load programmes (with batches)", "error")
     }
   }
 
   useEffect(() => {
     fetchBatches()
-    fetchPrograms()
+    void loadProgramOptions()
   }, [])
 
   // === NOTIFICATION HELPER ===
@@ -157,7 +181,7 @@ export default function BatchManagement() {
   )
 
   // === DIALOG HANDLERS ===
-  const handleOpenDialog = (batch?: Batch) => {
+  const handleOpenDialog = async (batch?: Batch) => {
     if (batch) {
       setEditingId(batch.id)
       setFormData({
@@ -171,9 +195,11 @@ export default function BatchManagement() {
         created_by: batch.created_by,
         is_active: batch.is_active,
       })
+      await loadProgramOptions(batch.programs)
     } else {
       setEditingId(null)
       setFormData(INITIAL_FORM_DATA)
+      await loadProgramOptions()
     }
     setOpenDialog(true)
   }
@@ -226,12 +252,19 @@ export default function BatchManagement() {
 
     setIsSubmitting(true)
     try {
-      const payload = {
-        ...formData,
-        created_by: Number(loggeduser?.user_id),
+      const { created_by: _creatorFromForm, ...formWithoutCreator } = formData
+      if (!editingId) {
+        const uid = Number(loggeduser?.user_id)
+        if (!Number.isFinite(uid)) {
+          showNotification("You must be logged in to create an intake", "error")
+          setIsSubmitting(false)
+          return
+        }
       }
+      const payload = editingId
+        ? formWithoutCreator
+        : { ...formData, created_by: Number(loggeduser?.user_id) }
 
-      // let response;
       if (editingId) {
         const response = await AxiosInstance.put(`/api/admissions/edit_batch/${editingId}`, payload)
         setBatches((prev) =>
@@ -246,7 +279,32 @@ export default function BatchManagement() {
 
       handleCloseDialog()
     } catch (error: any) {
-      showNotification(error.response?.data?.detail || "Failed to save batch", "error")
+      const res = error.response
+      const d = res?.data
+      let msg = "Failed to save batch"
+      if (!res) {
+        msg = error.message || msg
+      } else if (typeof d === "string") {
+        msg = d.length > 240 ? `${d.slice(0, 240)}…` : d
+      } else if (d && typeof d === "object") {
+        if (Array.isArray(d.detail)) {
+          msg = d.detail.map((x: unknown) => String(x)).join(" ")
+        } else if (typeof d.detail === "string") {
+          msg = d.detail
+        } else {
+          const first = Object.entries(d).find(([, v]) => v != null)
+          if (first) {
+            const [, val] = first
+            if (Array.isArray(val) && val.length > 0) {
+              const item = val[0]
+              msg = typeof item === "string" ? item : String(item)
+            } else if (val != null) {
+              msg = String(val)
+            }
+          }
+        }
+      }
+      showNotification(msg, "error")
     } finally {
       setIsSubmitting(false)
     }
@@ -299,8 +357,12 @@ export default function BatchManagement() {
 
       const { programs: previewPrograms, count } = response.data
 
-      // Auto-fill the multi-select with returned IDs
-      const programIds = previewPrograms.map((p: any) => p.id)
+      // Auto-fill the multi-select with returned IDs; ensure options include uploaded rows
+      const previewAsPrograms: Program[] = previewPrograms.map((p: { id: number; name?: string; short_form?: string }) =>
+        normalizeProgramRow(p)
+      )
+      setPrograms((prev) => mergeProgramOptions(prev, previewAsPrograms))
+      const programIds = previewPrograms.map((p: { id: number }) => p.id)
       handleFormChange("programs", programIds)
 
       showNotification(`Successfully previewed ${count} programs`, "success")
@@ -375,12 +437,12 @@ export default function BatchManagement() {
                 Intake Management
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Manage admission intakes and attach programs
+                Manage admission intakes. Only programmes with an academic batch (Year/structure) can be attached.
               </Typography>
             </Box>
             <CustomButton
               icon={<Add />}
-              onClick={() => handleOpenDialog()}
+              onClick={() => void handleOpenDialog()}
               text="Add New Intake"
             />
           </Stack>
@@ -424,7 +486,7 @@ export default function BatchManagement() {
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => handleOpenDialog()}
+              onClick={() => void handleOpenDialog()}
             >
               Create First Intake
             </Button>
@@ -483,7 +545,7 @@ export default function BatchManagement() {
                     <IconButton
                       size="small"
                       color="primary"
-                      onClick={() => handleOpenDialog(batch)}
+                      onClick={() => void handleOpenDialog(batch)}
                     >
                       <Edit fontSize="small" sx={{ color: "#7c1519" }} />
                     </IconButton>
@@ -573,6 +635,10 @@ export default function BatchManagement() {
                   noOptionsText="No programs found"
                 />
                 {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
+                <FormHelperText>
+                  Listed programmes have at least one active academic batch. Configure batches under Admin → Batch
+                  management for the programme first.
+                </FormHelperText>
               </FormControl>
               
               <CustomButton variant="outlined" startIcon={<Upload />} onClick={() => setUploadDialogOpen(true)} text='Upload'/>

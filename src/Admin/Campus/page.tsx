@@ -143,11 +143,9 @@ export default function CampusManagement() {
       if (err.response?.data.code) {
         setCodeErrors(err.response?.data.code)
       }
-      if (err.response?.data.name) {
+      if (err.response?.data.code) {
         setNameErrors(err.response?.data.name)
       }
-      setIsLoading(false)
-      return
     }
     setIsLoading(false)
     handleDialogClose()
@@ -165,9 +163,10 @@ export default function CampusManagement() {
         setTimeout(() => setNotification(null), 3000);
       }
     } catch (err: any) {
-      if (err.response?.data?.detail) {
-        setNotification({ type: "error", message: err.response.data.detail });
-      }
+      const detail = err.response?.data?.detail
+      const msg =
+        typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "Could not delete campus."
+      setNotification({ type: "error", message: msg })
       setIsLoading(false)
     } finally {
       setIsLoading(false); 
@@ -321,8 +320,8 @@ export default function CampusManagement() {
                       size="small"
                       variant="outlined"
                       sx={{
-                        borderColor: "#0D0060",
-                        color: "#0D0060",
+                        borderColor: "#3e397b",
+                        color: "#3e397b",
                         fontWeight: 500,
                       }}
                     />
@@ -334,7 +333,7 @@ export default function CampusManagement() {
                         size="small"
                         onClick={() => handleEditClick(campus)}
                         sx={{
-                          color:"#0D0060",
+                          color:"#3e397b",
                           "&:hover": {
                             backgroundColor: "#e3f2fd",
                           },
@@ -439,12 +438,13 @@ export default function CampusManagement() {
               fullWidth
               label="Email"
               name="email"
-              type="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="campus@ndejje.ac.ug"
+              placeholder="k'pla@ndu.ac.ug"
               variant="outlined"
               size="small"
+              multiline
+              rows={3}
             />
           </Box>
         </DialogContent>
@@ -465,7 +465,8 @@ export default function CampusManagement() {
         <DialogTitle sx={{ fontWeight: 700, color: "#1a1a2e" }}>Delete Campus</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: "#666" }}>
-            Are you sure you want to delete this campus? This action cannot be undone.
+            Are you sure you want to delete this campus? This cannot be undone. Applications and admissions
+            tied to this campus are removed with it; staff and programme links are cleared automatically.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

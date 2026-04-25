@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -56,10 +56,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [transactionId, setTransactionId] = useState('');
-  const hasNotifiedSuccessRef = useRef(false);
 
   const [extRef, setExtRef] = useState<string | null>(null);
- const [pollInterval, setPollInterval] = useState<number | null>(null);
+ const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+
+ console.log(extRef)
 
   const handleClose = () => {
     setPhoneNumber('');
@@ -67,7 +68,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMessage('');
     setSuccessMessage('');
     setTransactionId('');
-    hasNotifiedSuccessRef.current = false;
     onClose();
   };
 
@@ -76,19 +76,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const phoneRegex = /^(\+?256|0)?[7][0-9]{8,9}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
-
-  // useEffect(() => {
-  //   if (status === 'success' && onPaymentSuccess) {
-  //     onPaymentSuccess(extRef || undefined);
-
-  //     // Auto-close modal after showing success for 1.8 seconds
-  //     // const timer = setTimeout(() => {
-  //     //   handleClose();
-  //     // }, 100);
-
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [status, onPaymentSuccess, extRef]);
 
 // Clean up polling on unmount/close
 useEffect(() => {
@@ -110,7 +97,6 @@ const handlePayment = async () => {
   setStatus('processing');
   setErrorMessage('');
   setSuccessMessage('');
-  hasNotifiedSuccessRef.current = false;
 
   try {
     const payload = {
@@ -127,6 +113,8 @@ const handlePayment = async () => {
 
     const data = res.data;
 
+    console.log('payment_data', data);
+
     // ✅ Save references
     setExtRef(data.external_reference);
 
@@ -142,6 +130,8 @@ const handlePayment = async () => {
 
         const statusData = statusRes.data;
 
+        console.log('Poll result:', statusData);
+
         // ✅ SUCCESS
         if (statusData.status === 'PAID') {
           clearInterval(interval);
@@ -155,12 +145,9 @@ const handlePayment = async () => {
 
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
-
+          
           // success callback
-          if (!hasNotifiedSuccessRef.current) {
-            hasNotifiedSuccessRef.current = true;
-            onPaymentSuccess?.(extRef || data.external_reference);
-          }
+           onPaymentSuccess?.(extRef || data.external_reference);   
 
           return;
         }
@@ -204,6 +191,8 @@ const handlePayment = async () => {
     setStatus('error');
   }
 };
+
+console.log('transactionId', transactionId)
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -612,9 +601,10 @@ const handlePayment = async () => {
         {status === 'success' && (
             <CustomButton 
              onClick={() => {
+               onPaymentSuccess?.(extRef || "");   
               handleClose();
              }}  
-            text='Submit Application'/>
+            text='Done'/>
         )}
 
         {status === 'error' && (

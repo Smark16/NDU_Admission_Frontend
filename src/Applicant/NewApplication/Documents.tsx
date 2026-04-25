@@ -13,6 +13,7 @@ import {
   CloudUpload as CloudUploadIcon,
   CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
+  CloudDone as CloudDoneIcon,
 } from "@mui/icons-material"
 
 interface SubjectResult {
@@ -67,25 +68,56 @@ interface FormData {
   status: string
 }
 
+interface DraftFileUrls {
+  passportPhoto: string | null
+  oLevelDocuments: string | null
+  aLevelDocuments: string | null
+  otherInstitutionDocuments: string | null
+}
+
 interface DocumentProps {
   formData: FormData;
   formErrors: Record<string, string>
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  draftFileUrls?: DraftFileUrls
 }
 
 const Documents: React.FC<DocumentProps> = ({
   formData,
   formErrors,
   handleFileChange,
-  setFormData
+  setFormData,
+  draftFileUrls,
 }) => {
+  // Helper: render a "Previously saved" chip when no new file chosen but draft has one
+  const SavedChip = ({ url, label }: { url: string | null; label: string }) => {
+    if (!url) return null
+    return (
+      <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1, justifyContent: "center" }}>
+        <CloudDoneIcon sx={{ color: "#2e7d32", fontSize: 18 }} />
+        <Typography variant="caption" sx={{ color: "#2e7d32", fontWeight: 600 }}>
+          Previously saved: {label}
+        </Typography>
+        <Chip
+          label="View"
+          size="small"
+          component="a"
+          href={url}
+          target="_blank"
+          clickable
+          sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", fontWeight: 600 }}
+        />
+      </Box>
+    )
+  }
 
   return (
     <>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Alert severity="info" icon={<InfoIcon />}>
-          <strong>Note:</strong> Upload all required documents in PDF or image format. Maximum file size is 100MB per file. Ensure documents are clear and legible.
+          <strong>Note:</strong> Upload all required documents in PDF or image format. Ensure documents are clear and
+          legible.
         </Alert>
 
         {/* Passport Photo Section */}
@@ -97,7 +129,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload a recent passport-sized photo from a professional photo studio. Accepted formats: JPG, PNG (Max 100MB)
+            Upload a recent passport-sized photo from a professional photo studio. Accepted formats: JPG, PNG (Max 2MB)
           </Typography>
           <Paper
             sx={{
@@ -125,15 +157,17 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                JPG or PNG, ≤ 100MB
+                JPG or PNG, ≤ 2MB
               </Typography>
-              {formData.passportPhoto && (
+              {formData.passportPhoto ? (
                 <Chip
                   label={formData.passportPhoto.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, passportPhoto: null }))}
                   sx={{ mt: 2 }}
                   color="primary"
                 />
+              ) : (
+                <SavedChip url={draftFileUrls?.passportPhoto ?? null} label="passport photo" />
               )}
             </label>
           </Paper>
@@ -162,7 +196,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF
+            Upload your O-Level examination results/certificates. You can upload multiple documents as a single PDF or ZIP
             file.
           </Typography>
           <Paper
@@ -180,7 +214,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="oLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf"
+              accept=".pdf,.zip,.jpg,.jpeg,.png"
               style={{ display: "none" }}
               id="olevel-docs"
             />
@@ -190,15 +224,17 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF (Max 100MB)
+                PDF, ZIP, JPG, or PNG (Max 10MB)
               </Typography>
-              {formData.oLevelDocuments && (
+              {formData.oLevelDocuments ? (
                 <Chip
                   label={formData.oLevelDocuments.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, oLevelDocuments: null }))}
                   sx={{ mt: 2 }}
                   color="primary"
                 />
+              ) : (
+                <SavedChip url={draftFileUrls?.oLevelDocuments ?? null} label="O-Level document" />
               )}
             </label>
           </Paper>
@@ -227,7 +263,7 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            Upload your A-Level examination results/certificates. You can upload multiple documents as a single PDF
+            Upload your A-Level examination results/certificates. You can upload multiple documents as a single PDF or ZIP
             file.
           </Typography>
           <Paper
@@ -245,7 +281,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="aLevelDocuments"
               onChange={handleFileChange}
-              accept=".pdf"
+              accept=".pdf,.zip,.jpg,.jpeg,.png"
               style={{ display: "none" }}
               id="alevel-docs"
             />
@@ -255,15 +291,17 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF (Max 100MB)
+                PDF, ZIP, JPG, or PNG (Max 10MB)
               </Typography>
-              {formData.aLevelDocuments && (
+              {formData.aLevelDocuments ? (
                 <Chip
                   label={formData.aLevelDocuments.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, aLevelDocuments: null }))}
                   sx={{ mt: 2 }}
                   color="primary"
                 />
+              ) : (
+                <SavedChip url={draftFileUrls?.aLevelDocuments ?? null} label="A-Level document" />
               )}
             </label>
           </Paper>
@@ -311,7 +349,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="otherInstitutionDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip"
+              accept=".pdf,.zip,.jpg,.jpeg,.png"
               style={{ display: "none" }}
               id="other-docs"
             />
@@ -321,15 +359,17 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP (Max 100MB) - Optional
+                PDF, ZIP, JPG, or PNG (Max 10MB) - Optional
               </Typography>
-              {formData.otherInstitutionDocuments && (
+              {formData.otherInstitutionDocuments ? (
                 <Chip
                   label={formData.otherInstitutionDocuments.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, otherInstitutionDocuments: null }))}
                   sx={{ mt: 2 }}
                   color="primary"
                 />
+              ) : (
+                <SavedChip url={draftFileUrls?.otherInstitutionDocuments ?? null} label="other document" />
               )}
             </label>
           </Paper>

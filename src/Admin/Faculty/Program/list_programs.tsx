@@ -14,7 +14,8 @@ import {
   Typography,
   Switch,
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Delete as DeleteIcon, MenuBook as MenuBookIcon, AccountTree as SpecIcon } from "@mui/icons-material";
+import { Tooltip } from "@mui/material";
 
 interface Campus {
   id: number;
@@ -29,8 +30,12 @@ interface Program {
   academic_level: string;
   campuses: Campus[];
   faculty: string;
-  min_years?: number;        // Made optional with ?
-  max_years?: number;        // Made optional with ?
+  min_years?: number;
+  max_years?: number;
+  calendar_type: "semester" | "trimester";
+  has_specialization: boolean;
+  specialization_entry_year?: number;
+  specialization_entry_term?: number;
   is_active: boolean;
 }
 
@@ -39,6 +44,7 @@ interface ListProgramsProps {
   onEdit: (program: Program) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number) => void;
+  onManageCurriculum: (program: Program) => void;
 }
 
 const ListPrograms: React.FC<ListProgramsProps> = ({
@@ -46,6 +52,7 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onManageCurriculum,
 }) => {
   if (programs.length === 0) {
     return (
@@ -59,7 +66,7 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
     <TableContainer component={Paper} sx={{ boxShadow: 2, mt: 3 }}>
       <Table>
         <TableHead>
-          <TableRow sx={{ backgroundColor: "#0D0060" }}>
+          <TableRow sx={{ backgroundColor: "#3e397b" }}>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Program Name</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Short Form</TableCell>
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Code</TableCell>
@@ -68,8 +75,10 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
             <TableCell sx={{ fontWeight: 600, color: "white" }}>Campuses</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600, color: "white" }}>Min Years</TableCell>
             <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Max Years</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Specialization</TableCell>
             <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Status</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600, color: "white" }}>Actions</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 600, color: "white" }}>Curriculum</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -114,27 +123,60 @@ const ListPrograms: React.FC<ListProgramsProps> = ({
               <TableCell align="right">{program.min_years ?? "—"}</TableCell>
               <TableCell align="center">{program.max_years ?? "—"}</TableCell>
               <TableCell align="center">
+                {program.has_specialization ? (
+                  <Tooltip title={
+                    program.specialization_entry_year
+                      ? `Tracks from Year ${program.specialization_entry_year} Term ${program.specialization_entry_term ?? 1}`
+                      : "Has specialization tracks"
+                  }>
+                    <Chip
+                      icon={<SpecIcon style={{ fontSize: 14 }} />}
+                      label="Tracks"
+                      size="small"
+                      sx={{ bgcolor: "#e3f2fd", color: "#1565c0", fontWeight: 600, fontSize: "0.7rem" }}
+                    />
+                  </Tooltip>
+                ) : (
+                  <Typography variant="caption" color="text.disabled">—</Typography>
+                )}
+              </TableCell>
+              <TableCell align="center">
                 <Switch
                   checked={program.is_active}
                   onChange={() => onToggleStatus(program.id)}
-                  sx={{ color: "#0D0060" }}
+                  sx={{ color: "#3e397b" }}
                 />
               </TableCell>
               <TableCell align="right">
-                <IconButton
-                  size="small"
-                  sx={{ color: "#0D0060" }}
-                  onClick={() => onEdit(program)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => onDelete(program.id)}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
+                <Tooltip title="Edit program">
+                  <IconButton
+                    size="small"
+                    sx={{ color: "#3e397b" }}
+                    onClick={() => onEdit(program)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete program">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => onDelete(program.id)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="center">
+                <Tooltip title="Manage curriculum (mandatory / elective courses)">
+                  <IconButton
+                    size="small"
+                    sx={{ color: "#1565c0" }}
+                    onClick={() => onManageCurriculum(program)}
+                  >
+                    <MenuBookIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </TableCell>
             </TableRow>
           ))}

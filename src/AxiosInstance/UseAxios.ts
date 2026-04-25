@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// use Axios
 const useAxios = () => {
   const context = useContext(AuthContext);
 
@@ -32,12 +31,6 @@ const useAxios = () => {
       const isExpired = dayjs.unix(user.exp).diff(dayjs()) < 1;
 
       if (!isExpired) return req;
-
-      // Add this check
-    // if (!authTokens?.refresh) {
-    //   logout();
-    //   return Promise.reject(new Error("No refresh token"));
-    // }
 
       try {
         // Refresh the token

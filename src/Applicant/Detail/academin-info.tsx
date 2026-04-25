@@ -1,5 +1,5 @@
 "use client"
-import { Card, CardContent, CardHeader, Typography, Grid, Box, Chip } from "@mui/material"
+import { Card, CardContent, CardHeader, Typography, Grid, Box } from "@mui/material"
 import SchoolIcon from "@mui/icons-material/School"
 
 interface AcademicInfoSectionProps {
@@ -30,26 +30,8 @@ export default function AcademicInfoSection({ application }: AcademicInfoSection
       />
       <CardContent>
         <Grid container spacing={{ xs: 2, md: 3 }}>
-
-          {/* Program Choices */}
-          {application?.programs?.length > 0 && (
-            <Grid size={{xs:12}}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 1 }}>
-                Program Choice(s)
-              </Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {application.programs.map((p: any, i: number) => (
-                  <Chip
-                    key={p.id}
-                    label={`${i + 1}. ${p.name}`}
-                    size="small"
-                    sx={{ backgroundColor: "#0D0060", color: "#fff", fontWeight: 600 }}
-                  />
-                ))}
-              </Box>
-            </Grid>
-          )}
-
+      
+  
           <Grid size={{xs:12, sm:6}}>
             <InfoField label="Batch" value={application?.batch?.name || "To be assigned"} />
           </Grid>

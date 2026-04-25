@@ -59,6 +59,7 @@ interface User {
   first_name: string
   last_name: string
   email: string
+  staff_id?: string | null
   is_active: boolean
   is_staff: boolean
   is_superuser: boolean
@@ -109,6 +110,7 @@ export default function UserManagement() {
     first_name: "",
     last_name: "",
     email: "",
+    staff_id: "",
     password: "",
     confirm_password: "",
     phone: "",
@@ -186,6 +188,7 @@ export default function UserManagement() {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
+        staff_id: user.staff_id || "",
         password: "",
         confirm_password: "",
         phone: user.phone || "",
@@ -199,6 +202,7 @@ export default function UserManagement() {
         first_name: "",
         last_name: "",
         email: "",
+        staff_id: "",
         password: "",
         confirm_password: "",
         phone: "",
@@ -236,6 +240,7 @@ export default function UserManagement() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
+        staff_id: formData.staff_id,
         role: formData.role,
         is_staff: true,
         phone: formData.phone,
@@ -440,7 +445,7 @@ export default function UserManagement() {
                     <Tooltip title="Edit User">
                       <IconButton
                         size="small"
-                        sx={{color:"#0D0060"}}
+                        sx={{color:"#3e397b"}}
                         onClick={() => handleOpenDialog(user)}
                       >
                         <EditIcon fontSize="small" />
@@ -502,6 +507,14 @@ export default function UserManagement() {
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="Enter email address"
+            size="small"
+          />
+          <TextField
+            fullWidth
+            label="Staff ID (optional)"
+            value={formData.staff_id}
+            onChange={(e) => setFormData({ ...formData, staff_id: e.target.value })}
+            placeholder="e.g. NDUSTAFF001"
             size="small"
           />
 

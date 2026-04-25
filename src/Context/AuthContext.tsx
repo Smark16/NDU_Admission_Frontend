@@ -22,15 +22,20 @@ type DecodedUser = {
   role: string;
   is_staff: boolean;
   is_applicant: boolean;
+  is_student: boolean;
+  is_lecturer: boolean;
+  must_change_password: boolean;
   date_joined: string;
   jti: string;
   token_type: string;
 };
 
+type PortalType = "applicant" | "student" | "admin" | "staff"
+
 type AuthContextType = {
   showSuccessAlert: (message: string) => void;
   showErrorAlert: (message: string) => void;
-  loginUser: (username: string, password: string) => Promise<void>;
+  loginUser: (username: string, password: string, portalType?: PortalType) => Promise<void>;
   loggeduser: DecodedUser | null;
   loginLoading: boolean;
   noAccount: string;
@@ -56,8 +61,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
   const [noAccount, setNoAccount] = useState("");
+ 
+  console.log(loggeduser)
 
-  const loginUser = async (username: string, password: string) => {
+  // Returns true if the decoded user is allowed for the selected portal type
+  const portalMatches = (decoded: DecodedUser, portalType?: PortalType): boolean => {
+    if (!portalType) return true
+    switch (portalType) {
+      case "applicant": return !decoded.is_staff && !decoded.is_student
+      case "student":   return decoded.is_student
+      case "admin":     return decoded.is_staff && !decoded.is_lecturer
+      case "staff":     return decoded.is_staff || decoded.is_lecturer
+      default:          return true
+    }
+  }
+
+  const portalLabel: Record<PortalType, string> = {
+    applicant: "Applicant",
+    student:   "Student",
+    admin:     "Administrator",
+    staff:     "Staff",
+  }
+
+  const loginUser = async (username: string, password: string, portalType?: PortalType) => {
     setLoginLoading(true);
     setNoAccount("");
 
@@ -66,17 +92,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (response.status === 200 || response.status === 201) {
         const data: AuthTokens = response.data;
+        const decoded = jwtDecode<DecodedUser>(data.access);
+
+        // ── Portal type guard ──────────────────────────────────────────
+        if (!portalMatches(decoded, portalType)) {
+          const selected = portalType ? portalLabel[portalType] : "this"
+          const actual   = decoded.is_staff    ? "Administrator/Staff"
+                         : decoded.is_student  ? "Student"
+                         : "Applicant"
+          const msg = `These credentials belong to the ${actual} portal, not ${selected}. Please select the correct portal.`
+          setNoAccount(msg)
+          showErrorAlert(msg)
+          return
+        }
+        // ──────────────────────────────────────────────────────────────
+
         localStorage.setItem("authtokens", JSON.stringify(data));
         setAuthTokens(data);
-
-        // Decode will trigger useEffect above
-        const decoded = jwtDecode<DecodedUser>(data.access);
         setLoggedUser(decoded);
 
-        { decoded?.is_staff ? navigate('/admin/admission_dashboard') : navigate('/applicant/dashboard') }
+        if (decoded.must_change_password) {
+          navigate('/student/change-password')
+        } else if (decoded.is_lecturer) {
+          navigate('/lecturer/portal')
+        } else if (decoded.is_staff) {
+          navigate('/admin/admission_dashboard')
+        } else if (decoded.is_student) {
+          navigate('/student/portal')
+        } else {
+          navigate('/applicant/dashboard')
+        }
 
         showSuccessAlert("Login successful!");
-        // Navigation happens in useEffect
       }
     } catch (err: any) {
       const message = err.response?.data?.detail || "Invalid username or password";
@@ -89,41 +136,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const showSuccessAlert = (message: string) => {
     Swal.fire({
-      html: `
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">✅</span>
-          <span style="font-size:0.92rem;font-weight:600;color:#fff;">${message}</span>
-        </div>`,
+      title: message,
+      icon: "success",
       toast: true,
-      timer: 5000,
+      timer: 6000,
       position: "top-right",
       timerProgressBar: true,
       showConfirmButton: false,
-      background: "#000080",
-      color: "#fff",
-      padding: "12px 20px",
-      width: "auto",
-      customClass: { popup: "ndu-toast" },
     });
   };
 
   const showErrorAlert = (message: string) => {
     Swal.fire({
-      html: `
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">❌</span>
-          <span style="font-size:0.92rem;font-weight:600;color:#fff;">${message}</span>
-        </div>`,
+      title: message,
+      icon: "error",
       toast: true,
-      timer: 5000,
+      timer: 6000,
       position: "top-right",
       timerProgressBar: true,
       showConfirmButton: false,
-      background: "#c0001a",
-      color: "#fff",
-      padding: "12px 20px",
-      width: "auto",
-      customClass: { popup: "ndu-toast" },
     });
   };
 

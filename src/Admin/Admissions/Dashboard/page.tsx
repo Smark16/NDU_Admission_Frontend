@@ -33,27 +33,19 @@ import {
   Building,
   BarChart3,
   Eye,
-  Globe,
-  UserPlus,
-  DollarSign,
 } from "lucide-react"
 
-import { useContext } from "react"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
-import { AuthContext } from "../../../Context/AuthContext"
 import CustomButton from "../../../ReUsables/custombutton"
 
 interface Stats {
   totalApplication: number
-  onlineApplications: number
-  directApplications: number
   pendingApplications: number
   admittedStudents: number
   rejectedStudents: number
   total_batches: number
-  activeBatches: number
-  onlineFeeIncome: number
+  activeBatches:number
 }
 
 interface Application {
@@ -89,7 +81,6 @@ interface Application {
 }
 
 const AdmissionDashboard = () => {
-  const { loggeduser } = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
   const [dashboardStats, setDashboardStats] = useState<Stats | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
@@ -223,48 +214,27 @@ const AdmissionDashboard = () => {
       <Container maxWidth="lg">
         {/* Header */}
         <Box mb={4}>
-          <Typography variant="h4" fontWeight={800} color="#000080" mb={0.5}>
-            Welcome back, Dear {loggeduser?.first_name} {loggeduser?.last_name}
+          <Typography variant="h4" fontWeight={700} mb={1}>
+            Admin Dashboard
           </Typography>
           <Typography color="textSecondary" variant="body2">
-            Here's what's happening with your admissions today.
+            Welcome back! Here's what's happening with your admissions.
           </Typography>
         </Box>
 
-        {/* Stats Grid — Row 1: Application volume */}
-        <Grid container spacing={2} mb={2}>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#000080" />
-          </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Online Applications" value={dashboardStats?.onlineApplications ?? 0} icon={Globe} color="#1565c0" />
-          </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Direct Applications" value={dashboardStats?.directApplications ?? 0} icon={UserPlus} color="#6a1b9a" />
-          </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard
-              title="Application Fee Income"
-              value={`UGX ${(dashboardStats?.onlineFeeIncome ?? 0).toLocaleString()}`}
-              icon={DollarSign}
-              color="#2e7d32"
-            />
-          </Grid>
-        </Grid>
-
-        {/* Stats Grid — Row 2: Pipeline status */}
+        {/* Stats Grid */}
         <Grid container spacing={2} mb={4}>
           <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Pending Review" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
+            <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#1976d2" />
+          </Grid>
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <StatCard title="Pending" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Accepted" value={dashboardStats?.admittedStudents ?? 0} icon={CheckCircle} color="#388e3c" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Rejected" value={dashboardStats?.rejectedStudents ?? 0} icon={Cancel} color="#d32f2f" />
-          </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Active Intakes" value={dashboardStats?.activeBatches ?? 0} icon={BarChart3} color="#00838f" />
           </Grid>
         </Grid>
 
@@ -369,7 +339,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="Quick Actions"
-                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#000080" }} />}
+                avatar={<TrendingUp size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
               />
               <CardContent>
                 <Grid container spacing={2}>
@@ -393,7 +363,7 @@ const AdmissionDashboard = () => {
             <Card sx={{ boxShadow: "0 2px 8px rgba(0,0,0,0.1)", height: "100%" }}>
               <CardHeader
                 title="System Information"
-                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#000080" }} />}
+                avatar={<BarChart3 size={24} style={{ marginRight: "12px", color: "#3e397b" }} />}
               />
               <CardContent>
                 <Stack spacing={2}>

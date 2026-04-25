@@ -41,12 +41,12 @@ function IntakeFilter({
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#0D0060' },
-                '&:hover fieldset': { borderColor: '#0D0060' },
-                '&.Mui-focused fieldset': { borderColor: '#0D0060' },
+                '& fieldset': { borderColor: '#667eea' },
+                '&:hover fieldset': { borderColor: '#667eea' },
+                '&.Mui-focused fieldset': { borderColor: '#667eea' },
               },
               '& .MuiSvgIcon-root': {
-                color: '#0D0060',
+                color: '#667eea',
               },
             }}
           >

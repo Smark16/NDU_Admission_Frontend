@@ -51,7 +51,7 @@ export default function AcademicLevels() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', is_active: false });
+  const [formData, setFormData] = useState({ name: '', is_active: true });
   const [isLoading, setIsLoading] = useState(false)
   const [notification, setNotification] = useState<{
     message: string
@@ -81,7 +81,7 @@ export default function AcademicLevels() {
   }
 
   const handleOpenDialog = () => {
-    setFormData({ name: '', is_active: false })
+    setFormData({ name: '', is_active: true })
     setEditingId(null);
     setOpenDialog(true);
   };
@@ -95,7 +95,7 @@ export default function AcademicLevels() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingId(null);
-    setFormData({ name: '', is_active: false });
+    setFormData({ name: '', is_active: true });
   };
 
   const handleSaveLevel = async () => {
@@ -142,26 +142,24 @@ export default function AcademicLevels() {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = async() => {
-    try{
-       if (deleteId) {
-      setIsLoading(true)
-      await AxiosInstance.delete(`/api/admissions/delete_level/${deleteId}`)
-      setIsLoading(false)
-       showNotification('Academic Level deleted successfully', "success");
-      setLevels(levels.filter((level) => level.id !== deleteId));
+  const handleConfirmDelete = async () => {
+    if (!deleteId) {
+      setDeleteDialogOpen(false);
+      return;
     }
-    }catch(err:any){
-     if(err.response?.data.detail){
-       showNotification(`${err.response?.data.detail}`, "error");
-     }else{
-        showNotification('An error has occured', "error");
-     } 
-     setIsLoading(false)
+    setIsLoading(true);
+    try {
+      await AxiosInstance.delete(`/api/admissions/delete_level/${deleteId}`);
+      showNotification("Academic Level deleted successfully", "success");
+      setLevels((prev) => prev.filter((level) => String(level.id) !== String(deleteId)));
+    } catch (err: any) {
+      const d = err.response?.data?.detail;
+      showNotification(typeof d === "string" ? d : d ? JSON.stringify(d) : "Delete failed", "error");
+    } finally {
+      setIsLoading(false);
+      setDeleteDialogOpen(false);
+      setDeleteId(null);
     }
-  
-    setDeleteDialogOpen(false);
-    setDeleteId(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,7 +186,7 @@ export default function AcademicLevels() {
                 justifyContent: 'center',
               }}
             >
-              <SchoolIcon sx={{ color: '#0D0060', fontSize: 28 }} />
+              <SchoolIcon sx={{ color: '#3e397b', fontSize: 28 }} />
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
@@ -318,7 +316,7 @@ export default function AcademicLevels() {
                               size="small"
                               onClick={() => handleEditLevel(level)}
                               sx={{
-                                color: '#0D0060',
+                                color: '#3e397b',
                                 '&:hover': { backgroundColor: '#e3f2fd' },
                               }}
                             >
@@ -388,7 +386,8 @@ export default function AcademicLevels() {
         <DialogTitle sx={{ fontWeight: 600 }}>Confirm Delete</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography>
-            Are you sure you want to delete this academic level? This action cannot be undone.
+            Delete this academic level? Programmes and applications that use it may be removed or blocked by
+            database rules. This cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

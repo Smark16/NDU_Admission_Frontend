@@ -39,11 +39,11 @@ import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import ChevronRightIcon from "@mui/icons-material/ChevronRight"
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd"
+import HowToRegIcon from "@mui/icons-material/HowToReg"
 import useAxios from "../../../AxiosInstance/UseAxios"
-import { Link } from "react-router-dom"
-import { Visibility, Campaign as CampaignIcon } from "@mui/icons-material"
-import { Checkbox } from "@mui/material"
-import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
+import { Link, useNavigate } from "react-router-dom"
+import { Visibility } from "@mui/icons-material"
 
 interface Admitted {
   id: number
@@ -65,6 +65,7 @@ export default function AdmittedStudents() {
   const theme = useTheme()
   const AxiosInstance = useAxios()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  const navigate = useNavigate()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [registrationFilter, setRegistrationFilter] = useState("all")
@@ -80,10 +81,6 @@ export default function AdmittedStudents() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
-
-  // Communication selection (use application IDs for emailing)
-  const [selectedAppIds, setSelectedAppIds] = useState<number[]>([])
-  const [commDialogOpen, setCommDialogOpen] = useState(false)
 
   // Fetch admitted students
   useEffect(() => {
@@ -190,18 +187,34 @@ export default function AdmittedStudents() {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3, flexWrap: "wrap", gap: 2 }}>
+        <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "flex-start", sm: "center" }}
+          justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>Admitted Students</Typography>
+            <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              Admitted Students
+            </Typography>
           </Stack>
-          <Button
-            variant="contained" startIcon={<CampaignIcon />}
-            onClick={() => setCommDialogOpen(true)}
-            sx={{ bgcolor: "#0D0060", "&:hover": { bgcolor: "#0a004a" }, textTransform: "none", fontWeight: 700 }}
-          >
-            {selectedAppIds.length > 0 ? `Send to ${selectedAppIds.length} selected` : "Send Communication"}
-          </Button>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<AssignmentIndIcon />}
+              onClick={() => navigate("/admin/direct-application-entry")}
+              sx={{ borderColor: "#3e397b", color: "#3e397b", "&:hover": { bgcolor: "#f0eef8" } }}
+              size="small"
+            >
+              Direct Application Entry
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<HowToRegIcon />}
+              onClick={() => navigate("/admin/direct-admission-entry")}
+              sx={{ bgcolor: "#1b5e20", "&:hover": { bgcolor: "#145a18" } }}
+              size="small"
+            >
+              Direct Admission Entry
+            </Button>
+          </Stack>
         </Stack>
 
         {/* Search + Filter */}
@@ -262,7 +275,7 @@ export default function AdmittedStudents() {
                 <TableHead>
                   <TableRow
                     sx={{
-                      backgroundColor: "#0D0060",
+                      backgroundColor: "#3e397b",
                       "& th": {
                         color: "white",
                         fontWeight: 700,
@@ -270,18 +283,6 @@ export default function AdmittedStudents() {
                       },
                     }}
                   >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        sx={{ color: "white", "&.Mui-checked": { color: "white" } }}
-                        indeterminate={paginatedStudents.some(s => selectedAppIds.includes(s.application)) && !paginatedStudents.every(s => selectedAppIds.includes(s.application))}
-                        checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedAppIds.includes(s.application))}
-                        onChange={() => {
-                          const ids = paginatedStudents.map(s => s.application)
-                          const allSel = ids.every(id => selectedAppIds.includes(id))
-                          allSel ? setSelectedAppIds(p => p.filter(id => !ids.includes(id))) : setSelectedAppIds(p => [...new Set([...p, ...ids])])
-                        }}
-                      />
-                    </TableCell>
                     <TableCell>Student ID</TableCell>
                     <TableCell>Reg No</TableCell>
                     <TableCell>Name</TableCell>
@@ -314,12 +315,6 @@ export default function AdmittedStudents() {
                           transition: "background-color 0.2s",
                         }}
                       >
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={selectedAppIds.includes(student.application)}
-                            onChange={() => setSelectedAppIds(p => p.includes(student.application) ? p.filter(x => x !== student.application) : [...p, student.application])}
-                          />
-                        </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{student.student_id}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{student.reg_no}</TableCell>
                         <TableCell>{student.name}</TableCell>
@@ -492,13 +487,6 @@ export default function AdmittedStudents() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <AnnouncementDialog
-        open={commDialogOpen}
-        onClose={() => setCommDialogOpen(false)}
-        selectedIds={selectedAppIds.length > 0 ? selectedAppIds : undefined}
-        context="admitted student"
-      />
     </Container>
   )
 }

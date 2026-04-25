@@ -143,7 +143,7 @@ export default function AdmissionsReport() {
       {/* ---------- STAT CARDS ---------- */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {[
-          { label: "Total Applications", value: selectedStat?.total_applications ?? 0, grad: "135deg, #0D0060 0%, #07003A 100%" },
+          { label: "Total Applications", value: selectedStat?.total_applications ?? 0, grad: "135deg, #667eea 0%, #764ba2 100%" },
           { label: "Pending Applications", value: selectedStat?.pending ?? 0, grad: "135deg, #8b5cf6 0%, #7c3aed 100%" },
           { label: "Rejected Applications", value: selectedStat?.rejected ?? 0, grad: "135deg, #ec4899 0%, #be185d 100%" },
           { label: "Total Admitted Students", value: selectedStat?.total_admitted ?? 0, grad: "135deg, #10b981 0%, #059669 100%" },

@@ -74,7 +74,6 @@ interface Application {
   campus: Campus
   programs: Programs[]
   date_of_birth: string
-  school_pay_reference?: string;
 }
 
 const FormSection = styled(Box)(({ theme }) => ({
@@ -112,7 +111,6 @@ export default function AdmitStudentPage() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState("")
   const [showProgress, setShowProgress] = useState(false)
-  const [startDate, setStartDate] = useState("")
 
   // fetch campus
   const fetchCampus = async () => {
@@ -190,10 +188,10 @@ export default function AdmitStudentPage() {
   };
 
   const handleSubmitClick = () => {
-    if (!formData.student_id || !formData.program) {
+    if (!formData.student_id || !formData.program || !formData.campus || !formData.study_mode || !formData.reg_no) {
       setSnackbar({
         open: true,
-        message: "Please fill in all required fields",
+        message: "Please fill in all required fields: program, campus, study mode, student number, and reg number",
         type: "error",
       })
       return
@@ -209,31 +207,21 @@ export default function AdmitStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  // handle reg No generation
- const handleGenerateRegNo = () => {
-  if (!application) return
+  const handleGenerateRegNo = () => {
+    if (!application) return
 
-  const year = new Date().getFullYear().toString().slice(-2)
+    const year = new Date().getFullYear().toString().slice(-2)
+    const selectedCampusId = Number(formData.campus)
+    const selectedCampus = campus.find(c => c.id === selectedCampusId)
+    const campusNumber = selectedCampus?.name.includes("Kampala") ? "2" : "1"
+    const selectedProgramCode = application.programs.find(p => p.id === Number(formData.program))?.code
+    const studyMode = (formData?.study_mode)
+    const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
+    const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
-  const selectedCampusId = Number(formData.campus)
-  const selectedCampus = campus.find(c => c.id === selectedCampusId)
-  
-  const campusName = selectedCampus?.name?.toLowerCase() || ""
-  const campusNumber = campusName.includes("kampala") ? "2" : "1"
- 
-  const program = application.programs.find(p => p.id === Number(formData.program))
-  // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
-  const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
-
-  const studyMode = formData?.study_mode
-
-  const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
-
-  const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
-
-  setFormData(prev => ({ ...prev, reg_no: regNo }))
-  return regNo
-}
+    setFormData(prev => ({ ...prev, reg_no: regNo }))
+    return regNo
+  }
 
   const handleGeneratePayCode = () => {
     const prefix = Math.random() < 0.5 ? "1" : "2"  
@@ -306,7 +294,7 @@ export default function AdmitStudentPage() {
       setProgress(0)
       setStatus("")
 
-      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`, { start_date: startDate })
+      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
       console.log(response.data)
       setIsLoading(false)
        setSnackbar({
@@ -384,7 +372,7 @@ export default function AdmitStudentPage() {
             value={progress}
             size={130}
             thickness={6}
-            sx={{ color: progress === 100 ? "#4caf50" : "#0D0060" }}
+            sx={{ color: progress === 100 ? "#4caf50" : "#3e397b" }}
           />
           <Typography variant="h5" sx={{ mt: 4, fontWeight: 700, color: "#1a1a1a" }}>
             Generating Offer Letter
@@ -404,11 +392,11 @@ export default function AdmitStudentPage() {
               borderRadius: 8,
               bgcolor: "#e0e0e0",
               "& .MuiLinearProgress-bar": {
-                bgcolor: progress === 100 ? "#4caf50" : "#0D0060",
+                bgcolor: progress === 100 ? "#4caf50" : "#3e397b",
               },
             }}
           />
-          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#0D0060" }}>
+          <Typography variant="h3" sx={{ mt: 3, fontWeight: 900, color: progress === 100 ? "#4caf50" : "#3e397b" }}>
             {progress}%
           </Typography>
         </Box>
@@ -419,14 +407,9 @@ export default function AdmitStudentPage() {
         <CardHeader
           avatar={<CheckCircleIcon sx={{ color: "white" }} />}
           title={`Admission Details for ${application?.first_name} ${application?.last_name} (${application?.phone})`}
-          subheader={
-            application?.school_pay_reference
-              ? `School Pay Ref: ${application.school_pay_reference}`
-              : undefined
-          }
           titleTypographyProps={{ variant: "h6", sx: { fontWeight: 600 } }}
           sx={{
-            background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)",
+            backgroundColor: "#958fd6ff",
             color: "white",
             "& .MuiCardHeader-avatar": {
               backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -512,7 +495,7 @@ export default function AdmitStudentPage() {
             <TextField
               fullWidth
               label="Student Number"
-              name="studentId"
+              name="student_id"
               value={formData.student_id}
               onChange={handleInputChange}
               placeholder="Enter unique student ID"
@@ -560,24 +543,9 @@ export default function AdmitStudentPage() {
             />
           </FormSection>
 
-          {isAdmitted && (
-            <FormSection>
-              <TextField
-                fullWidth
-                label="Programme Start Date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                helperText="The date the student is expected to begin the programme (will appear on the offer letter)"
-                variant="outlined"
-              />
-            </FormSection>
-          )}
-
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
             {isAdmitted && (
-              <CustomButton
+              <CustomButton 
               icon={
                   isLoading ? (
                     <CircularProgress size={20} color="inherit" />

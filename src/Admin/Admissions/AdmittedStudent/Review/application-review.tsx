@@ -38,23 +38,22 @@ interface ApplicationReviewProps {
   olevelresults: any[]
   alevelresults: any[]
   documents: any[]
-  additionalQualifications: any[]
+  additionalQualifications:any[]
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications }) => {
   const [isLoading, setIsLoading] = useState(false)
-  const [docLoading, setDocLoading] = useState(false)
-  const [selectedID, setSelectedID] = useState<number | null>(null)
+  const [profileDownload, setProfileDownload] = useState(false)
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
   const [notification, setNotification] = useState<{
-    message: string
-    type: "success" | "error" | "info"
-  } | null>(null)
+      message: string
+      type: "success" | "error" | "info"
+    } | null>(null)
 
-
-  // === NOTIFICATION HELPER ===
+  
+     // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 4000)
@@ -78,50 +77,87 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     return <WarningIcon />
   }
 
-  const handleReject = async () => {
-    try {
-      setIsLoading(true)
-      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "rejected" })
-      setIsLoading(false)
-      showNotification("Application has been rejected", "success")
+const handleDownloadProfile = async () => {
+  try {
+    setProfileDownload(true)
+    const response = await AxiosInstance.get(`/api/admissions/student-profile/pdf/${application.id}/`, {
+      responseType: 'blob',
+    });
 
-      setTimeout(() => {
-        navigate('/admin/application_list')
-      }, 500)
-    } catch (err) {
+    // If the server returned an error as JSON inside a blob, surface it
+    const contentType = response.headers?.['content-type'] ?? ''
+    if (!contentType.includes('pdf')) {
+      // parse the blob as text to get the real error message
+      const text = await (response.data as Blob).text()
+      let detail = 'Failed to generate PDF'
+      try { detail = JSON.parse(text)?.detail ?? detail } catch { detail = text || detail }
+      showNotification(detail, 'error')
+      return
+    }
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+    const link = document.createElement('a')
+    link.href = url
+    const name = `Applicant_Profile_${application.first_name ?? ''}_${application.last_name ?? ''}.pdf`
+    link.setAttribute('download', name)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error: any) {
+    console.error('Download failed', error)
+    // error.response.data is a Blob when responseType='blob' — parse it
+    let msg = 'Failed to generate PDF'
+    try {
+      const text = await (error?.response?.data as Blob)?.text?.()
+      if (text) msg = JSON.parse(text)?.detail ?? msg
+    } catch { /* ignore parse error */ }
+    showNotification(msg, 'error')
+  } finally {
+    setProfileDownload(false)
+  }
+};
+
+  const handleReject = async ()=>{
+     try{
+        setIsLoading(true)
+        await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, {status:"rejected"})
+        setIsLoading(false)
+        showNotification("Application has been rejected", "success")
+
+        setTimeout(()=>{
+          navigate('/admin/application_list')
+        } ,500)
+     }catch(err){
       console.log(err)
       setIsLoading(false)
-    }
+     }
   }
 
-  const downloadDocument = async (url: string, filename: string, seletedId:number) => {
-    setSelectedID(seletedId)
-    try {
-      setDocLoading(true)
-      const response = await fetch(url, { mode: "cors" });
-      if (!response.ok) throw new Error("Network response was not ok");
+  const downloadDocument = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) throw new Error("Network response was not ok");
 
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-      // Clean up
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Failed to download document:", error);
-      showNotification("Failed to download document:", "error")
-    }finally{
-      setDocLoading(false)
-    }
-  };
+    // Clean up
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Failed to download document:", error);
+    showNotification("Failed to download document:", "error")
+  }
+};
 
-  const handleSendLetter = async () => {
+   const handleSendLetter = async () => {
     try {
       setIsLoading(true)
       const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
@@ -129,14 +165,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setIsLoading(false)
       showNotification(`${response.data?.detail}`, "success")
 
-      setTimeout(() => {
-        navigate('/admin/application_list')
+      setTimeout(()=>{
+       navigate('/admin/application_list')
       }, 700)
-    } catch (err: any) {
+    } catch (err:any) {
       console.log(err)
-      if (err.response?.data.detail) {
-        showNotification(`${err.response?.data.detail}`, "error")
-      } else {
+      if(err.response?.data.detail){
+       showNotification(`${err.response?.data.detail}`, "error")
+      }else{
         showNotification("Failed to send offer letter to student", "error")
       }
       setIsLoading(false)
@@ -145,7 +181,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {notification && (
+     {notification && (
         <Alert
           severity={notification.type}
           onClose={() => setNotification(null)}
@@ -159,7 +195,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         {/* Main Content - Left Side */}
         <Grid size={{ xs: 12, lg: 8 }}>
           {/* Applicant Header Card */}
-          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #0D0060 0%, #07003A 100%)", color: "white" }}>
+          <Card sx={{ mb: 3, background: "linear-gradient(135deg, #3e397b 0%, #764ba2 100%)", color: "white" }}>
             <CardContent sx={{ py: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
                 <Avatar
@@ -180,6 +216,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     Application ID: #{application.id} • {application.batch}
                   </Typography>
                 </Box>
+                <CustomButton text={profileDownload ? "downloading..." : "DownLoad Profile"} startIcon={<FileDownloadIcon />} onClick={handleDownloadProfile}/>
               </Box>
             </CardContent>
           </Card>
@@ -238,7 +275,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.phone}
                   </Typography>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     {application.nin ? "NIN" : "PassPort Number"}
                   </Typography>
@@ -246,7 +283,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.nin ? application.nin : application.passport_number}
                   </Typography>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Disability Status
                   </Typography>
@@ -303,13 +340,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
           </Card>
 
           {/* Academic Results Section */}
-          <EducationalBackgroundSection
-            alevelresults={alevelresults}
-            olevelresults={olevelresults}
-            application={application}
-            additionalQualifications={additionalQualifications}
+          <EducationalBackgroundSection 
+          alevelresults={alevelresults} 
+          olevelresults={olevelresults} 
+          application={application} 
+          additionalQualifications={additionalQualifications}
           />
-
+      
           {/* Documents Section */}
           <Card sx={{ mb: 3 }}>
             <CardHeader avatar={<DescriptionIcon />} title="Documents" titleTypographyProps={{ variant: "h6" }} />
@@ -335,34 +372,28 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                         </Box>
                         <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
                           {/* view */}
-                          <a
-                            href={`${import.meta.env.VITE_API_BASE_URL}${doc.file}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ textDecoration: "none" }}
-                          >
-                            <CustomButton
-                              variant="outlined"
-                              icon={<OpenInNewIcon />}
-                              text="View"
-                              sx={{
-                                borderColor: "#7c1519",
-                                color: "#7c1519"
-                              }}
-                            />
-                          </a>
-
-                          {/* download */}
-                          <CustomButton
-                            variant="outlined"
-                            icon={<FileDownloadIcon />}
-                            onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name, doc?.id)}
-                            text={selectedID === doc?.id && docLoading ? "Downloading..." : "Download"}
-                            sx={{
-                              borderColor: "#7c1519",
-                              color: "#7c1519"
-                            }}
+                          <CustomButton 
+                          variant="outlined" 
+                          icon={<OpenInNewIcon />} 
+                          onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, "_blank")} 
+                          text="view" 
+                          sx={{
+                            borderColor:"#7c1519",
+                            color:"#7c1519"
+                          }}
                           />
+                         
+                         {/* download */}
+                         <CustomButton 
+                         variant="outlined" 
+                         icon={<FileDownloadIcon />}
+                         onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name)}
+                         text='Download'
+                         sx={{
+                            borderColor:"#7c1519",
+                            color:"#7c1519"
+                          }}
+                         />
                         </Box>
                       </Paper>
                     </Grid>
@@ -442,53 +473,39 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
                       {new Date(application.reviewed_at).toLocaleDateString()}
                     </Typography>
-
+       
                     <Box sx={{ display: "flex", gap: 1 }}>
                       {application.status === 'accepted' ? (
                         <CustomButton
-                          disabled={isLoading}
-                          onClick={handleSendLetter}
+                          disabled={isLoading} 
+                          onClick={handleSendLetter} 
                           text={
-                            isLoading ? <CircularProgress size={15} /> : "Send offer letter to portal"
+                            isLoading ? <CircularProgress size={15}/> : "Send offer letter to portal"
                           }
-                        />
+                          />
                       ) : application.status === 'Admitted' ? (
                         ""
                       ) : (
                         <>
-                          <CustomButton component={Link}
-                            to={`/admin/admit_student/${application.id}`}
-                            text='Admit Student'
-                          />
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{
-                              textTransform: "none",
-                              borderColor: "#7c1519",
-                              color: "#7c1519"
-                            }}
-                            onClick={handleReject}
-                          >
-                            {isLoading ? <CircularProgress size={15} /> : "Reject Student"}
-                          </Button>
+                        <CustomButton component={Link} 
+                        to={`/admin/admit_student/${application.id}`}
+                         text='Admit Student'
+                        />
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          borderColor: "#7c1519",
+                          color:"#7c1519"
+                        }}
+                        onClick={handleReject}
+                      >
+                        {isLoading ? <CircularProgress size={15}/> : "Reject Student"}
+                      </Button>
                         </>
                       )}
                     </Box>
-                  </Box>
-                </>
-              )}
-
-              {application.admitted_by && (
-                <>
-                  <Divider />
-                  <Box>
-                    <Typography variant="caption" color="textSecondary">
-                      Admitted By
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                      {application.admitted_by}
-                    </Typography>
                   </Box>
                 </>
               )}

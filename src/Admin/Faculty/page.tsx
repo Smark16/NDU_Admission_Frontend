@@ -120,11 +120,14 @@ export default function FacultyManagement() {
     }
   }
 
-  // Fetch campuses
+  // Fetch campuses (no HTTP cache: list must include campuses created moments ago)
   const FetchCampuses = async () => {
     try {
-      const response = await AxiosInstance.get('/api/accounts/list_campus')
-      setCampuses(response.data)
+      const response = await AxiosInstance.get("/api/accounts/list_campus", {
+        params: { _: Date.now() },
+      })
+      const raw = response.data
+      setCampuses(Array.isArray(raw) ? raw : raw?.results ?? [])
     } catch (err) {
       console.log(err)
     }
@@ -156,7 +159,8 @@ export default function FacultyManagement() {
   }
 
 
-  const handleOpenDialog = (faculty?: Faculty) => {
+  const handleOpenDialog = async (faculty?: Faculty) => {
+    await FetchCampuses()
     if (faculty) {
       setEditingId(faculty.id)
       setFormData({
@@ -247,25 +251,24 @@ export default function FacultyManagement() {
   }
 
   const handleConfirmDelete = async () => {
-    if (deleteTargetId !== null) {
-      setIsLoading(true)
-      try {
-        const response = await AxiosInstance.delete(`/api/admissions/delete_faculty/${deleteTargetId}`)
-        if (response.status === 200) {
-          setIsLoading(false)
-          setFaculties((prev) => prev.filter((f) => f.id !== deleteTargetId))
-          setSuccessMessage("Faculty deleted successfully!")
-        }
-
-      } catch (err: any) {
-        if (err.response?.data.detail) {
-          setErrMsg(`${err.response?.data.detail}`)
-        }
-        setIsLoading(false)
+    if (deleteTargetId === null) return
+    const id = deleteTargetId
+    setIsLoading(true)
+    try {
+      const response = await AxiosInstance.delete(`/api/admissions/delete_faculty/${id}`)
+      if (response.status === 200) {
+        setFaculties((prev) => prev.filter((f) => f.id !== id))
+        setSuccessMessage("Faculty deleted successfully!")
+        setTimeout(() => setSuccessMessage(""), 3000)
       }
+    } catch (err: any) {
+      const detail = err.response?.data?.detail
+      setErrMsg(typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : "Failed to delete faculty.")
+      setTimeout(() => setErrMsg(""), 8000)
+    } finally {
+      setIsLoading(false)
       setDeleteConfirmOpen(false)
       setDeleteTargetId(null)
-      setTimeout(() => setSuccessMessage(""), 3000)
     }
   }
 
@@ -314,7 +317,7 @@ export default function FacultyManagement() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <SchoolIcon sx={{ fontSize: 32, color: "#0D0060" }} />
+          <SchoolIcon sx={{ fontSize: 32, color: "#3e397b" }} />
           <Typography variant="h4" sx={{ 30: 600 }}>
             Faculty Management
           </Typography>
@@ -386,7 +389,7 @@ export default function FacultyManagement() {
                     }}
                   >
                     <TableCell>
-                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600, color:"#0D0060" }} variant="outlined" />
+                      <Chip label={faculty.code} size="small" sx={{ fontWeight: 600, color:"#3e397b" }} variant="outlined" />
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{faculty.name}</TableCell>
                     <TableCell>
@@ -401,7 +404,7 @@ export default function FacultyManagement() {
                       </Box>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined"  sx={{color:"#0D0060"}} />
+                      <Chip label={`${programs.filter(p => p.faculty === faculty.name).length} programs`} size="small" variant="outlined"  sx={{color:"#3e397b"}} />
                     </TableCell>
                     <TableCell align="center">
                       <Switch
@@ -416,7 +419,7 @@ export default function FacultyManagement() {
                         <IconButton
                           size="small"
                           onClick={() => handleOpenDialog(faculty)}
-                          sx={{ color: "#0D0060", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
+                          sx={{ color: "#3e397b", "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" } }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>

@@ -6,40 +6,34 @@ import {
   TextField,
   Button,
   Typography,
-  Link,
   Alert,
   CircularProgress,
+  Chip,
+  Link,
   Stack,
+  Divider,
 } from "@mui/material";
-import EmailIcon from "@mui/icons-material/Email";
-import PhoneIcon from "@mui/icons-material/Phone";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import SchoolIcon from "@mui/icons-material/School";
+import {
+  Facebook,
+  YouTube,
+  Instagram,
+  Twitter,
+  LinkedIn,
+} from "@mui/icons-material";
 import { AuthContext } from '../Context/AuthContext';
-import logo from '../Images/Ndejje_University_Logo.jpg';
 import cover_image from '../Images/cover_page.jpg';
+import logo from '../Images/Ndejje_University_Logo.jpg';
 import EmailDialog from './send_email';
 import { api } from '../../lib/api';
 
-const NAVY = "#000080";
-const NAVY_DARK = "#000066";
-const RED = "#c0001a";
-
-const contacts = [
-  { Icon: EmailIcon, text: "admissions@ndejjeuniversity.ac.ug" },
-  { Icon: PhoneIcon, text: "+256 200 930 438" },
-  { Icon: WhatsAppIcon, text: "+256 705 047 283" },
+const PORTAL_TYPES = [
+  { id: "applicant",  label: "Applicant" },
+  { id: "student",    label: "Student" },
+  { id: "admin",      label: "Administrator" },
+  { id: "staff",      label: "Staff" },
 ];
 
-const fieldSx = {
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 2,
-    backgroundColor: "#f8f9ff",
-    "&:hover fieldset": { borderColor: NAVY },
-    "&.Mui-focused fieldset": { borderColor: NAVY, borderWidth: 2 },
-  },
-  "& .MuiInputLabel-root.Mui-focused": { color: NAVY },
-};
+const SOCIAL_ICONS = [Facebook, YouTube, Instagram, Twitter, LinkedIn];
 
 export default function Login() {
   const context = useContext(AuthContext);
@@ -47,22 +41,20 @@ export default function Login() {
 
   const { noAccount, loginLoading, loginUser, showErrorAlert, showSuccessAlert } = context;
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<Record<string, string>>({});
-  const [open, setOpen] = useState(false);
+  const [username, setUsername]   = useState("");
+  const [password, setPassword]   = useState("");
+  const [error, setError]         = useState<Record<string, string>>({});
+  const [open, setOpen]           = useState(false);
   const [loadEmail, setLoadEmail] = useState(false);
-
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const [portalType, setPortalType] = useState("applicant");
 
   const handleEmailSubmit = async (email: string) => {
     try {
       setLoadEmail(true);
       const res = await api.post('api/accounts/send_email', { email });
-      showSuccessAlert(`${res?.data?.detail}` || 'Email sent successfully');
+      showSuccessAlert(res?.data?.detail || 'Email sent successfully');
     } catch (err: any) {
-      showErrorAlert(`${err?.response?.data?.detail}` || 'Something went wrong, please try again');
+      showErrorAlert(err?.response?.data?.detail || 'Something went wrong, please try again');
     } finally {
       setLoadEmail(false);
     }
@@ -71,161 +63,173 @@ export default function Login() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     if (!username.trim()) errors.username = "Username or email is required";
-    if (!password) errors.password = "Password is required";
+    if (!password)        errors.password = "Password is required";
     setError(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) {
-      showErrorAlert("Please fix the form errors");
-      return;
-    }
-    await loginUser(username, password);
+    if (!validateForm()) return;
+    await loginUser(username, password, portalType as any);
   };
 
-  return (
-    <Box sx={{ minHeight: "100vh", display: "flex" }}>
+  const selectedPortal = PORTAL_TYPES.find(p => p.id === portalType);
 
-      {/* ── LEFT PANEL ── */}
+  return (
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+
+      {/* ── LEFT PANEL: Hero / Branding ── */}
       <Box
         sx={{
           display: { xs: "none", md: "flex" },
-          flexDirection: "column",
-          justifyContent: "space-between",
-          width: "45%",
-          minHeight: "100vh",
+          flex: "0 0 60%",
           position: "relative",
-          overflow: "hidden",
+          flexDirection: "column",
+          backgroundImage: `url(${cover_image})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
-        {/* Background image */}
+        {/* Dark gradient overlay — heavier on left for text legibility */}
         <Box
           sx={{
             position: "absolute",
             inset: 0,
-            backgroundImage: `url(${cover_image})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        {/* Navy overlay */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background: `linear-gradient(160deg, rgba(0,0,128,0.92) 0%, rgba(0,0,80,0.97) 100%)`,
+            background:
+              "linear-gradient(to right, rgba(10,10,40,0.88) 0%, rgba(10,10,40,0.55) 55%, rgba(10,10,40,0.15) 100%)",
           }}
         />
 
-        {/* Content */}
-        <Box sx={{ position: "relative", zIndex: 1, p: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {/* Logo + Name */}
-          <Stack direction="row" alignItems="center" spacing={2} mb={5}>
-            <Box
-              component="img"
-              src={logo}
-              alt="Ndejje University"
-              sx={{ height: 60, objectFit: "contain", borderRadius: 1 }}
-            />
-            <Box>
-              <Typography variant="h6" fontWeight={800} color="#fff" lineHeight={1.1}>
-                NDEJJE
-              </Typography>
-              <Typography variant="h6" fontWeight={800} color="#fff" lineHeight={1.1}>
-                UNIVERSITY
-              </Typography>
-            </Box>
-          </Stack>
-
-          {/* Motto */}
-          <Typography
-            variant="caption"
-            color="rgba(255,255,255,0.60)"
-            fontStyle="italic"
-            display="block"
-            mb={2}
-          >
-            "Fear of God brings Knowledge and Wisdom"
-          </Typography>
-
-          {/* Tagline */}
-          <Typography variant="h4" fontWeight={800} color="#fff" lineHeight={1.3} mb={2}>
-            Online Applications Portal
-          </Typography>
-          <Typography variant="body1" color="rgba(255,255,255,0.75)" lineHeight={1.8} mb={5}>
-            Empowering minds and transforming lives through quality, innovation-driven education in the heart of Uganda.
-          </Typography>
-
-          {/* Decorative divider */}
-          <Box sx={{ width: 60, height: 4, backgroundColor: RED, borderRadius: 2, mb: 5 }} />
-
-          {/* Contact info */}
-          <Stack spacing={1.5}>
-            {contacts.map(({ Icon, text }) => (
-              <Stack key={text} direction="row" alignItems="center" spacing={1.5}>
-                <Box
-                  sx={{
-                    width: 32, height: 32,
-                    borderRadius: "50%",
-                    backgroundColor: "rgba(255,255,255,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <Icon sx={{ fontSize: 16, color: "#fff" }} />
-                </Box>
-                <Typography variant="caption" color="rgba(255,255,255,0.85)" fontSize="0.8rem">
-                  {text}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
+        {/* NDU Logo — top left */}
+        <Box sx={{ position: "absolute", top: 32, left: 40, zIndex: 2 }}>
+          <img
+            src={logo}
+            alt="Ndejje University Logo"
+            style={{ height: 72, borderRadius: 8, boxShadow: "0 2px 12px rgba(0,0,0,0.4)" }}
+          />
         </Box>
 
-        {/* Bottom badge */}
-        <Box sx={{ position: "relative", zIndex: 1, p: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <SchoolIcon sx={{ color: "rgba(255,255,255,0.4)", fontSize: 18 }} />
-            <Typography variant="caption" color="rgba(255,255,255,0.4)">
-              Uganda's oldest and most respected private Christian University
-            </Typography>
+        {/* Bottom content — welcome text + social */}
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            mt: "auto",
+            p: { md: 5, lg: 7 },
+            pb: { md: 5 },
+          }}
+        >
+          <Typography
+            variant="h3"
+            fontWeight={800}
+            color="white"
+            sx={{ mb: 2, lineHeight: 1.2, letterSpacing: "-0.5px" }}
+          >
+            Welcome to<br />NDU Portal
+          </Typography>
+
+          <Typography
+            variant="body1"
+            color="rgba(255,255,255,0.72)"
+            sx={{ maxWidth: 430, mb: 4, lineHeight: 1.8 }}
+          >
+            Ndejje University (NDU) was founded in 1992. It is owned by all six
+            Church of Uganda (CoU) Dioceses in Buganda Region — the
+            "Ndejje University Foundation Consortium".
+          </Typography>
+
+          {/* Social icons */}
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+            {SOCIAL_ICONS.map((Icon, i) => (
+              <Box
+                key={i}
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255,255,255,0.65)",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.15)",
+                    color: "white",
+                    borderColor: "rgba(255,255,255,0.7)",
+                  },
+                }}
+              >
+                <Icon sx={{ fontSize: 18 }} />
+              </Box>
+            ))}
           </Stack>
+
+          <Typography variant="caption" color="rgba(255,255,255,0.35)">
+            www.ndejjeuniversity.ac.ug
+          </Typography>
         </Box>
       </Box>
 
-      {/* ── RIGHT PANEL ── */}
+      {/* ── RIGHT PANEL: Login Form ── */}
       <Box
         sx={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#ffffff",
-          px: { xs: 3, sm: 6, md: 8 },
-          py: 6,
+          alignItems: "center",
+          bgcolor: "#ffffff",
+          px: { xs: 3, sm: 6 },
+          py: 4,
+          overflowY: "auto",
         }}
       >
-        {/* Mobile logo (shown only on small screens) */}
-        <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", alignItems: "center", mb: 4 }}>
-          <Box component="img" src={logo} alt="Ndejje University" sx={{ height: 60, objectFit: "contain", mb: 1 }} />
-          <Typography variant="h6" fontWeight={800} color={NAVY}>NDEJJE UNIVERSITY</Typography>
-          <Typography variant="caption" color="text.secondary">Online Applications Portal</Typography>
-        </Box>
-
         <Box sx={{ width: "100%", maxWidth: 400 }}>
+
+          {/* Mobile-only logo */}
+          <Box sx={{ display: { xs: "flex", md: "none" }, justifyContent: "center", mb: 3 }}>
+            <img src={logo} alt="NDU Logo" style={{ height: 60 }} />
+          </Box>
+
           {/* Heading */}
-          <Typography variant="h4" fontWeight={800} color={NAVY} mb={0.5}>
-            Welcome back
+          <Typography variant="h5" fontWeight={700} color="#1a1a1a" sx={{ mb: 0.5 }}>
+            Sign in to NDU Portal
           </Typography>
-          <Typography variant="body2" color="text.secondary" mb={4}>
-            Sign in to your applicant account to continue.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Select your portal type and enter your credentials
           </Typography>
 
-          {/* Error */}
+          {/* Portal type selector */}
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 3 }}>
+            {PORTAL_TYPES.map((p) => (
+              <Chip
+                key={p.id}
+                label={p.label}
+                onClick={() => setPortalType(p.id)}
+                sx={{
+                  borderRadius: "8px",
+                  fontWeight: portalType === p.id ? 600 : 400,
+                  bgcolor: portalType === p.id ? "#3e397b" : "transparent",
+                  color: portalType === p.id ? "white" : "text.secondary",
+                  border: "1px solid",
+                  borderColor: portalType === p.id ? "#3e397b" : "#d0d0d0",
+                  transition: "all 0.18s",
+                  "&:hover": {
+                    bgcolor: portalType === p.id ? "#2d2960" : "#f0f0f0",
+                    borderColor: portalType === p.id ? "#2d2960" : "#bbb",
+                  },
+                  "& .MuiChip-label": { px: 1.5 },
+                }}
+              />
+            ))}
+          </Box>
+
+          {/* Error alert */}
           {noAccount && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>
               {noAccount}
             </Alert>
           )}
@@ -240,7 +244,10 @@ export default function Login() {
               error={!!error.username}
               helperText={error.username}
               autoComplete="username"
-              sx={{ mb: 2.5, ...fieldSx }}
+              sx={{
+                mb: 2.5,
+                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+              }}
             />
 
             <TextField
@@ -252,16 +259,22 @@ export default function Login() {
               error={!!error.password}
               helperText={error.password}
               autoComplete="current-password"
-              sx={{ mb: 1.5, ...fieldSx }}
+              sx={{
+                mb: 1.5,
+                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+              }}
             />
 
             <Box textAlign="right" mb={3}>
               <Link
                 underline="hover"
-                onClick={handleOpen}
-                fontWeight={500}
-                fontSize="0.875rem"
-                sx={{ cursor: "pointer", color: NAVY }}
+                onClick={() => setOpen(true)}
+                sx={{
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                  color: "#3e397b",
+                  fontWeight: 500,
+                }}
               >
                 Forgot Password?
               </Link>
@@ -273,66 +286,45 @@ export default function Login() {
               size="large"
               disabled={loginLoading}
               sx={{
-                py: 1.7,
+                py: 1.6,
                 fontSize: "1rem",
-                fontWeight: 700,
-                background: NAVY,
+                fontWeight: 600,
+                bgcolor: "#3e397b",
                 color: "#fff",
                 borderRadius: 2,
                 textTransform: "none",
-                boxShadow: "0 4px 20px rgba(0,0,128,0.3)",
+                boxShadow: "0 4px 14px rgba(62,57,123,0.35)",
                 "&:hover": {
-                  background: NAVY_DARK,
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 8px 28px rgba(0,0,128,0.4)",
+                  bgcolor: "#2d2960",
+                  boxShadow: "0 6px 20px rgba(62,57,123,0.45)",
                 },
-                "&:disabled": { background: "#aaa" },
-                transition: "all 0.25s ease",
+                "&:disabled": { bgcolor: "#b0b0b0", boxShadow: "none" },
+                transition: "all 0.2s",
               }}
             >
-              {loginLoading ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
+              {loginLoading
+                ? <CircularProgress size={22} color="inherit" />
+                : `Sign in as ${selectedPortal?.label}`}
             </Button>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, my: 2.5 }}>
-              <Box sx={{ flex: 1, height: "1px", backgroundColor: "#e0e0e0" }} />
-              <Typography
-                variant="body2"
-                fontWeight={700}
-                sx={{
-                  color: "#000080",
-                  fontSize: "0.95rem",
-                  letterSpacing: "0.3px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                New here? Join us!
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="caption" color="text.disabled">or</Typography>
+            </Divider>
+
+            <Stack direction="row" justifyContent="center" spacing={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Don't have an account?
               </Typography>
-              <Box sx={{ flex: 1, height: "1px", backgroundColor: "#e0e0e0" }} />
-            </Box>
-
-            <Button
-              fullWidth
-              href="/register"
-              size="large"
-              sx={{
-                py: 1.7,
-                fontSize: "1rem",
-                fontWeight: 700,
-                background: RED,
-                color: "#fff",
-                borderRadius: 2,
-                textTransform: "none",
-                boxShadow: "0 4px 20px rgba(192,0,26,0.25)",
-                "&:hover": {
-                  background: "#a0001a",
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 8px 28px rgba(192,0,26,0.35)",
-                },
-                transition: "all 0.25s ease",
-              }}
-            >
-              Sign Up for an Account
-            </Button>
+              <Link
+                href="/register"
+                underline="hover"
+                variant="body2"
+                fontWeight={600}
+                color="#3e397b"
+              >
+                Apply here
+              </Link>
+            </Stack>
           </Box>
         </Box>
       </Box>
@@ -340,7 +332,7 @@ export default function Login() {
       <EmailDialog
         open={open}
         loading={loadEmail}
-        onClose={handleClose}
+        onClose={() => setOpen(false)}
         onSubmit={handleEmailSubmit}
         title="Reset your password"
         description="Enter your email address and we'll send you a reset link."

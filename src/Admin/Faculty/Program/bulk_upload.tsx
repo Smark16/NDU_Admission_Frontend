@@ -102,7 +102,7 @@ const BulkUpload: React.FC<BulkUploadProps> = ({
                 <CloudUploadIcon
                   sx={{
                     fontSize: 56,
-                    color: isUploading ? "action.disabled" : "#0D0060",
+                    color: isUploading ? "action.disabled" : "#3e397b",
                     mb: 2,
                   }}
                 />

@@ -224,7 +224,7 @@ export default function GroupManagementDialog() {
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: "#0D0060" }}>
+                <TableRow sx={{ bgcolor: "#3e397b" }}>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }}>Permissions</TableCell>
                   <TableCell sx={{ color: "primary.contrastText", fontWeight: 600 }} align="right">Actions</TableCell>
@@ -267,7 +267,7 @@ export default function GroupManagementDialog() {
                         <TableCell align="right">
                           <IconButton
                             size="small"
-                            sx={{color:"#0D0060"}}
+                            sx={{color:"#3e397b"}}
                             onClick={() => handleEdit(group)}
                             title="Edit group"
                           >
@@ -321,7 +321,7 @@ export default function GroupManagementDialog() {
           variant="outlined"
           sx={{ flex: 1, p: 2, maxHeight: 420, overflow: "auto" }}
         >
-          <Typography variant="subtitle2" sx={{color:"#0D0060"}} gutterBottom>
+          <Typography variant="subtitle2" sx={{color:"#3e397b"}} gutterBottom>
             Available permissions
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
@@ -368,7 +368,7 @@ export default function GroupManagementDialog() {
                   );
                 }}
                 sx={{ 
-                  m: 0.5, cursor: "pointer", bgcolor:`${selectedLeft.includes(perm.id) ? "#0D0060" : "default"}`, 
+                  m: 0.5, cursor: "pointer", bgcolor:`${selectedLeft.includes(perm.id) ? "#3e397b" : "default"}`, 
                 color:`${selectedLeft.includes(perm.id) ? "white" : "default"}`
               }}
               />
@@ -398,7 +398,7 @@ export default function GroupManagementDialog() {
           <IconButton
             onClick={handleChoose}
             disabled={selectedLeft.length === 0}
-            sx={{color:"#0D0060"}}
+            sx={{color:"#3e397b"}}
             size="large"
           >
             <ChooseIcon />
@@ -418,7 +418,7 @@ export default function GroupManagementDialog() {
           variant="outlined"
           sx={{ flex: 1, p: 2, maxHeight: 420, overflow: "auto" }}
         >
-          <Typography variant="subtitle2" sx={{ color: "background.paper", bgcolor: "#0D0060", px: 1, py: 0.5, borderRadius: 1, display: "inline-block" }} gutterBottom>
+          <Typography variant="subtitle2" sx={{ color: "background.paper", bgcolor: "#3e397b", px: 1, py: 0.5, borderRadius: 1, display: "inline-block" }} gutterBottom>
             Chosen permissions
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
@@ -461,7 +461,7 @@ export default function GroupManagementDialog() {
                 onClick={() => {
                   setSelectedRight((prev) => prev.filter((id) => id !== perm.id));
                 }}
-                sx={{ m: 0.5, cursor: "pointer", color:"#0D0060"}}
+                sx={{ m: 0.5, cursor: "pointer", color:"#3e397b"}}
               />
             ))}
             {rightPermissions.length === 0 && (
