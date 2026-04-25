@@ -119,10 +119,10 @@ export default function DirectApplicationForm() {
   const [activeStep, setActiveStep] = useState(0)
   const [campus, setCampus] = useState<Campus[]>([])
   const [formData, setFormData] = useState<FormData>({
-    applicant: loggeduser?.user_id ? Number(loggeduser?.user_id) : undefined,
+    applicant: undefined,
     batch: admissionBatch?.id ? Number(admissionBatch.id) : undefined,
-    firstName: loggeduser?.first_name ?? '',
-    lastName: loggeduser?.last_name ?? '',
+    firstName: '',
+    lastName: '',
     middleName: "",
     application_fee_paid: false,
     school_pay_reference: "",
@@ -130,8 +130,8 @@ export default function DirectApplicationForm() {
     gender: "",
     nationality: "",
     disabled: "",
-    phone: loggeduser?.phone ?? 0,
-    email: loggeduser?.email ?? '',
+    phone: 0,
+    email: '',
     address: "",
     nextOfKinName: "",
     nextOfKinContact: "",
@@ -198,14 +198,6 @@ export default function DirectApplicationForm() {
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
         if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
-
-        // Require nin or passportNumber based on nationality
-        if (isLocal && !formData.nin?.trim()) {
-          errors.nin = "NIN is required for local applicants";
-        }
-        if (!isLocal && !formData.passportNumber?.trim()) {
-          errors.passportNumber = "Passport number is required for international applicants";
-        }
 
         // Validate Uganda NIN format if applicable
         if (formData.nationality === "Uganda" && formData.nin?.trim()) {

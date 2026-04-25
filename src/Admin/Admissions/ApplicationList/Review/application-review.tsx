@@ -26,7 +26,14 @@ import {
   Person as PersonIcon,
   School as SchoolIcon,
   Description as DescriptionIcon,
+  SwapHoriz as SwapHorizIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material"
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Checkbox, FormControlLabel, FormGroup,
+  Select, MenuItem, InputLabel, FormControl,
+} from "@mui/material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
 import { Link, useNavigate } from "react-router-dom"
@@ -47,7 +54,15 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
-  const [openReject, setOpenReject] = useState(false);
+  const [openReject, setOpenReject] = useState(false)
+  const [openEditProfile, setOpenEditProfile] = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, string>>({})
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [openChangeProgramme, setOpenChangeProgramme] = useState(false)
+  const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
+  const [selectedCampus, setSelectedCampus] = useState<number | "">("")
+  const [changeNote, setChangeNote] = useState("")
+  const [changingProgramme, setChangingProgramme] = useState(false)
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
@@ -190,6 +205,39 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         showNotification("Failed to send offer letter to student", "error")
       }
       setIsLoading(false)
+    }
+  }
+
+  const handleEditProfile = async () => {
+    setSavingProfile(true)
+    try {
+      await AxiosInstance.patch(`/api/admissions/edit_application_profile/${application.id}`, editForm)
+      showNotification("Profile updated successfully.", "success")
+      setOpenEditProfile(false)
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to update profile.", "error")
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  const handleChangeProgramme = async () => {
+    if (selectedPrograms.length === 0) return
+    setChangingProgramme(true)
+    try {
+      const res = await AxiosInstance.patch(`/api/admissions/change_programme/${application.id}`, {
+        program_ids: selectedPrograms,
+        campus_id: selectedCampus || undefined,
+        note: changeNote,
+      })
+      showNotification(res.data.detail, "success")
+      setOpenChangeProgramme(false)
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to change programme", "error")
+    } finally {
+      setChangingProgramme(false)
     }
   }
 
@@ -566,6 +614,55 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 </>
               )}
 
+              <Divider />
+
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<EditIcon />}
+                disabled={application.status === 'Admitted'}
+                onClick={() => {
+                  setEditForm({
+                    first_name: application.first_name || "",
+                    last_name: application.last_name || "",
+                    middle_name: application.middle_name || "",
+                    date_of_birth: application.date_of_birth || "",
+                    gender: application.gender || "",
+                    nationality: application.nationality || "",
+                    phone: application.phone || "",
+                    email: application.email || "",
+                    address: application.address || "",
+                    disabled: application.disabled || "",
+                    next_of_kin_name: application.next_of_kin_name || "",
+                    next_of_kin_contact: application.next_of_kin_contact || "",
+                    next_of_kin_relationship: application.next_of_kin_relationship || "",
+                    nin: application.nin || "",
+                    passport_number: application.passport_number || "",
+                  })
+                  setOpenEditProfile(true)
+                }}
+                sx={{ textTransform: "none", borderColor: "#1565c0", color: "#1565c0" }}
+              >
+                Edit Profile
+              </Button>
+
+              <Divider />
+
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<SwapHorizIcon />}
+                onClick={() => {
+                  setSelectedPrograms(application.programs?.map((p: any) => p.id) || [])
+                  setSelectedCampus(application.campus_id || "")
+                  setChangeNote("")
+                  setOpenChangeProgramme(true)
+                }}
+                sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060" }}
+              >
+                Change Programme
+              </Button>
+
               {application.reviewed_by && (
                 <>
                   <Divider />
@@ -631,6 +728,134 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         onSubmit={handleReject}
         itemName={`${application.first_name} ${application.last_name}'s application`}
       />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={openEditProfile} onClose={() => setOpenEditProfile(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ background: "#1565c0", color: "#fff" }}>
+          Edit Profile — {application.first_name} {application.last_name}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Correct any personal details below. Only changed fields will be saved.
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {[
+              { key: "first_name", label: "First Name" },
+              { key: "last_name", label: "Last Name" },
+              { key: "middle_name", label: "Middle Name" },
+              { key: "date_of_birth", label: "Date of Birth", type: "date" },
+              { key: "gender", label: "Gender" },
+              { key: "nationality", label: "Nationality" },
+              { key: "phone", label: "Phone" },
+              { key: "email", label: "Email" },
+              { key: "address", label: "Address" },
+              { key: "nin", label: "NIN" },
+              { key: "passport_number", label: "Passport Number" },
+              { key: "next_of_kin_name", label: "Next of Kin Name" },
+              { key: "next_of_kin_contact", label: "Next of Kin Contact" },
+              { key: "next_of_kin_relationship", label: "Next of Kin Relationship" },
+            ].map(({ key, label, type }) => (
+              <TextField
+                key={key}
+                size="small"
+                label={label}
+                type={type || "text"}
+                value={editForm[key] || ""}
+                onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))}
+                slotProps={type === "date" ? { inputLabel: { shrink: true } } : undefined}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditProfile(false)} disabled={savingProfile}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleEditProfile}
+            disabled={savingProfile}
+            sx={{ bgcolor: "#1565c0" }}
+          >
+            {savingProfile ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Change Programme Dialog */}
+      <Dialog open={openChangeProgramme} onClose={() => setOpenChangeProgramme(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ background: "#0D0060", color: "#fff" }}>
+          Change Programme — {application.first_name} {application.last_name}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Change campus and/or programme(s). Current values are pre-filled.
+          </Typography>
+
+          {/* Campus selector */}
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Campus</InputLabel>
+            <Select
+              value={selectedCampus}
+              label="Campus"
+              onChange={(e) => {
+                setSelectedCampus(e.target.value as number)
+                setSelectedPrograms([])
+              }}
+            >
+              {application.batch_campuses?.map((c: any) => (
+                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Programmes filtered by selected campus */}
+          <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
+            Programmes at selected campus:
+          </Typography>
+          <FormGroup sx={{ maxHeight: 250, overflowY: "auto", border: "1px solid #e0e0e0", borderRadius: 1, p: 1 }}>
+            {application.batch_programs
+              ?.filter((p: any) => !selectedCampus || p.campus_ids.includes(selectedCampus))
+              .map((p: any) => (
+                <FormControlLabel
+                  key={p.id}
+                  control={
+                    <Checkbox
+                      checked={selectedPrograms.includes(p.id)}
+                      onChange={(e) => {
+                        setSelectedPrograms(prev =>
+                          e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
+                        )
+                      }}
+                      sx={{ color: "#0D0060", "&.Mui-checked": { color: "#0D0060" } }}
+                    />
+                  }
+                  label={p.name}
+                />
+              ))}
+          </FormGroup>
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Reason / Note (optional)"
+            value={changeNote}
+            onChange={(e) => setChangeNote(e.target.value)}
+            multiline
+            rows={2}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenChangeProgramme(false)} disabled={changingProgramme}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleChangeProgramme}
+            disabled={changingProgramme || selectedPrograms.length === 0}
+            sx={{ bgcolor: "#0D0060" }}
+          >
+            {changingProgramme ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Container>
   )

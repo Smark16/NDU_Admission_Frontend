@@ -512,7 +512,7 @@ export default function AdmitStudentPage() {
             <TextField
               fullWidth
               label="Student Number"
-              name="studentId"
+              name="student_id"
               value={formData.student_id}
               onChange={handleInputChange}
               placeholder="Enter unique student ID"

@@ -6,6 +6,7 @@ import {
   TableContainer, TableHead, TableRow, Chip, CircularProgress,
   Alert, TextField, InputAdornment, Button, Tooltip, Grid,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
+  FormControl, InputLabel, Select, MenuItem,
 } from "@mui/material"
 import {
   Search as SearchIcon,
@@ -16,8 +17,10 @@ import {
   PersonOff as NeverIcon,
   FileDownload as DownloadIcon,
   Delete as DeleteIcon,
+  Campaign as CampaignIcon,
 } from "@mui/icons-material"
 import useAxios from "../../AxiosInstance/UseAxios"
+import AnnouncementDialog from "../../ReUsables/AnnouncementDialog"
 
 interface ProspectiveStudent {
   id: number
@@ -47,6 +50,8 @@ export default function ProspectiveStudents() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [announcementOpen, setAnnouncementOpen] = useState(false)
+  const [annStatusFilter, setAnnStatusFilter] = useState("all")
 
   useEffect(() => {
     const fetch = async () => {
@@ -241,15 +246,26 @@ export default function ProspectiveStudents() {
           slotProps={{ inputLabel: { shrink: true } }}
           sx={{ width: 170 }}
         />
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          onClick={exportCSV}
-          disabled={filtered.length === 0}
-          sx={{ ml: "auto", textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
-        >
-          Export CSV
-        </Button>
+        <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<CampaignIcon />}
+            onClick={() => setAnnouncementOpen(true)}
+            disabled={students.length === 0}
+            sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060" }}
+          >
+            Send Communication
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
+          >
+            Export CSV
+          </Button>
+        </Box>
       </Box>
 
       {/* Table */}
@@ -357,6 +373,29 @@ export default function ProspectiveStudents() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Send Communication */}
+      <AnnouncementDialog
+        open={announcementOpen}
+        onClose={() => { setAnnouncementOpen(false); setAnnStatusFilter("all") }}
+        endpoint="/api/accounts/prospective_announcement"
+        context="prospective students"
+        extraPayload={{ status: annStatusFilter }}
+        extraFilters={
+          <FormControl fullWidth size="small">
+            <InputLabel>Target Group</InputLabel>
+            <Select
+              value={annStatusFilter}
+              label="Target Group"
+              onChange={e => setAnnStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">All Prospective Students</MenuItem>
+              <MenuItem value="Draft Started">Draft Started only</MenuItem>
+              <MenuItem value="Never Started">Never Started only</MenuItem>
+            </Select>
+          </FormControl>
+        }
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog open={confirmDeleteId !== null} onClose={() => !deleting && setConfirmDeleteId(null)}>
