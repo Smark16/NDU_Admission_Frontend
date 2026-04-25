@@ -32,6 +32,7 @@ import {
   NavigateBefore as NavigateBeforeIcon,
   Info as InfoIcon,
 } from "@mui/icons-material"
+import { LinearProgress } from "@mui/material";
 import { useNavigate } from "react-router-dom"
 import PersonalInfo from "./personaInfo"
 import Programs from "./Programs"
@@ -137,6 +138,7 @@ export default function NewApplicationForm() {
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
   const { loggeduser} = useContext(AuthContext) || {}
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // drafts
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
@@ -612,11 +614,12 @@ export default function NewApplicationForm() {
   }
 
    setIsSubmitting(true);  
+   setUploadProgress(0);
+   setSubmitLoader(true);
   // if (isSubmittingRef.current) return; 
   //   isSubmittingRef.current = true; 
 
     try {
-      setSubmitLoader(true);
 
       const formDataToSend = new FormData();
 
@@ -701,7 +704,41 @@ export default function NewApplicationForm() {
       }
 
       // ONE SINGLE REQUEST – FAST & RELIABLE
-      await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+      // === Retry helper (now formDataToSend is in scope) ===
+        const postWithRetry = async (maxRetries = 3) => {
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              return await AxiosInstance.post(
+                "/api/admissions/create_applications",
+                formDataToSend,
+                {
+                  timeout: 180000, // 3 minutes
+                  onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                      const percent = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                      );
+                      setUploadProgress(percent);
+                    }
+                  },
+                }
+              );
+            } catch (err: any) {
+              const isNetworkOrServerError =
+                !err.response || (err.response && err.response.status >= 500);
+
+              if (attempt === maxRetries || !isNetworkOrServerError) {
+                throw err;
+              }
+
+              // exponential backoff
+              await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+              console.log(`Retry attempt ${attempt}...`);
+            }
+          }
+        };
+      // await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+       await postWithRetry();
 
       setSubmitLoader(false);
       setOpenSummary(true);
@@ -720,6 +757,7 @@ export default function NewApplicationForm() {
     }finally{
       setSubmitLoader(false);
       setIsSubmitting(false);   
+      setUploadProgress(0);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -821,36 +859,75 @@ useEffect(() => {
   }
 
   // Application submission Loader
-  if (submitLoader) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 8 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          minHeight: '80vh',
-          textAlign: 'center',
-          bgcolor: 'rgba(255,255,255,0.95)',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 9999
-        }}>
-          <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 5 }} />
+  // if (submitLoader) {
+  //   return (
+  //     <Container maxWidth="xl" sx={{ py: 8 }}>
+  //       <Box sx={{ 
+  //         display: 'flex', 
+  //         flexDirection: 'column', 
+  //         alignItems: 'center', 
+  //         justifyContent: 'center', 
+  //         minHeight: '80vh',
+  //         textAlign: 'center',
+  //         bgcolor: 'rgba(255,255,255,0.95)',
+  //         position: 'fixed',
+  //         top: 0,
+  //         left: 0,
+  //         right: 0,
+  //         bottom: 0,
+  //         zIndex: 9999
+  //       }}>
+  //         <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 5 }} />
           
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#1a3a52' }}>
-            Submitting Your Application...
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#555', maxWidth: 500 }}>
-            Please wait while we process and submit your application. Do not refresh the page.
+  //         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#1a3a52' }}>
+  //           Submitting Your Application...
+  //         </Typography>
+  //         <Typography variant="body1" sx={{ color: '#555', maxWidth: 500 }}>
+  //           Please wait while we process and submit your application. Do not refresh the page.
+  //         </Typography>
+  //       </Box>
+  //     </Container>
+  //   );
+  // }
+  if (submitLoader) {
+  return (
+    <Container maxWidth="xl" sx={{ py: 8 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '80vh',
+        textAlign: 'center',
+        bgcolor: 'rgba(255,255,255,0.95)',
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 9999
+      }}>
+        <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 3 }} />
+        
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
+          Submitting Your Application...
+        </Typography>
+        <Typography variant="body1" sx={{ color: '#555', mb: 3 }}>
+          Please wait — do not refresh
+        </Typography>
+
+        {/* Progress bar */}
+        <Box sx={{ width: '70%', maxWidth: 400 }}>
+          <LinearProgress 
+            variant="determinate" 
+            value={uploadProgress} 
+            sx={{ height: 12, borderRadius: 2 }}
+          />
+          <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+            {uploadProgress}% uploaded
           </Typography>
         </Box>
-      </Container>
-    );
-  }
+      </Box>
+    </Container>
+  );
+}
 
   // personal details
   const renderPersonalDetails = () => (
@@ -1096,6 +1173,7 @@ useEffect(() => {
               ) : (
                 <CustomButton
                   onClick={handleSubmit}
+                  disabled={isSubmitting || submitLoader}
                   endIcon={<CheckCircleIcon />}
                   text={
                     submitLoader ? (
@@ -1172,8 +1250,10 @@ useEffect(() => {
           );
 
           // Close modal immediately
-          setPaymentModalOpen(false);
-
+          setTimeout(()=>{
+            setPaymentModalOpen(false);
+          }, 800)
+          
           // 3. Auto-submit after a tiny delay
           setTimeout(() => {
             handleSubmit();
