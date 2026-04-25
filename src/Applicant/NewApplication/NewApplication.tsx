@@ -190,6 +190,9 @@ export default function NewApplicationForm() {
     message: string
     type: "success" | "error" | "info"
   } | null>(null)
+  const [submissionMessage, setSubmissionMessage] = useState(
+    "Your application has been submitted successfully. You will receive a confirmation email shortly."
+  )
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
@@ -543,10 +546,13 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
     if (isSubmitting) return;   
 
-    if (!formData.application_fee_paid) {
+    const isPaid = paymentOverride?.forcePaid || formData.application_fee_paid;
+    const resolvedExternalReference = paymentOverride?.externalReference || formData.externalReference;
+
+    if (!isPaid) {
     showNotification("Please complete payment before submitting", "error");
     return;
   }
@@ -626,12 +632,22 @@ export default function NewApplicationForm() {
         formDataToSend.append("document_types", "Others");
       }
 
-      if (formData.externalReference) {
-        formDataToSend.append("external_reference", formData.externalReference);
+      if (resolvedExternalReference) {
+        formDataToSend.append("external_reference", resolvedExternalReference);
       }
 
       // ONE SINGLE REQUEST – FAST & RELIABLE
-      await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+      const response = await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
+
+      if (response?.data?.idempotent_replay) {
+        setSubmissionMessage(
+          "Your application was already received successfully. No further action is needed."
+        );
+      } else {
+        setSubmissionMessage(
+          "Your application has been submitted successfully. You will receive a confirmation email shortly."
+        );
+      }
 
       setSubmitLoader(false);
       setOpenSummary(true);
@@ -1069,7 +1085,7 @@ useEffect(() => {
               Thank you for your application!
             </Typography>
             <Typography variant="body2" sx={{ color: "#666" }}>
-              Your application has been submitted successfully. You will receive a confirmation email shortly.
+              {submissionMessage}
             </Typography>
           </Box>
         </DialogContent>
@@ -1105,7 +1121,7 @@ useEffect(() => {
           // setTimeout(() => {
           //   handleSubmit();
           // }, 800);
-           handleSubmit();
+          handleSubmit({ externalReference: externalRef || "", forcePaid: true });
         }}
        />
     </Container>

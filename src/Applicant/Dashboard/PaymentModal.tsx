@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -56,6 +56,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const hasNotifiedSuccessRef = useRef(false);
 
   const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
@@ -66,6 +67,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMessage('');
     setSuccessMessage('');
     setTransactionId('');
+    hasNotifiedSuccessRef.current = false;
     onClose();
   };
 
@@ -108,6 +110,7 @@ const handlePayment = async () => {
   setStatus('processing');
   setErrorMessage('');
   setSuccessMessage('');
+  hasNotifiedSuccessRef.current = false;
 
   try {
     const payload = {
@@ -154,7 +157,10 @@ const handlePayment = async () => {
           setStatus('success');
 
           // success callback
-          onPaymentSuccess?.(extRef || data.external_reference);  
+          if (!hasNotifiedSuccessRef.current) {
+            hasNotifiedSuccessRef.current = true;
+            onPaymentSuccess?.(extRef || data.external_reference);
+          }
 
           return;
         }
@@ -606,7 +612,6 @@ const handlePayment = async () => {
         {status === 'success' && (
             <CustomButton 
              onClick={() => {
-               onPaymentSuccess?.(extRef || "");   
               handleClose();
              }}  
             text='Submit Application'/>
