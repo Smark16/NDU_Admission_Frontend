@@ -1311,9 +1311,9 @@ useEffect(() => {
             <Typography variant="h6" sx={{ mb: 1 }}>
               Thank you for your application!
             </Typography>
-            <Typography variant="body2" sx={{ color: "#666" }}>
+            {/* <Typography variant="body2" sx={{ color: "#666" }}>
               {submissionMessage}
-            </Typography>
+            </Typography> */}
           </Box>
         </DialogContent>
         <DialogActions>
