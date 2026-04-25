@@ -196,9 +196,9 @@ export default function NewApplicationForm() {
     message: string
     type: "success" | "error" | "info"
   } | null>(null)
-  const [submissionMessage, setSubmissionMessage] = useState(
-    "Your application has been submitted successfully. You will receive a confirmation email shortly."
-  )
+  // const [submissionMessage, setSubmissionMessage] = useState(
+  //   "Your application has been submitted successfully. You will receive a confirmation email shortly."
+  // )
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
