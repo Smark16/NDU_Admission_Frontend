@@ -278,9 +278,9 @@ export default function NewApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          // if (formData.oLevelSubjects.length < 8) {
-          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
-          // }
+          if (formData.oLevelSubjects.length < 8) {
+            errors.oLevelSubjects = "Add at least 8 O-Level results";
+          }
         }
 
         if (hasALevel) {
@@ -288,9 +288,9 @@ export default function NewApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          // if (formData.aLevelSubjects.length < 5) {
-          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
-          // }
+          if (formData.aLevelSubjects.length < 5) {
+            errors.aLevelSubjects = "Add at least 5 A-Level results";
+          }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
@@ -311,7 +311,6 @@ export default function NewApplicationForm() {
               errors.additionalQualifications = "Please fill all fields (Institution, Type, Award Year, Class of Award) for each additional qualification";
             }
           }
-    
         }
           
         break;
@@ -597,181 +596,6 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-//   const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
-//     if (isSubmitting) return;   
-
-//     if (submitLoader) return;
-
-//     if (!formData.application_fee_paid) {
-//     const isPaid = paymentOverride?.forcePaid || formData.application_fee_paid;
-//     const resolvedExternalReference = paymentOverride?.externalReference || formData.externalReference;
-
-//     if (!isPaid) {
-//     showNotification("Please complete payment before submitting", "error");
-//     return;
-//   }
-
-//    setIsSubmitting(true);  
-//    setUploadProgress(0);
-//    setSubmitLoader(true);
-//   // if (isSubmittingRef.current) return; 
-//   //   isSubmittingRef.current = true; 
-
-//     try {
-
-//       const formDataToSend = new FormData();
-
-//       // Personal & Program Info
-//       formDataToSend.append("applicant", String(loggeduser?.user_id));
-//       formDataToSend.append("batch", String(batch?.id));
-//       formDataToSend.append("first_name", formData.firstName);
-//       formDataToSend.append("last_name", formData.lastName);
-//       formDataToSend.append("middle_name", formData.middleName || "");
-//       formDataToSend.append("date_of_birth", formData.dateOfBirth);
-//       formDataToSend.append("gender", formData.gender);
-//       formDataToSend.append("nationality", formData.nationality);
-//       formDataToSend.append("phone", String(formData.phone));
-//       formDataToSend.append("email", formData.email);
-//       formDataToSend.append("disabled", formData?.disabled || "no");
-//       formDataToSend.append("address", formData.address || "");
-//       formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
-//       formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
-//       formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
-//       formDataToSend.append("campus", formData.campus);
-//       formDataToSend.append("academic_level", formData.academic_level);
-      
-//       formDataToSend.append("status", "submitted");
-
-//       // Append nin or passportNumber if present (add these lines)
-//       if (formData.nin) formDataToSend.append("nin", formData.nin);
-//       if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
-
-//       // Programs
-//       formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
-
-//       // Academic Details
-//       formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false")
-//       formDataToSend.append("has_alevel", formData.hasALevel ? "true" : "false")
-      
-//       if(formData.hasOLevel || formData.hasALevel){
-//         formDataToSend.append("olevel_year", formData.oLevelYear || "");
-//         formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
-//         formDataToSend.append("olevel_school", formData.oLevelSchool || "");
-//         formDataToSend.append("alevel_year", formData.aLevelYear || "");
-//         formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
-//         formDataToSend.append("alevel_school", formData.aLevelSchool || "");
-//         formDataToSend.append("alevel_combination", formData.alevel_combination || "");
-//       }
-
-//       // additional Qualifications
-//       formDataToSend.append(
-//         "additional_qualifications",
-//         JSON.stringify(formData.additionalQualifications.filter(q => q.institution || q.type))
-//       );
-
-//       // Results as JSON strings
-//       if(formData.hasOLevel){
-//         formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
-//       }
-
-//       if(formData.hasALevel){
-//         formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
-//       }
-
-//       // Passport Photo (optional)
-//       if (formData.passportPhoto) {
-//         formDataToSend.append("passport_photo", formData.passportPhoto);
-//       }
-
-//       // Documents — ONLY if file exists + send type
-//       if (formData.oLevelDocuments) {
-//         formDataToSend.append("documents", formData.oLevelDocuments);
-//         formDataToSend.append("document_types", "OLevel");
-//       }
-//       if (formData.aLevelDocuments) {
-//         formDataToSend.append("documents", formData.aLevelDocuments);
-//         formDataToSend.append("document_types", "ALevel");
-//       }
-//       if (formData.otherInstitutionDocuments) {
-//         formDataToSend.append("documents", formData.otherInstitutionDocuments);
-//         formDataToSend.append("document_types", "Others");
-//       }
-
-//       if (resolvedExternalReference) {
-//         formDataToSend.append("external_reference", resolvedExternalReference);
-//       }
-
-//       // ONE SINGLE REQUEST – FAST & RELIABLE
-//       // === Retry helper (now formDataToSend is in scope) ===
-//         const postWithRetry = async (maxRetries = 3) => {
-//           for (let attempt = 1; attempt <= maxRetries; attempt++) {
-//             try {
-//               return await AxiosInstance.post(
-//                 "/api/admissions/create_applications",
-//                 formDataToSend,
-//                 {
-//                   timeout: 180000, // 3 minutes
-//                   onUploadProgress: (progressEvent) => {
-//                     if (progressEvent.total) {
-//                       const percent = Math.round(
-//                         (progressEvent.loaded * 100) / progressEvent.total
-//                       );
-//                       setUploadProgress(percent);
-//                     }
-//                   },
-//                 }
-//               );
-//             } catch (err: any) {
-//               const isNetworkOrServerError =
-//                 !err.response || (err.response && err.response.status >= 500);
-
-//               if (attempt === maxRetries || !isNetworkOrServerError) {
-//                 throw err;
-//               }
-
-//               // exponential backoff
-//               await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-//               console.log(`Retry attempt ${attempt}...`);
-//             }
-//           }
-//         };
-//       // await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
-//        await postWithRetry();
-// // =======
-// //       const response = await AxiosInstance.post("/api/admissions/create_applications", formDataToSend);
-
-// //       if (response?.data?.idempotent_replay) {
-// //         setSubmissionMessage(
-// //           "Your application was already received successfully. No further action is needed."
-// //         );
-// //       } else {
-// //         setSubmissionMessage(
-// //           "Your application has been submitted successfully. You will receive a confirmation email shortly."
-// //         );
-// //       }
-// // >>>>>>> development
-
-//       setSubmitLoader(false);
-//       setOpenSummary(true);
-
-//       setTimeout(() => {
-//         navigate("/applicant/dashboard");
-//       }, 2000);
-
-//     } catch (err: any) {
-//       if (err.response?.data.detail) {
-//         showNotification(`${err.response?.data.detail}`, "error")
-//       } else {
-//         showNotification("Submission failed. Please check your connection and try again or Refresh and submit again.", "error")
-//       }
-//       console.error("Submission failed:", err);
-//     }finally{
-//       setSubmitLoader(false);
-//       setIsSubmitting(false);   
-//       setUploadProgress(0);
-//       window.scrollTo({ top: 0, behavior: 'smooth' });
-//     }
-//   };
 const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
   if (isSubmitting || submitLoader) return;
 
