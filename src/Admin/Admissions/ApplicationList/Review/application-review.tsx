@@ -300,7 +300,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     Full Name
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.first_name} {application.last_name}
+                    {application.first_name} {application.last_name} {application.middle_name}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
