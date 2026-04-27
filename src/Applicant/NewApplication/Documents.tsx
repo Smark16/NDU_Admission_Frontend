@@ -5,6 +5,7 @@ import {
   Typography,
   Paper,
   Chip,
+  CircularProgress,
 } from "@mui/material"
 import {
   Person as PersonIcon,
@@ -49,17 +50,12 @@ interface FormData {
   aLevelSchool: string
   aLevelSubjects: SubjectResult[]
   alevel_combination: string
-  // additionalQualificationInstitution: string
-  // additionalQualificationType: string
-  // additionalQualificationYear: string
-  // class_of_award: string
   additionalQualifications: Array<{
     institution: string;
     type: string;
     year: string;
     class_of_award: string;
   }>;
-  // study_mode: string
   passportPhoto: File | null
   oLevelDocuments: File | null
   aLevelDocuments: File | null
@@ -71,6 +67,7 @@ interface FormData {
 
 interface DocumentProps {
   formData: FormData;
+  compressingField: string | null;    
   formErrors: Record<string, string>
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
@@ -79,6 +76,7 @@ interface DocumentProps {
 const Documents: React.FC<DocumentProps> = ({
   formData,
   formErrors,
+  compressingField,
   handleFileChange,
   setFormData
 }) => {
@@ -129,7 +127,14 @@ const Documents: React.FC<DocumentProps> = ({
               <Typography variant="caption" sx={{ color: "#666" }}>
                 JPG or PNG, ≤ 100MB
               </Typography>
-              {formData.passportPhoto && (
+              {compressingField === "passportPhoto" ? (
+                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
+                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
+                 <Typography variant="caption" sx={{ color: "#666" }}>
+                  The uploaded image is being compressed...
+              </Typography>
+                </Box>
+              ) : formData.passportPhoto && (
                 <Chip
                   label={formData.passportPhoto.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, passportPhoto: null }))}
@@ -195,7 +200,14 @@ const Documents: React.FC<DocumentProps> = ({
                   <Typography variant="caption" sx={{ color: "#666" }}>
                     PDF (Max 100MB)
                   </Typography>
-                  {formData.oLevelDocuments && (
+                  {compressingField === "oLevelDocuments" ? (
+                    <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
+                    <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
+                    <Typography variant="caption" sx={{ color: "#666" }}>
+                      The uploaded image is being compressed...
+                  </Typography>
+                    </Box>
+                  ) : formData.oLevelDocuments && (
                     <Chip
                       label={formData.oLevelDocuments.name}
                       onDelete={() => setFormData((prev) => ({ ...prev, oLevelDocuments: null }))}
@@ -262,7 +274,14 @@ const Documents: React.FC<DocumentProps> = ({
               <Typography variant="caption" sx={{ color: "#666" }}>
                 PDF (Max 100MB)
               </Typography>
-              {formData.aLevelDocuments && (
+              {compressingField === "aLevelDocuments"  ? (
+                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
+                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
+                 <Typography variant="caption" sx={{ color: "#666" }}>
+                  The uploaded image is being compressed...
+              </Typography>
+                </Box>
+              ) : formData.aLevelDocuments && (
                 <Chip
                   label={formData.aLevelDocuments.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, aLevelDocuments: null }))}
@@ -329,7 +348,14 @@ const Documents: React.FC<DocumentProps> = ({
               <Typography variant="caption" sx={{ color: "#666" }}>
                 PDF, ZIP (Max 100MB) - Optional
               </Typography>
-              {formData.otherInstitutionDocuments && (
+              {compressingField === "otherInstitutionDocuments"  ? (
+                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
+                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
+                 <Typography variant="caption" sx={{ color: "#666" }}>
+                  The uploaded image is being compressed...
+              </Typography>
+                </Box>
+              ) : formData.otherInstitutionDocuments && (
                 <Chip
                   label={formData.otherInstitutionDocuments.name}
                   onDelete={() => setFormData((prev) => ({ ...prev, otherInstitutionDocuments: null }))}

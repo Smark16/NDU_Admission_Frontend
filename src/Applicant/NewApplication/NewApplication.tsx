@@ -33,7 +33,9 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material"
 import { LinearProgress } from "@mui/material";
+import imageCompression from 'browser-image-compression';
 import { useNavigate } from "react-router-dom"
+
 import PersonalInfo from "./personaInfo"
 import Programs from "./Programs"
 import AcademicResults from "./AcademicResults"
@@ -139,6 +141,7 @@ export default function NewApplicationForm() {
   const { batch } = useHook()
   const { loggeduser} = useContext(AuthContext) || {}
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressingField, setCompressingField] = useState<string | null>(null);
 
   // drafts
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
@@ -441,19 +444,60 @@ export default function NewApplicationForm() {
     }
   }
 
-  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+  // const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+  const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target
+
     if (files && files[0]) {
-      if (files[0].size > MAX_FILE_SIZE) {
+      let file = files[0];
+      const originalSize = (file.size / (1024 * 1024)).toFixed(1);
+      
+       // Compress only images
+      if (file.type.startsWith('image/')) {
+        try {
+          setCompressingField(name); 
+          showNotification(`Compressing ${file.name}...`, "info");
+
+          const options = {
+            maxSizeMB: 2,           // Target 2 MB max per image
+            maxWidthOrHeight: 2000,
+            useWebWorker: true,
+            preserveExif: false,
+          };
+
+          const compressedFile = await imageCompression(file, options);
+          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
+
+          console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
+          file = compressedFile;
+
+          showNotification(`Compression complete: ${compressedSize} MB`, "success");
+        } catch (error) {
+          console.error("Image compression failed:", error);
+          showNotification("Compression failed. Using original image.", "error");
+        }finally {
+          setCompressingField(null);                    
+        }
+      } 
+      // For PDFs - just warn user (can't compress easily)
+      else if (file.type === 'application/pdf') {
+        showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
+      } 
+      else {
+        showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
+      }
+
+      if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
         setFormErrors((prev) => ({
           ...prev,
-          [name]: `File too large. Maximum allowed size is 100MB (selected: ${(files[0].size / (1024 * 1024)).toFixed(1)}MB).`,
-        }))
-        e.target.value = ""
-        return
+          [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+        }));
+        e.target.value = "";
+        return;
       }
+
        setFormErrors((prev) => ({ ...prev, [name]: "" }))
       setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
@@ -832,14 +876,14 @@ const handleSubmit = async (paymentOverride?: { externalReference?: string; forc
     }
 
     // Retry helper
-    const postWithRetry = async (maxRetries = 3) => {
+    const postWithRetry = async (maxRetries = 5) => {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           return await AxiosInstance.post(
             "/api/admissions/create_applications",
             formDataToSend,
             {
-              timeout: 180000,
+              timeout: 300000,
               onUploadProgress: (progressEvent) => {
                 if (progressEvent.total) {
                   const percent = Math.round(
@@ -1082,6 +1126,7 @@ useEffect(() => {
       handleFileChange={handleFileChange}
       setFormData={setFormData}
       formErrors={formErrors}
+      compressingField={compressingField}     
     />
     </>
   )
