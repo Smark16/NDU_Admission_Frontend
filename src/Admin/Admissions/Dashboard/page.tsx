@@ -35,7 +35,6 @@ import {
   Eye,
   Globe,
   UserPlus,
-  DollarSign,
 } from "lucide-react"
 
 import { useContext } from "react"

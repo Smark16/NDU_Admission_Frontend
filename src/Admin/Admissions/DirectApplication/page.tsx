@@ -640,6 +640,7 @@ export default function DirectApplicationForm() {
       handleFileChange={handleFileChange}
       setFormData={setFormData}
       formErrors={formErrors}
+      compressingField={compressingField} 
     />
     </>
   )
