@@ -278,9 +278,9 @@ export default function NewApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          if (formData.oLevelSubjects.length < 8) {
-            errors.oLevelSubjects = "Add at least 8 O-Level results";
-          }
+          // if (formData.oLevelSubjects.length < 8) {
+          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
+          // }
         }
 
         if (hasALevel) {
@@ -288,30 +288,33 @@ export default function NewApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          if (formData.aLevelSubjects.length < 5) {
-            errors.aLevelSubjects = "Add at least 5 A-Level results";
-          }
+          // if (formData.aLevelSubjects.length < 5) {
+          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
+          // }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
-        // const requiresAdditionalQuals = !hasOLevel && !hasALevel;
-        if(!formData.hasOLevel && !formData.hasALevel){
-              if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
-            errors.additionalQualifications = "Please add at least one Additional Qualification";
-          } else {
-            // Validate each additional qualification entry
-            const hasEmptyQual = formData.additionalQualifications.some((qual: any) => 
-              !qual.institution?.trim() || 
-              !qual.type?.trim() || 
-              !qual.year || 
-              !qual.class_of_award?.trim()
-            );
+        if (formData.additionalQualifications?.length > 0) {
+        const hasIncompleteQual = formData.additionalQualifications.some((qual: any) => 
+          !qual.institution?.trim() || 
+          !qual.type?.trim() || 
+          !qual.year || 
+          !qual.class_of_award?.trim()
+        );
 
-            if (hasEmptyQual) {
-              errors.additionalQualifications = "Please fill all fields (Institution, Type, Award Year, Class of Award) for each additional qualification";
-            }
-          }
+        if (hasIncompleteQual) {
+          errors.additionalQualifications = 
+            "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.";
         }
+      }
+
+      // If user has NO O-Level and NO A-Level, they MUST provide at least one Additional Qualification
+      if (!hasOLevel && !hasALevel) {
+        if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
+          errors.additionalQualifications = 
+            "Since you have neither O-Level nor A-Level, you must add at least one additional qualification.";
+        }
+      }
           
         break;
       case 3: // Documents
