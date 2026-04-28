@@ -466,7 +466,7 @@ export default function DirectApplicationForm() {
       }
 
        setFormErrors((prev) => ({ ...prev, [name]: "" }))
-      setFormData((prev) => ({ ...prev, [name]: files[0] }))
+      setFormData((prev) => ({ ...prev, [name]: file }))
     }
   }
 
