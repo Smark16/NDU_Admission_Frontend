@@ -10,15 +10,16 @@ interface Application {
   id: number;
   first_name: string;
   last_name:String;
+  middle_name:string;
   date_of_birth: string;
   gender: "Male" | "Female" | "Other";
   nationality: string;
   phone: string;
   email: string;
   
- // next_of_kin_name: string;
-  // next_of_kin_contact: string;
-  // next_of_kin_relationship: string;
+  next_of_kin_name: string;
+  next_of_kin_contact: string;
+  next_of_kin_relationship: string;
 //  program: { name: string; code: string };
   batch: string;
   // campus: { name: string };

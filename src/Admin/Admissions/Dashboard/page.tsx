@@ -35,7 +35,6 @@ import {
   Eye,
   Globe,
   UserPlus,
-  DollarSign,
 } from "lucide-react"
 
 import { useContext } from "react"
@@ -233,22 +232,14 @@ const AdmissionDashboard = () => {
 
         {/* Stats Grid — Row 1: Application volume */}
         <Grid container spacing={2} mb={2}>
-          <Grid size={{xs:12, sm:6, md:3}}>
+          <Grid size={{xs:12, sm:6, md:4}}>
             <StatCard title="Total Applications" value={dashboardStats?.totalApplication ?? 0} icon={FileText} color="#000080" />
           </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
+          <Grid size={{xs:12, sm:6, md:4}}>
             <StatCard title="Online Applications" value={dashboardStats?.onlineApplications ?? 0} icon={Globe} color="#1565c0" />
           </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
+          <Grid size={{xs:12, sm:6, md:4}}>
             <StatCard title="Direct Applications" value={dashboardStats?.directApplications ?? 0} icon={UserPlus} color="#6a1b9a" />
-          </Grid>
-          <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard
-              title="Application Fee Income"
-              value={`UGX ${(dashboardStats?.onlineFeeIncome ?? 0).toLocaleString()}`}
-              icon={DollarSign}
-              color="#2e7d32"
-            />
           </Grid>
         </Grid>
 

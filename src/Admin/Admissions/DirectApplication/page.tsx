@@ -33,6 +33,8 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material"
 import { useNavigate } from "react-router-dom"
+import imageCompression from 'browser-image-compression';
+
 import PersonalInfo from "./personalnfo"
 import Programs from "./Programs"
 import AcademicResults from "./AcademicResults"
@@ -107,6 +109,8 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  hasOLevel: boolean;
+  hasALevel: boolean;
   status: string
 }
 
@@ -118,6 +122,8 @@ export default function DirectApplicationForm() {
   const { loggeduser } = useContext(AuthContext) || {}
   const [activeStep, setActiveStep] = useState(0)
   const [campus, setCampus] = useState<Campus[]>([])
+  const [compressingField, setCompressingField] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<FormData>({
     applicant: undefined,
     batch: admissionBatch?.id ? Number(admissionBatch.id) : undefined,
@@ -157,6 +163,8 @@ export default function DirectApplicationForm() {
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
     externalReference: "",
+    hasOLevel: false,
+    hasALevel: false,
     status: "submitted"
   })
   const [openSummary, setOpenSummary] = useState(false)
@@ -219,38 +227,64 @@ export default function DirectApplicationForm() {
         break;
 
       case 2: // Academic Results
-        if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
-        if (!formData.oLevelIndexNumber.trim()) errors.oLevelIndexNumber = "O-Level index number required";
-        if (!formData.oLevelSchool.trim()) errors.oLevelSchool = "O-Level school required";
+        const hasOLevel = !!formData.hasOLevel;
+        const hasALevel = !!formData.hasALevel;
 
-        // Check at least one valid O-Level subject
-        const validOLevel = formData.oLevelSubjects.some(s => s.subject && s.grade);
-        if (!validOLevel) errors.oLevelSubjects = "Add an O-Level result";
+        if (hasOLevel) {
+          if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
+          if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
+          if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
+          // if (formData.oLevelSubjects.length < 8) {
+          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
+          // }
+        }
 
-        // if(formData.oLevelSubjects.length < 8){
-        //   errors.oLevelSubjects ='Add atleast 8 Olevel Results'
-        // }
+        if (hasALevel) {
+          if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
+          if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
+          if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
+          if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
+          // if (formData.aLevelSubjects.length < 5) {
+          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
+          // }
+        }
 
-        // Only validate A-Level if applicant has A-Level
+        // Allow proceeding if they have either O/A Level OR Additional Qualifications
+        // const requiresAdditionalQuals = !hasOLevel && !hasALevel;
+        if(!formData.hasOLevel && !formData.hasALevel){
+              if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
+            errors.additionalQualifications = "Please add at least one Additional Qualification";
+          } else {
+            // Validate each additional qualification entry
+            const hasEmptyQual = formData.additionalQualifications.some((qual: any) => 
+              !qual.institution?.trim() || 
+              !qual.type?.trim() || 
+              !qual.year || 
+              !qual.class_of_award?.trim()
+            );
 
-        if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
-        if (!formData.aLevelIndexNumber.trim()) errors.aLevelIndexNumber = "A-Level index required";
-        if (!formData.aLevelSchool.trim()) errors.aLevelSchool = "A-Level school required";
-        if (!formData.alevel_combination.trim()) errors.alevel_combination = "combination required"
-
-        // if(formData.aLevelSubjects.length < 5){
-        //   errors.aLevelSubjects = "Add atleast 5 Alevel results"
-        // }
-
+            if (hasEmptyQual) {
+              errors.additionalQualifications = "Please fill all fields (Institution, Type, Award Year, Class of Award) for each additional qualification";
+            }
+          }
+        }
+          
         break;
 
       case 3: // Documents
         if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
-        if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
-        // Only require A-Level doc if they have A-Level
-        if (!formData.aLevelDocuments) {
-          errors.aLevelDocuments = "A-Level certificate is required";
+
+        if(formData.hasOLevel){
+          if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
         }
+
+        // Only require A-Level doc if they have A-Level
+        if(formData.hasALevel){
+          if (!formData.aLevelDocuments) {
+            errors.aLevelDocuments = "A-Level certificate is required";
+          }
+        }
+        
         if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
         break;
 
@@ -377,13 +411,62 @@ export default function DirectApplicationForm() {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+  const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
+
+  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target
+
     if (files && files[0]) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files?.[0],
-      }))
+      let file = files[0];
+      const originalSize = (file.size / (1024 * 1024)).toFixed(1);
+      
+       // Compress only images
+      if (file.type.startsWith('image/')) {
+        try {
+          setCompressingField(name); 
+          showNotification(`Compressing ${file.name}...`, "info");
+
+          const options = {
+            maxSizeMB: 2,           // Target 2 MB max per image
+            maxWidthOrHeight: 2000,
+            useWebWorker: true,
+            preserveExif: false,
+          };
+
+          const compressedFile = await imageCompression(file, options);
+          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
+
+          console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
+          file = compressedFile;
+
+          showNotification(`Compression complete: ${compressedSize} MB`, "success");
+        } catch (error) {
+          console.error("Image compression failed:", error);
+          showNotification("Compression failed. Using original image.", "error");
+        }finally {
+          setCompressingField(null);                    
+        }
+      } 
+      // For PDFs - just warn user (can't compress easily)
+      else if (file.type === 'application/pdf') {
+        showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
+      } 
+      else {
+        showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
+      }
+
+      if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+        }));
+        e.target.value = "";
+        return;
+      }
+
+       setFormErrors((prev) => ({ ...prev, [name]: "" }))
+      setFormData((prev) => ({ ...prev, [name]: files[0] }))
     }
   }
 
@@ -426,6 +509,10 @@ export default function DirectApplicationForm() {
       formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
 
       // Academic Details
+    formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
+    formDataToSend.append("has_alevel", formData.hasALevel ? "true" : "false");
+    
+    if (formData.hasOLevel || formData.hasALevel) {
       formDataToSend.append("olevel_year", formData.oLevelYear || "");
       formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
       formDataToSend.append("olevel_school", formData.oLevelSchool || "");
@@ -433,7 +520,7 @@ export default function DirectApplicationForm() {
       formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
       formDataToSend.append("alevel_school", formData.aLevelSchool || "");
       formDataToSend.append("alevel_combination", formData.alevel_combination || "");
-
+    }
       // additional Qualifications
       formDataToSend.append(
         "additional_qualifications",
@@ -441,8 +528,19 @@ export default function DirectApplicationForm() {
       );
 
       // Results as JSON strings
-      formDataToSend.append("olevel_results", JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade)));
-      formDataToSend.append("alevel_results", JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade)));
+      if (formData.hasOLevel) {
+      formDataToSend.append(
+        "olevel_results",
+        JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade))
+      );
+    }
+
+    if (formData.hasALevel) {
+      formDataToSend.append(
+        "alevel_results",
+        JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade))
+      );
+    }
 
       // Passport Photo (optional)
       if (formData.passportPhoto) {
@@ -474,7 +572,7 @@ export default function DirectApplicationForm() {
       setOpenSummary(true);
 
       setTimeout(() => {
-        navigate("/admin/application_list");
+        navigate("/admin/direct_entry_list");
       }, 2000);
 
     } catch (err: any) {
@@ -542,6 +640,7 @@ export default function DirectApplicationForm() {
       handleFileChange={handleFileChange}
       setFormData={setFormData}
       formErrors={formErrors}
+      compressingField={compressingField} 
     />
     </>
   )

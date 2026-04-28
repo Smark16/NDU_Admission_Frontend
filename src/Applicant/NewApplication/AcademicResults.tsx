@@ -366,14 +366,54 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
             {formErrors.additionalQualifications}
           </Alert>
         )}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1a3a52" }}>
-            Additional Qualifications
-          </Typography>
-          <Button startIcon={<AddIcon />} onClick={addAdditionalQualification} variant="outlined" size="small">
-            Add Qualification
-          </Button>
-        </Box>
+
+        <Box sx={{ mb: 3 }}>
+        {/* Header Section - Responsive Layout */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
+          justifyContent: "space-between",
+          gap: { xs: 2, sm: 0 },
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            color: "#1a3a52",
+            fontSize: { xs: "1.1rem", sm: "1.25rem" },
+          }}
+        >
+          Additional Qualifications
+        </Typography>
+
+        <Button
+          startIcon={<AddIcon />}
+          onClick={addAdditionalQualification}
+          variant="outlined"
+          size="small"
+          sx={{
+            textTransform: "none",
+            fontWeight: 600,
+            px: 3,
+            py: 1,
+            borderRadius: 2,
+            whiteSpace: "nowrap",
+            minWidth: { xs: "100%", sm: "auto" },
+            "&:hover": {
+              backgroundColor: "#3e397b",
+              color: "white",
+              borderColor: "#3e397b",
+            },
+          }}
+        >
+          Add Qualification
+        </Button>
+      </Box>
+      </Box>
 
         {formData.additionalQualifications.map((qual: AdditionalQualification, index: number) => (
           <Paper key={index} sx={{ p: 3, mb: 3, border: '1px solid #e0e0e0' }}>
