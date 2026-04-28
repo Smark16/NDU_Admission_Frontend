@@ -20,9 +20,22 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
  
   const statusColors: Record<string, "success" | "error" | "info" | "warning"> = {
     accepted: "success",
+    admitted: "success",
     rejected: "error",
     submitted: "info",
+    under_review: "warning",
     draft: "warning",
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+        return "Approved"
+      case "under_review":
+        return "Under Review"
+      default:
+        return (status || "Unknown").replace("_", " ")
+    }
   }
 
   return (
@@ -36,7 +49,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
             </Typography>
           </Box>
           <Chip
-            label={application?.status}
+            label={getStatusLabel(application?.status)}
             color={statusColors[application?.status] || "default"}
             variant="filled"
             sx={{ fontWeight: 600 }}

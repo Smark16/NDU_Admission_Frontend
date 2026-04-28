@@ -190,10 +190,10 @@ export default function AdmitStudentPage() {
   };
 
   const handleSubmitClick = () => {
-    if (!formData.student_id || !formData.program) {
+    if (!formData.student_id || !formData.program || !formData.study_mode || !formData.campus) {
       setSnackbar({
         open: true,
-        message: "Please fill in all required fields",
+        message: "Please fill in all required fields: program, campus, study mode, and student number",
         type: "error",
       })
       return
@@ -254,7 +254,7 @@ export default function AdmitStudentPage() {
         admission_notes: formData.notes,
         admitted_batch: admissionBatch?.id,
         reg_no: formData.reg_no,
-        study_mode: formData?.study_mode || "",
+        study_mode: formData.study_mode,
         application: application?.id || 0,
         is_admitted: true,
         admitted_by: loggeduser?.user_id

@@ -61,20 +61,35 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || "").toLowerCase()) {
       case "accepted":
+      case "admitted":
         return "success"
       case "rejected":
         return "error"
       case "submitted":
+      case "under_review":
         return "info"
       default:
         return "warning"
     }
   }
 
+  const getStatusLabel = (status: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+        return "Approved"
+      case "under_review":
+        return "Under Review"
+      case "admitted":
+        return "Admitted"
+      default:
+        return status || "Unknown"
+    }
+  }
+
   const getStatusIcon = (status: string) => {
-    if (status.toLowerCase() === "accepted") return <CheckCircleIcon />
+    if (["accepted", "admitted"].includes((status || "").toLowerCase())) return <CheckCircleIcon />
     return <WarningIcon />
   }
 
@@ -417,7 +432,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
                   {getStatusIcon(application.status)}
                   <Chip
-                    label={application.status}
+                    label={getStatusLabel(application.status)}
                     color={getStatusColor(application.status) as any}
                     variant="filled"
                     size="small"

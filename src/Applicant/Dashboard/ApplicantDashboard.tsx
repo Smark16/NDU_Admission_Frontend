@@ -344,7 +344,7 @@ import CustomButton from "../../ReUsables/custombutton";
 interface Application {
   id: number;
   program: string;
-  application_status: "accepted" | "rejected" | "submitted" | "pending";
+  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
   batch: string | null;
   campus: string | null;
   admission_letter_pdf?: string;
@@ -364,6 +364,31 @@ const ApplicantDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { batch } = useHook();
   const AxiosInstance = useAxios();
+
+  const getStatusLabel = (status: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+        return "APPROVED";
+      case "under_review":
+        return "UNDER REVIEW";
+      default:
+        return (status || "UNKNOWN").replace("_", " ").toUpperCase();
+    }
+  };
+
+  const getStatusColor = (status: string): "success" | "error" | "info" | "warning" => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+      case "admitted":
+        return "success";
+      case "rejected":
+        return "error";
+      case "under_review":
+        return "warning";
+      default:
+        return "info";
+    }
+  };
 
   // Fetch both submitted application and draft
   const fetchData = async () => {
@@ -427,11 +452,8 @@ const ApplicantDashboard: React.FC = () => {
             title={application.program}
             action={
               <Chip
-                label={application.application_status.toUpperCase()}
-                color={
-                  application.application_status === "accepted" ? "success" :
-                  application.application_status === "rejected" ? "error" : "info"
-                }
+                label={getStatusLabel(application.application_status)}
+                color={getStatusColor(application.application_status)}
               />
             }
           />

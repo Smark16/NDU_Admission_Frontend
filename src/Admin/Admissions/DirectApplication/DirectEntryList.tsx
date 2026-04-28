@@ -38,6 +38,17 @@ const statusConfig: Record<
   rejected: { color: "error", icon: <CancelIcon fontSize="small" /> },
 }
 
+const getStatusLabel = (status: Application["status"]) => {
+  switch (status) {
+    case "accepted":
+      return "Approved"
+    case "under_review":
+      return "Under Review"
+    default:
+      return status.replace("_", " ")
+  }
+}
+
 export default function DirectEntryList() {
   const AxiosInstance = useAxios()
   const navigate = useNavigate()
@@ -136,7 +147,7 @@ export default function DirectEntryList() {
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
           { label: "Total", value: filteredApplications.length },
-          { label: "Accepted", value: filteredApplications.filter((a) => a.status === "accepted").length },
+          { label: "Approved", value: filteredApplications.filter((a) => a.status === "accepted").length },
           { label: "Under Review", value: filteredApplications.filter((a) => a.status === "under_review").length },
           { label: "Rejected", value: filteredApplications.filter((a) => a.status === "rejected").length },
         ].map((stat, i) => (
@@ -182,7 +193,7 @@ export default function DirectEntryList() {
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="submitted">Submitted</MenuItem>
                 <MenuItem value="under_review">Under Review</MenuItem>
-                <MenuItem value="accepted">Accepted</MenuItem>
+                <MenuItem value="accepted">Approved</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
@@ -255,7 +266,7 @@ export default function DirectEntryList() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={app.status.replace("_", " ")}
+                          label={getStatusLabel(app.status)}
                           color={statusConfig[app.status]?.color}
                           icon={statusConfig[app.status]?.icon}
                           size="small"

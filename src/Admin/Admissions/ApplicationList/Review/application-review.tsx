@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Container,
   Grid,
@@ -70,6 +70,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     message: string
     type: "success" | "error" | "info"
   } | null>(null)
+  const [currentStatus, setCurrentStatus] = useState(application?.status || "submitted")
+
+  useEffect(() => {
+    setCurrentStatus(application?.status || "submitted")
+  }, [application?.status])
 
 
   // === NOTIFICATION HELPER ===
@@ -78,13 +83,32 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     setTimeout(() => setNotification(null), 4000)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusLabel = (status: string) => {
+    switch ((status || "").toLowerCase()) {
       case "accepted":
+        return "Approved"
+      case "under_review":
+        return "Under Review"
+      case "admitted":
+        return "Admitted"
+      case "submitted":
+        return "Submitted"
+      case "rejected":
+        return "Rejected"
+      default:
+        return status || "Unknown"
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+      case "admitted":
         return "success"
       case "rejected":
         return "error"
       case "submitted":
+      case "under_review":
         return "info"
       default:
         return "warning"
@@ -92,9 +116,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   }
 
   const getStatusIcon = (status: string) => {
-    if (status.toLowerCase() === "accepted") return <CheckCircleIcon />
+    if (["accepted", "admitted"].includes((status || "").toLowerCase())) return <CheckCircleIcon />
     return <WarningIcon />
   }
+
+  const handleApprove = async () => {
+    try {
+      setIsLoading(true);
+      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "accepted" });
+      setCurrentStatus("accepted")
+      showNotification("Application approved successfully", "success");
+      setTimeout(() => navigate('/admin/application_list'), 800);
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to approve application", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleReject = async (rejection_reason: string) => {
   if (!rejection_reason?.trim()) {
@@ -114,6 +152,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       payload
     );
 
+    setCurrentStatus("rejected")
     setIsLoading(false);
     showNotification("Application has been successfully rejected", "success");
 
@@ -540,10 +579,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                   Current Status
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-                  {getStatusIcon(application.status)}
+                  {getStatusIcon(currentStatus)}
                   <Chip
-                    label={application.status}
-                    color={getStatusColor(application.status) as any}
+                    label={getStatusLabel(currentStatus)}
+                    color={getStatusColor(currentStatus) as any}
                     variant="filled"
                     size="small"
                   />
@@ -620,7 +659,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 variant="outlined"
                 fullWidth
                 startIcon={<EditIcon />}
-                disabled={application.status === 'Admitted'}
+                disabled={(currentStatus || "").toLowerCase() === 'admitted'}
                 onClick={() => {
                   setEditForm({
                     first_name: application.first_name || "",
@@ -663,7 +702,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 Change Programme
               </Button>
 
-              {application.reviewed_by && (
+              {(application.reviewed_by || application.reviewed_at) && (
                 <>
                   <Divider />
                   <Box>
@@ -674,49 +713,75 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                       {application.reviewed_by}
                     </Typography>
                   </Box>
-                  <Box>
-                    <Typography variant="caption" color="textSecondary">
-                      Review Date
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                      {new Date(application.reviewed_at).toLocaleDateString()}
-                    </Typography>
-
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {application.status === 'accepted' ? (
-                        <CustomButton
-                          disabled={isLoading}
-                          onClick={handleSendLetter}
-                          text={
-                            isLoading ? <CircularProgress size={15} /> : "Send offer letter to portal"
-                          }
-                        />
-                      ) : application.status === 'Admitted' ? (
-                        ""
-                      ) : (
-                        <>
-                          <CustomButton component={Link}
-                            to={`/admin/admit_student/${application.id}`}
-                            text='Admit Student'
-                          />
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{
-                              textTransform: "none",
-                              borderColor: "#7c1519",
-                              color: "#7c1519"
-                            }}
-                            onClick={() => setOpenReject(true)}
-                          >
-                            {isLoading ? <CircularProgress size={15} /> : "Reject Student"}
-                          </Button>
-                        </>
-                      )}
+                  {application.reviewed_at && (
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">
+                        Review Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                        {new Date(application.reviewed_at).toLocaleDateString()}
+                      </Typography>
                     </Box>
-                  </Box>
+                  )}
                 </>
               )}
+
+              <Divider />
+              <Box>
+                <Typography variant="caption" color="textSecondary">
+                  Actions
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
+                  {(currentStatus || "").toLowerCase() === "accepted" ? (
+                    <CustomButton
+                      disabled={isLoading}
+                      onClick={handleSendLetter}
+                      text={
+                        isLoading ? <CircularProgress size={15} /> : "Send offer letter to portal"
+                      }
+                    />
+                  ) : (currentStatus || "").toLowerCase() === "admitted" ? (
+                    <Chip
+                      size="small"
+                      color="success"
+                      label="Application already admitted"
+                      icon={<CheckCircleIcon />}
+                    />
+                  ) : (
+                    <>
+                      <CustomButton component={Link}
+                        to={`/admin/admit_student/${application.id}`}
+                        text='Admit Student'
+                      />
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          borderColor: "#2e7d32",
+                          color: "#2e7d32",
+                        }}
+                        disabled={isLoading}
+                        onClick={handleApprove}
+                      >
+                        {isLoading ? <CircularProgress size={15} /> : "Approve Application"}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          textTransform: "none",
+                          borderColor: "#7c1519",
+                          color: "#7c1519"
+                        }}
+                        onClick={() => setOpenReject(true)}
+                      >
+                        Reject Student
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

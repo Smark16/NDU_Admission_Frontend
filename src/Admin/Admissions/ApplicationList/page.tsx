@@ -24,7 +24,7 @@ interface Application {
   first_name: string
   last_name: string
   gender: string
-  status: "submitted" | "accepted" | "rejected" | "under_review"
+  status: "submitted" | "accepted" | "rejected" | "under_review" | "pending_approval"
   created_at: string
   email: string
   programs: { id: number; name: string }[]
@@ -35,10 +35,24 @@ const statusConfig: Record<
   Application["status"],
   { color: "default" | "info" | "warning" | "success" | "error"; icon: React.ReactElement }
 > = {
-  submitted:    { color: "info",    icon: <ScheduleIcon fontSize="small" /> },
-  under_review: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
-  accepted:     { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
-  rejected:     { color: "error",   icon: <CancelIcon fontSize="small" /> },
+  submitted:        { color: "info",    icon: <ScheduleIcon fontSize="small" /> },
+  under_review:     { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
+  pending_approval: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
+  accepted:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+  rejected:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
+}
+
+const getStatusLabel = (status: Application["status"]) => {
+  switch (status) {
+    case "accepted":
+      return "Approved"
+    case "under_review":
+      return "Under Review"
+    case "pending_approval":
+      return "Awaiting Registrar"
+    default:
+      return status.replace("_", " ")
+  }
 }
 
 export default function ApplicationList() {
@@ -136,10 +150,11 @@ export default function ApplicationList() {
       {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Total",        value: filteredApplications.length },
-          { label: "Accepted",     value: filteredApplications.filter(a => a.status === "accepted").length },
-          { label: "Under Review", value: filteredApplications.filter(a => a.status === "under_review").length },
-          { label: "Rejected",     value: filteredApplications.filter(a => a.status === "rejected").length },
+          { label: "Total",              value: filteredApplications.length },
+          { label: "Approved",           value: filteredApplications.filter(a => a.status === "accepted").length },
+          { label: "Awaiting Registrar", value: filteredApplications.filter(a => a.status === "pending_approval").length },
+          { label: "Under Review",       value: filteredApplications.filter(a => a.status === "under_review").length },
+          { label: "Rejected",           value: filteredApplications.filter(a => a.status === "rejected").length },
         ].map((stat, i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ background: "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)" }}>
@@ -170,7 +185,8 @@ export default function ApplicationList() {
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="submitted">Submitted</MenuItem>
                 <MenuItem value="under_review">Under Review</MenuItem>
-                <MenuItem value="accepted">Accepted</MenuItem>
+                <MenuItem value="pending_approval">Awaiting Registrar</MenuItem>
+                <MenuItem value="accepted">Approved</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
@@ -244,10 +260,10 @@ export default function ApplicationList() {
                       <TableCell sx={{ fontWeight: 500 }}>{app.first_name} {app.last_name}</TableCell>
                       <TableCell sx={{ fontSize: "0.875rem" }}>{app.academic_level}</TableCell>
                       <TableCell>{app.gender}</TableCell>
-                      <TableCell sx={{ fontSize: "0.875rem" }}>{app.programs.map(p => p.name).join(", ") || "—"}</TableCell>
+                      <TableCell sx={{ fontSize: "0.875rem" }}>{(app.programs ?? []).map(p => p.name).join(", ") || "—"}</TableCell>
                       <TableCell>
                         <Chip
-                          label={app.status.replace("_", " ")}
+                          label={getStatusLabel(app.status)}
                           color={statusConfig[app.status]?.color}
                           icon={statusConfig[app.status]?.icon}
                           size="small" sx={{ minWidth: 100 }}
