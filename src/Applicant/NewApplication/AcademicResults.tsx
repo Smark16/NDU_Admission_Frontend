@@ -63,12 +63,12 @@ interface AcademicResultsProps {
 const AcademicResults: React.FC<AcademicResultsProps> = ({
   formData,
   formErrors,
-  handleOLevelSubjectChange,
-  addOLevelSubject,
-  removeOLevelSubject,
-  handleALevelSubjectChange,
-  addALevelSubject,
-  removeALevelSubject,
+  handleOLevelSubjectChange: _handleOLevelSubjectChange,
+  addOLevelSubject: _addOLevelSubject,
+  removeOLevelSubject: _removeOLevelSubject,
+  handleALevelSubjectChange: _handleALevelSubjectChange,
+  addALevelSubject: _addALevelSubject,
+  removeALevelSubject: _removeALevelSubject,
   handleInputChange,
   setFormData,
 }) => {

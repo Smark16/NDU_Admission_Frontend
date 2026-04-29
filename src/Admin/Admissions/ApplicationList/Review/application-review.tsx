@@ -36,7 +36,7 @@ import {
 } from "@mui/material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../../ReUsables/custombutton"
 import RejectionForm from "./RejectionForm"
