@@ -24,7 +24,7 @@ export default function ActionsSection({ application }: ActionsSectionProps) {
       />
       <CardContent>
         <Stack spacing={2}>
-          {application?.status === "accepted" && (
+          {(application?.status === "accepted" || application?.status === "admitted" || application?.status === "Admitted") && (
             <Button fullWidth variant="contained" color="success" startIcon={<FileDownloadIcon />}>
               Download Offer Letter
             </Button>

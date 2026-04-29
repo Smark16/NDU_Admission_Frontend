@@ -60,6 +60,10 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  passportPhotoUrl: string | null
+  oLevelDocumentsUrl: string | null
+  aLevelDocumentsUrl: string | null
+  otherInstitutionDocumentsUrl: string | null
   hasOLevel: boolean;
   hasALevel: boolean;
   status: string
@@ -72,6 +76,41 @@ interface DocumentProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
 }
+
+const SavedFileChip = ({
+  file,
+  url,
+  fieldName,
+  setFormData,
+}: {
+  file: File | null;
+  url: string | null;
+  fieldName: string;
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+}) => {
+  if (file) {
+    return (
+      <Chip
+        label={file.name}
+        onDelete={() => setFormData((prev: any) => ({ ...prev, [fieldName]: null }))}
+        sx={{ mt: 2 }}
+        color="primary"
+      />
+    );
+  }
+  if (url) {
+    const filename = url.split('/').pop() || 'document';
+    return (
+      <Chip
+        icon={<CheckCircleIcon />}
+        label={`Saved: ${filename}`}
+        onDelete={() => setFormData((prev: any) => ({ ...prev, [`${fieldName}Url`]: null }))}
+        sx={{ mt: 2, bgcolor: "#e8f5e9", color: "#2e7d32", "& .MuiChip-deleteIcon": { color: "#2e7d32" } }}
+      />
+    );
+  }
+  return null;
+};
 
 const Documents: React.FC<DocumentProps> = ({
   formData,
@@ -128,19 +167,12 @@ const Documents: React.FC<DocumentProps> = ({
                 JPG or PNG, ≤ 100MB
               </Typography>
               {compressingField === "passportPhoto" ? (
-                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
-                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
-                 <Typography variant="caption" sx={{ color: "#666" }}>
-                  The uploaded image is being compressed...
-              </Typography>
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                  <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                  <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                 </Box>
-              ) : formData.passportPhoto && (
-                <Chip
-                  label={formData.passportPhoto.name}
-                  onDelete={() => setFormData((prev) => ({ ...prev, passportPhoto: null }))}
-                  sx={{ mt: 2 }}
-                  color="primary"
-                />
+              ) : (
+                <SavedFileChip file={formData.passportPhoto} url={formData.passportPhotoUrl} fieldName="passportPhoto" setFormData={setFormData} />
               )}
             </label>
           </Paper>
@@ -201,19 +233,12 @@ const Documents: React.FC<DocumentProps> = ({
                     PDF (Max 100MB)
                   </Typography>
                   {compressingField === "oLevelDocuments" ? (
-                    <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
-                    <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
-                    <Typography variant="caption" sx={{ color: "#666" }}>
-                      The uploaded image is being compressed...
-                  </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                      <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                     </Box>
-                  ) : formData.oLevelDocuments && (
-                    <Chip
-                      label={formData.oLevelDocuments.name}
-                      onDelete={() => setFormData((prev) => ({ ...prev, oLevelDocuments: null }))}
-                      sx={{ mt: 2 }}
-                      color="primary"
-                    />
+                  ) : (
+                    <SavedFileChip file={formData.oLevelDocuments} url={formData.oLevelDocumentsUrl} fieldName="oLevelDocuments" setFormData={setFormData} />
                   )}
                 </label>
               </Paper>
@@ -274,20 +299,13 @@ const Documents: React.FC<DocumentProps> = ({
               <Typography variant="caption" sx={{ color: "#666" }}>
                 PDF (Max 100MB)
               </Typography>
-              {compressingField === "aLevelDocuments"  ? (
-                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
-                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
-                 <Typography variant="caption" sx={{ color: "#666" }}>
-                  The uploaded image is being compressed...
-              </Typography>
+              {compressingField === "aLevelDocuments" ? (
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                  <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                  <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                 </Box>
-              ) : formData.aLevelDocuments && (
-                <Chip
-                  label={formData.aLevelDocuments.name}
-                  onDelete={() => setFormData((prev) => ({ ...prev, aLevelDocuments: null }))}
-                  sx={{ mt: 2 }}
-                  color="primary"
-                />
+              ) : (
+                <SavedFileChip file={formData.aLevelDocuments} url={formData.aLevelDocumentsUrl} fieldName="aLevelDocuments" setFormData={setFormData} />
               )}
             </label>
           </Paper>
@@ -348,20 +366,13 @@ const Documents: React.FC<DocumentProps> = ({
               <Typography variant="caption" sx={{ color: "#666" }}>
                 PDF, ZIP (Max 100MB) - Optional
               </Typography>
-              {compressingField === "otherInstitutionDocuments"  ? (
-                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
-                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
-                 <Typography variant="caption" sx={{ color: "#666" }}>
-                  The uploaded image is being compressed...
-              </Typography>
+              {compressingField === "otherInstitutionDocuments" ? (
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                  <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                  <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                 </Box>
-              ) : formData.otherInstitutionDocuments && (
-                <Chip
-                  label={formData.otherInstitutionDocuments.name}
-                  onDelete={() => setFormData((prev) => ({ ...prev, otherInstitutionDocuments: null }))}
-                  sx={{ mt: 2 }}
-                  color="primary"
-                />
+              ) : (
+                <SavedFileChip file={formData.otherInstitutionDocuments} url={formData.otherInstitutionDocumentsUrl} fieldName="otherInstitutionDocuments" setFormData={setFormData} />
               )}
             </label>
           </Paper>

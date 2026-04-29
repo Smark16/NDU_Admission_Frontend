@@ -5,7 +5,8 @@ import dayjs from "dayjs";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const configuredBaseURL = (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
+const baseURL = configuredBaseURL || "http://127.0.0.1:8000";
 
 // use Axios
 const useAxios = () => {
@@ -40,7 +41,7 @@ const useAxios = () => {
     // }
 
       try {
-        // Refresh the token
+        // Refresh the token (must hit API baseURL, not the frontend origin)
         const response = await axios.post(`${baseURL}/api/token/refresh/`, {
           refresh: authTokens.refresh,
         });

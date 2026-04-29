@@ -128,6 +128,10 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  passportPhotoUrl: string | null
+  oLevelDocumentsUrl: string | null
+  aLevelDocumentsUrl: string | null
+  otherInstitutionDocumentsUrl: string | null
   hasOLevel: boolean;
   hasALevel: boolean;
   status: string
@@ -188,6 +192,10 @@ export default function NewApplicationForm() {
     oLevelDocuments: null,
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
+    passportPhotoUrl: null,
+    oLevelDocumentsUrl: null,
+    aLevelDocumentsUrl: null,
+    otherInstitutionDocumentsUrl: null,
     externalReference: "",
     hasOLevel: false,
     hasALevel: false,
@@ -446,7 +454,7 @@ export default function NewApplicationForm() {
     }
   }
 
-  // const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+  // handle file uploads with compression for images
   const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
@@ -487,12 +495,15 @@ export default function NewApplicationForm() {
       } catch (error) {
         console.error("Compression failed:", error);
         showNotification("Compression failed. Using original image.", "error");
-        // fileToSave remains the original file
       } finally {
         setCompressingField(null);
       }
-    }
-    else if (fileToSave.type === 'application/pdf') {
+    } else if (fileToSave.size > 20 * 1024 * 1024) {
+      showNotification(
+        `This file is large (${originalSize} MB). On mobile data this may fail - consider using Wi-Fi or uploading a smaller scan.`,
+        "error"
+      );
+    }else if (fileToSave.type === 'application/pdf') {
       showNotification(`PDF detected (${originalSize} MB). Large PDFs upload slower on mobile.`, "info");
     }
     else if (originalName.toLowerCase().endsWith('.zip')) {
@@ -513,72 +524,6 @@ export default function NewApplicationForm() {
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
     setFormData((prev) => ({ ...prev, [name]: fileToSave }));
   };
-
-  // const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { name, files } = e.target
-
-  //   if (files && files[0]) {
-  //     let file = files[0];
-  //     const originalName = file.name;
-  //     const originalSize = (file.size / (1024 * 1024)).toFixed(1);
-
-  //      // Compress only images
-  //     if (file.type.startsWith('image/')) {
-  //       try {
-  //         setCompressingField(name); 
-  //         showNotification(`Compressing ${file.name}...`, "info");
-
-  //         const options = {
-  //           maxSizeMB: 1,           // Target 1 MB max per image
-  //           maxWidthOrHeight: 2000,
-  //           useWebWorker: true,
-  //           preserveExif: false,
-  //         };
-
-  //         const compressedFile = await imageCompression(file, options);
-
-  //         // create new file with proper name
-  //         const fileExtension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
-  //         const newFileName = `compressed_${Date.now()}.${fileExtension}`;
-
-  //         file = new File([compressedFile], newFileName, {
-  //           type: compressedFile.type || 'image/jpeg',
-  //         });
-
-  //         const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
-
-  //         console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
-  //         // file = compressedFile;
-
-  //         showNotification(`Compression complete: ${compressedSize} MB`, "success");
-  //       } catch (error) {
-  //         console.error("Image compression failed:", error);
-  //         showNotification("Compression failed. Using original image.", "error");
-  //       }finally {
-  //         setCompressingField(null);                    
-  //       }
-  //     } 
-  //     // For PDFs - just warn user (can't compress easily)
-  //     else if (file.type === 'application/pdf') {
-  //       showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
-  //     } 
-  //     else {
-  //       showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
-  //     }
-
-  //     if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
-  //       setFormErrors((prev) => ({
-  //         ...prev,
-  //         [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
-  //       }));
-  //       e.target.value = "";
-  //       return;
-  //     }
-
-  //      setFormErrors((prev) => ({ ...prev, [name]: "" }))
-  //     setFormData((prev) => ({ ...prev, [name]: file }))
-  //   }
-  // }
 
   // HANDLE SAVE DRAFT
   const saveDraft = async (showMessage = false) => {

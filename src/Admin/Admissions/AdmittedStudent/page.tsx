@@ -39,11 +39,15 @@ import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import ChevronRightIcon from "@mui/icons-material/ChevronRight"
+import CheckCircleIcon from "@mui/icons-material/CheckCircle"
+import CancelIcon from "@mui/icons-material/Cancel"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
-import { Visibility, Campaign as CampaignIcon } from "@mui/icons-material"
+import { Visibility, Campaign as CampaignIcon, PictureAsPdf as PdfIcon } from "@mui/icons-material"
 import { Checkbox } from "@mui/material"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
+import { useContext } from "react"
+import { AuthContext } from "../../../Context/AuthContext"
 
 interface Admitted {
   id: number
@@ -59,15 +63,22 @@ interface Admitted {
   status: string
   is_admitted: boolean
   is_registered: boolean
+  is_approved: boolean
+  approved_by_name: string | null
+  approved_at: string | null
+  admission_letter_pdf: string | null
 }
 
 export default function AdmittedStudents() {
   const theme = useTheme()
   const AxiosInstance = useAxios()
   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
+  const { loggeduser } = useContext(AuthContext) || {}
+  const isRegistrar = loggeduser?.role === "Academic Registrar"
 
   const [searchTerm, setSearchTerm] = useState("")
   const [registrationFilter, setRegistrationFilter] = useState("all")
+  const [approvalFilter, setApprovalFilter] = useState("all")
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([])
@@ -79,6 +90,10 @@ export default function AdmittedStudents() {
   // Dialog states
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false)
+  const [declineDialogOpen, setDeclineDialogOpen] = useState(false)
+  const [declineReason, setDeclineReason] = useState("")
+  const [actionLoading, setActionLoading] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
 
   // Communication selection (use application IDs for emailing)
@@ -102,6 +117,49 @@ export default function AdmittedStudents() {
     fetchAdmissions()
   }, [AxiosInstance])
 
+  const handleApproveClick = (student: Admitted) => {
+    setSelectedStudent(student)
+    setApproveDialogOpen(true)
+  }
+
+  const handleDeclineClick = (student: Admitted) => {
+    setSelectedStudent(student)
+    setDeclineReason("")
+    setDeclineDialogOpen(true)
+  }
+
+  const confirmApprove = async () => {
+    if (!selectedStudent) return
+    setActionLoading(true)
+    try {
+      await AxiosInstance.post(`/api/admissions/approve_admission/${selectedStudent.id}/`)
+      setAdmittedStudents(prev =>
+        prev.map(s => s.id === selectedStudent.id ? { ...s, is_approved: true } : s)
+      )
+      setApproveDialogOpen(false)
+    } catch (err) {
+      console.error("Approve failed:", err)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const confirmDecline = async () => {
+    if (!selectedStudent) return
+    setActionLoading(true)
+    try {
+      await AxiosInstance.post(`/api/admissions/decline_admission/${selectedStudent.id}/`, {
+        decline_reason: declineReason,
+      })
+      setAdmittedStudents(prev => prev.filter(s => s.id !== selectedStudent.id))
+      setDeclineDialogOpen(false)
+    } catch (err) {
+      console.error("Decline failed:", err)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   // Filter logic
   const filteredStudents = useMemo(() => {
     return admittedStudents.filter((student) => {
@@ -115,9 +173,14 @@ export default function AdmittedStudents() {
         (registrationFilter === "registered" && student.is_registered) ||
         (registrationFilter === "not-registered" && !student.is_registered)
 
-      return matchesSearch && matchesFilter
+      const matchesApproval =
+        approvalFilter === "all" ||
+        (approvalFilter === "pending" && !student.is_approved) ||
+        (approvalFilter === "approved" && student.is_approved)
+
+      return matchesSearch && matchesFilter && matchesApproval
     })
-  }, [admittedStudents, searchTerm, registrationFilter])
+  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter])
 
   const paginatedStudents = filteredStudents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -206,7 +269,7 @@ export default function AdmittedStudents() {
 
         {/* Search + Filter */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               placeholder="Search by Student ID, Name, or Program..."
@@ -226,7 +289,7 @@ export default function AdmittedStudents() {
               size="small"
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Registration Status</InputLabel>
               <Select
@@ -240,6 +303,23 @@ export default function AdmittedStudents() {
                 <MenuItem value="all">All Students</MenuItem>
                 <MenuItem value="registered">Registered Only</MenuItem>
                 <MenuItem value="not-registered">Not Registered</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Approval Status</InputLabel>
+              <Select
+                value={approvalFilter}
+                label="Approval Status"
+                onChange={(e) => {
+                  setApprovalFilter(e.target.value as string)
+                  setPage(0)
+                }}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="pending">Pending Registrar Approval</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -294,7 +374,7 @@ export default function AdmittedStudents() {
                       <TableCell>Admission Date</TableCell>
                     )}
                     {getVisibleColumns(0).includes("status") && <TableCell>Reg. Status</TableCell>}
-                    {getVisibleColumns(0).includes("admission") && <TableCell>Admission</TableCell>}
+                    {getVisibleColumns(0).includes("admission") && <TableCell>Approval</TableCell>}
 
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
@@ -344,8 +424,8 @@ export default function AdmittedStudents() {
                         {visibleColumns.includes("admission") && (
                           <TableCell>
                             <Chip
-                              label={student.is_admitted ? "Admitted" : "Not Admitted"}
-                              color={student.is_admitted ? "success" : "warning"}
+                              label={student.is_approved ? "Approved" : "Awaiting Registrar"}
+                              color={student.is_approved ? "success" : "warning"}
                               variant="filled"
                               size="small"
                             />
@@ -376,16 +456,52 @@ export default function AdmittedStudents() {
                               </>
                             )}
 
-                            {/* Edit & Delete & view */}
-                              <IconButton
+                            {/* Registrar-only: Approve / Decline */}
+                            {isRegistrar && !student.is_approved && (
+                              <>
+                                <IconButton
+                                  size="small"
+                                  color="success"
+                                  onClick={() => handleApproveClick(student)}
+                                  title="Approve Admission"
+                                >
+                                  <CheckCircleIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeclineClick(student)}
+                                  title="Decline Admission"
+                                >
+                                  <CancelIcon fontSize="small" />
+                                </IconButton>
+                              </>
+                            )}
+
+                            {/* View */}
+                            <IconButton
                               size="small"
                               color="primary"
                               component={Link}
                               to={`/admin/admitted_student_review/${student.application}`}
-                              title="Edit Student"
+                              title="View Student"
                             >
                               <Visibility fontSize="small" />
                             </IconButton>
+
+                            {student.admission_letter_pdf && (
+                              <IconButton
+                                size="small"
+                                color="success"
+                                component="a"
+                                href={student.admission_letter_pdf}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Print Offer Letter"
+                              >
+                                <PdfIcon fontSize="small" />
+                              </IconButton>
+                            )}
                         
                             <IconButton
                               size="small"
@@ -489,6 +605,64 @@ export default function AdmittedStudents() {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" color="error" onClick={confirmDelete}>
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Approve Confirmation */}
+      <Dialog open={approveDialogOpen} onClose={() => setApproveDialogOpen(false)}>
+        <DialogTitle sx={{ fontWeight: 600, color: "#0D0060" }}>Approve Admission</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mt: 1 }}>
+            You are about to <strong>approve</strong> the admission of{" "}
+            <strong>{selectedStudent?.name}</strong> (ID: {selectedStudent?.student_id}).
+            <br /><br />
+            This will finalise their admission and send them a confirmation email.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setApproveDialogOpen(false)} variant="outlined">Cancel</Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={confirmApprove}
+            disabled={actionLoading}
+            startIcon={<CheckCircleIcon />}
+          >
+            {actionLoading ? "Approving..." : "Approve"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Decline Dialog */}
+      <Dialog open={declineDialogOpen} onClose={() => setDeclineDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, color: "#c0001a" }}>Decline Admission</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mt: 1, mb: 2 }}>
+            You are about to <strong>decline</strong> the admission of{" "}
+            <strong>{selectedStudent?.name}</strong>. The application will be sent back for re-review.
+          </DialogContentText>
+          <TextField
+            fullWidth
+            label="Reason for declining"
+            multiline
+            minRows={3}
+            value={declineReason}
+            onChange={(e) => setDeclineReason(e.target.value)}
+            placeholder="Provide a reason (optional)..."
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setDeclineDialogOpen(false)} variant="outlined">Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={confirmDecline}
+            disabled={actionLoading}
+            startIcon={<CancelIcon />}
+          >
+            {actionLoading ? "Declining..." : "Decline"}
           </Button>
         </DialogActions>
       </Dialog>

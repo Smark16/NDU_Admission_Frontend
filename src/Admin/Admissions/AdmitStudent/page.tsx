@@ -129,7 +129,17 @@ export default function AdmitStudentPage() {
     try {
       setLoadApplication(true)
       const response = await AxiosInstance.get(`/api/admissions/single_app/${id}`)
-      setApplication(response.data)
+      const app = response.data
+
+      // Block admission if the application hasn't been approved yet
+      if (app?.status?.toLowerCase() !== 'accepted') {
+        navigate(`/admin/application_review/${id}`, {
+          state: { warning: "This application must be approved before it can be admitted." }
+        })
+        return
+      }
+
+      setApplication(app)
     } catch (err) {
       console.log(err)
     }finally{
@@ -190,10 +200,11 @@ export default function AdmitStudentPage() {
   };
 
   const handleSubmitClick = () => {
+
     if (!formData.reg_no || !formData.program) {
       setSnackbar({
         open: true,
-        message: "Please fill in all required fields",
+        message: "Please fill in all required fields: program, campus, study mode, and student number",
         type: "error",
       })
       return
@@ -254,7 +265,7 @@ export default function AdmitStudentPage() {
         admission_notes: formData.notes,
         admitted_batch: admissionBatch?.id,
         reg_no: formData.reg_no,
-        study_mode: formData?.study_mode || "",
+        study_mode: formData.study_mode,
         application: application?.id || 0,
         is_admitted: true,
         admitted_by: loggeduser?.user_id

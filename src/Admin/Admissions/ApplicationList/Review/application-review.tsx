@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Container,
   Grid,
@@ -36,7 +36,7 @@ import {
 } from "@mui/material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
-import { Link, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../../ReUsables/custombutton"
 import RejectionForm from "./RejectionForm"
@@ -64,12 +64,34 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [changeNote, setChangeNote] = useState("")
   const [changingProgramme, setChangingProgramme] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const AxiosInstance = useAxios()
+  const returnTo = (location.state as any)?.returnTo || "/admin/application_list"
+  const locationWarning = (location.state as any)?.warning || null
 
   const [notification, setNotification] = useState<{
     message: string
     type: "success" | "error" | "info"
-  } | null>(null)
+  } | null>(
+    // Only show the "must be approved" warning if the application is genuinely
+    // not yet approved. If we got the warning but the app is already accepted,
+    // it's stale (e.g. user approved elsewhere) and would just confuse them.
+    locationWarning && (application?.status || "").toLowerCase() !== "accepted"
+      ? { message: locationWarning, type: "error" }
+      : null
+  )
+  const [currentStatus, setCurrentStatus] = useState(application?.status || "submitted")
+
+  useEffect(() => {
+    setCurrentStatus(application?.status || "submitted")
+  }, [application?.status])
+
+  // Clear any stale "must be approved" warning the moment the app becomes accepted.
+  useEffect(() => {
+    if ((currentStatus || "").toLowerCase() === "accepted" && notification?.type === "error") {
+      setNotification(null)
+    }
+  }, [currentStatus, notification])
 
 
   // === NOTIFICATION HELPER ===
@@ -78,13 +100,32 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     setTimeout(() => setNotification(null), 4000)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusLabel = (status: string) => {
+    switch ((status || "").toLowerCase()) {
       case "accepted":
+        return "Approved"
+      case "under_review":
+        return "Under Review"
+      case "admitted":
+        return "Admitted"
+      case "submitted":
+        return "Submitted"
+      case "rejected":
+        return "Rejected"
+      default:
+        return status || "Unknown"
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "accepted":
+      case "admitted":
         return "success"
       case "rejected":
         return "error"
       case "submitted":
+      case "under_review":
         return "info"
       default:
         return "warning"
@@ -92,9 +133,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   }
 
   const getStatusIcon = (status: string) => {
-    if (status.toLowerCase() === "accepted") return <CheckCircleIcon />
+    if (["accepted", "admitted"].includes((status || "").toLowerCase())) return <CheckCircleIcon />
     return <WarningIcon />
   }
+
+  const handleApprove = async () => {
+    try {
+      setIsLoading(true);
+      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "accepted" });
+      setCurrentStatus("accepted")
+      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "accepted" } }))
+      showNotification("Application approved. You can now admit the student or return to the list.", "success");
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to approve application", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleReject = async (rejection_reason: string) => {
   if (!rejection_reason?.trim()) {
@@ -114,12 +169,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       payload
     );
 
+    setCurrentStatus("rejected")
     setIsLoading(false);
     showNotification("Application has been successfully rejected", "success");
 
     // Optional: Refresh or navigate after success
     setTimeout(() => {
-      navigate('/admin/application_list');
+      navigate(returnTo);
     }, 800);
 
   } catch (err: any) {
@@ -185,28 +241,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setDocLoading(false)
     }
   };
-
-  const handleSendLetter = async () => {
-    try {
-      setIsLoading(true)
-      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
-      console.log(response.data)
-      setIsLoading(false)
-      showNotification(`${response.data?.detail}`, "success")
-
-      setTimeout(() => {
-        navigate('/admin/application_list')
-      }, 700)
-    } catch (err: any) {
-      console.log(err)
-      if (err.response?.data.detail) {
-        showNotification(`${err.response?.data.detail}`, "error")
-      } else {
-        showNotification("Failed to send offer letter to student", "error")
-      }
-      setIsLoading(false)
-    }
-  }
 
   const handleEditProfile = async () => {
     setSavingProfile(true)
@@ -540,10 +574,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                   Current Status
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-                  {getStatusIcon(application.status)}
+                  {getStatusIcon(currentStatus)}
                   <Chip
-                    label={application.status}
-                    color={getStatusColor(application.status) as any}
+                    label={getStatusLabel(currentStatus)}
+                    color={getStatusColor(currentStatus) as any}
                     variant="filled"
                     size="small"
                   />
@@ -620,7 +654,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 variant="outlined"
                 fullWidth
                 startIcon={<EditIcon />}
-                disabled={application.status === 'Admitted'}
+                disabled={(currentStatus || "").toLowerCase() === 'admitted'}
                 onClick={() => {
                   setEditForm({
                     first_name: application.first_name || "",
@@ -663,7 +697,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 Change Programme
               </Button>
 
-              {application.reviewed_by && (
+              {(application.reviewed_by || application.reviewed_at) && (
                 <>
                   <Divider />
                   <Box>
@@ -674,49 +708,103 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                       {application.reviewed_by}
                     </Typography>
                   </Box>
-                  <Box>
-                    <Typography variant="caption" color="textSecondary">
-                      Review Date
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                      {new Date(application.reviewed_at).toLocaleDateString()}
-                    </Typography>
-
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {application.status === 'accepted' ? (
-                        <CustomButton
-                          disabled={isLoading}
-                          onClick={handleSendLetter}
-                          text={
-                            isLoading ? <CircularProgress size={15} /> : "Send offer letter to portal"
-                          }
-                        />
-                      ) : application.status === 'Admitted' ? (
-                        ""
-                      ) : (
-                        <>
-                          <CustomButton component={Link}
-                            to={`/admin/admit_student/${application.id}`}
-                            text='Admit Student'
-                          />
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{
-                              textTransform: "none",
-                              borderColor: "#7c1519",
-                              color: "#7c1519"
-                            }}
-                            onClick={() => setOpenReject(true)}
-                          >
-                            {isLoading ? <CircularProgress size={15} /> : "Reject Student"}
-                          </Button>
-                        </>
-                      )}
+                  {application.reviewed_at && (
+                    <Box>
+                      <Typography variant="caption" color="textSecondary">
+                        Review Date
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                        {new Date(application.reviewed_at).toLocaleDateString()}
+                      </Typography>
                     </Box>
-                  </Box>
+                  )}
                 </>
               )}
+
+              <Divider />
+              <Box>
+                <Typography variant="caption" color="textSecondary">
+                  Actions
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
+
+                  {/* ── Admitted ── */}
+                  {(currentStatus || "").toLowerCase() === "admitted" && (
+                    <Chip
+                      size="small"
+                      color="success"
+                      label="Application already admitted"
+                      icon={<CheckCircleIcon />}
+                    />
+                  )}
+
+                  {/* ── Rejected ── */}
+                  {(currentStatus || "").toLowerCase() === "rejected" && (
+                    <Chip size="small" color="error" label="Application rejected" />
+                  )}
+
+                  {/* ── Approved (accepted) — ready for admission ── */}
+                  {(currentStatus || "").toLowerCase() === "accepted" && (
+                    <>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={() => navigate(`/admin/admit_student/${application.id}`)}
+                        sx={{
+                          textTransform: "none",
+                          bgcolor: "#0D0060",
+                          "&:hover": { bgcolor: "#07003a" },
+                          fontWeight: 600,
+                        }}
+                      >
+                        Admit Student
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
+                        onClick={() => setOpenReject(true)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+
+                  {/* ── Submitted / Under Review — Approve here, or Reject ── */}
+                  {!["accepted", "admitted", "rejected"].includes((currentStatus || "").toLowerCase()) && (
+                    <>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={isLoading ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <CheckCircleIcon />}
+                        disabled={isLoading}
+                        onClick={handleApprove}
+                        sx={{ textTransform: "none", bgcolor: "#2e7d32", "&:hover": { bgcolor: "#1b5e20" } }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={isLoading}
+                        sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
+                        onClick={() => setOpenReject(true)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+
+                </Box>
+
+                {/* Hint shown when not yet approved */}
+                {!["accepted", "admitted", "rejected"].includes((currentStatus || "").toLowerCase()) && (
+                  <Typography variant="caption" sx={{ color: "#888", mt: 1, display: "block" }}>
+                    Approve to send for admission, or reject with a reason.
+                  </Typography>
+                )}
+              </Box>
             </CardContent>
           </Card>
         </Grid>

@@ -14,6 +14,7 @@ interface StatusSectionProps {
 export default function StatusSection({ application }: StatusSectionProps) {
   const statusIcons: Record<string, React.ReactNode> = {
     accepted: <CheckCircleIcon sx={{ color: "success.main" }} />,
+    admitted: <CheckCircleIcon sx={{ color: "success.main" }} />,
     submitted: <ScheduleIcon sx={{ color: "info.main" }} />,
     rejected: <CancelIcon sx={{ color: "error.main" }} />,
     draft: <ScheduleIcon sx={{ color: "warning.main" }} />,
@@ -65,7 +66,7 @@ export default function StatusSection({ application }: StatusSectionProps) {
             <>
               <Divider />
               <InfoField label="Reviewed By" value={application?.reviewed_by?.first_name && application.reviewed_by?.last_name ?
-                        `${application?.reviewed_by?.first_name} ${application?.reviewed_by?.first_name}`
+                        `${application?.reviewed_by?.first_name} ${application?.reviewed_by?.last_name}`
                         : application?.reviewed_by?.username} />
               <InfoField
                 label="Reviewed On"
