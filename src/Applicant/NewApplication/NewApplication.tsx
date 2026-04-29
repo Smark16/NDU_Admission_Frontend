@@ -972,7 +972,7 @@ export default function NewApplicationForm() {
             <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
               {uploadProgress}% uploaded
             </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
+            <Typography variant="body1" sx={{ fontWeight: 300, mb: 1, color: '#1a3a52' }}>
             Note: Upload times may vary based on your connection and file sizes.
           </Typography>
           </Box>
