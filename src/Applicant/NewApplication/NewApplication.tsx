@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useContext, useEffect, useState} from "react"
+import { useContext, useEffect, useState } from "react"
 import {
   Box,
   Card,
@@ -139,11 +139,11 @@ interface FormData {
 
 export default function NewApplicationForm() {
   const AxiosInstance = useAxios()
-  const [isSubmitting, setIsSubmitting] = useState(false);   
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate()
   const [submitLoader, setSubmitLoader] = useState(false)
   const { batch } = useHook()
-  const { loggeduser} = useContext(AuthContext) || {}
+  const { loggeduser } = useContext(AuthContext) || {}
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressingField, setCompressingField] = useState<string | null>(null);
 
@@ -303,42 +303,42 @@ export default function NewApplicationForm() {
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
         if (formData.additionalQualifications?.length > 0) {
-        const hasIncompleteQual = formData.additionalQualifications.some((qual: any) => 
-          !qual.institution?.trim() || 
-          !qual.type?.trim() || 
-          !qual.year || 
-          !qual.class_of_award?.trim()
-        );
+          const hasIncompleteQual = formData.additionalQualifications.some((qual: any) =>
+            !qual.institution?.trim() ||
+            !qual.type?.trim() ||
+            !qual.year ||
+            !qual.class_of_award?.trim()
+          );
 
-        if (hasIncompleteQual) {
-          errors.additionalQualifications = 
-            "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.";
+          if (hasIncompleteQual) {
+            errors.additionalQualifications =
+              "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.";
+          }
         }
-      }
 
-      // If user has NO O-Level and NO A-Level, they MUST provide at least one Additional Qualification
-      if (!hasOLevel && !hasALevel) {
-        if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
-          errors.additionalQualifications = 
-            "Since you have neither O-Level nor A-Level, you must add at least one additional qualification.";
+        // If user has NO O-Level and NO A-Level, they MUST provide at least one Additional Qualification
+        if (!hasOLevel && !hasALevel) {
+          if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
+            errors.additionalQualifications =
+              "Since you have neither O-Level nor A-Level, you must add at least one additional qualification.";
+          }
         }
-      }
-          
+
         break;
       case 3: // Documents
         if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
 
-        if(formData.hasOLevel){
+        if (formData.hasOLevel) {
           if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
         }
 
         // Only require A-Level doc if they have A-Level
-        if(formData.hasALevel){
+        if (formData.hasALevel) {
           if (!formData.aLevelDocuments) {
             errors.aLevelDocuments = "A-Level certificate is required";
           }
         }
-        
+
         if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
         break;
 
@@ -468,113 +468,214 @@ export default function NewApplicationForm() {
       return null;
     }
   };
+  const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (!files || !files[0]) return;
 
-  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target
+    let fileToSave = files[0];
+    const originalName = fileToSave.name;
+    const originalSize = (fileToSave.size / (1024 * 1024)).toFixed(1);
 
-    if (files && files[0]) {
-      let file = files[0];
-      const originalSize = (file.size / (1024 * 1024)).toFixed(1);
-
-      if (file.size > MAX_FILE_SIZE) {
-        setFormErrors((prev) => ({
-          ...prev,
-          [name]: `File is too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 100 MB.`,
-        }));
-        e.target.value = "";
-        return;
-      }
-
-      // Compress images
-      if (file.type.startsWith('image/')) {
-        try {
-          setCompressingField(name);
-          showNotification(`Compressing ${file.name}...`, "info");
-          const options = { maxSizeMB: 2, maxWidthOrHeight: 2000, useWebWorker: true, preserveExif: false };
-          const compressedFile = await imageCompression(file, options);
-          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
-          file = compressedFile;
-          showNotification(`Compression complete: ${compressedSize} MB`, "success");
-        } catch {
-          showNotification("Compression failed. Using original image.", "error");
-        } finally {
-          setCompressingField(null);
-        }
-      } else if (file.size > 20 * 1024 * 1024) {
-        showNotification(
-          `This file is large (${originalSize} MB). On mobile data this may fail — consider using Wi-Fi or uploading a smaller scan.`,
-          "error"
-        );
-      }
-
-      setFormErrors((prev) => ({ ...prev, [name]: "" }));
-      setFormData((prev) => ({ ...prev, [name]: file }));
-
-      // Upload to draft immediately so it's saved across devices
-      const urlField = `${name}Url` as keyof FormData;
-      const url = await uploadDocumentToDraft(name, file);
-      if (url) {
-        setFormData((prev) => ({ ...prev, [urlField]: url }));
-      }
+    if (fileToSave.size > MAX_FILE_SIZE) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: `File is too large (${(fileToSave.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed is 100 MB.`,
+      }));
+      e.target.value = "";
+      return;
     }
-  }
+
+    if (fileToSave.type.startsWith('image/')) {
+      try {
+        setCompressingField(name);
+        showNotification(`Compressing ${originalName}...`, "info");
+
+        const options = {
+          maxSizeMB: 1.5,           // Slightly increased for better quality
+          maxWidthOrHeight: 2000,
+          useWebWorker: true,
+          preserveExif: false,
+        };
+
+        // Get compressed Blob
+        const compressedBlob = await imageCompression(fileToSave, options);
+
+        // Create proper File with original extension
+        const fileExtension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+        const newFileName = `compressed_${Date.now()}.${fileExtension}`;
+
+        fileToSave = new File([compressedBlob], newFileName, {
+          type: compressedBlob.type || `image/${fileExtension}`,
+          lastModified: Date.now(),
+        });
+
+        const compressedSize = (fileToSave.size / (1024 * 1024)).toFixed(1);
+        console.log(`✓ Compressed ${originalName}: ${originalSize}MB → ${compressedSize}MB`);
+
+        showNotification(`Compression complete: ${compressedSize} MB`, "success");
+      } catch (error) {
+        console.error("Compression failed:", error);
+        showNotification("Compression failed. Using original image.", "error");
+      } finally {
+        setCompressingField(null);
+      }
+    } else if (fileToSave.size > 20 * 1024 * 1024) {
+      showNotification(
+        `This file is large (${originalSize} MB). On mobile data this may fail - consider using Wi-Fi or uploading a smaller scan.`,
+        "error"
+      );
+    }
+    else if (fileToSave.type === 'application/pdf') {
+      showNotification(`PDF detected (${originalSize} MB). Large PDFs upload slower on mobile.`, "info");
+    }
+    else if (originalName.toLowerCase().endsWith('.zip')) {
+      showNotification(`ZIP file detected (${originalSize} MB). Upload may take longer on mobile.`, "info");
+    }
+
+    // Final size validation
+    if (fileToSave.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: `File is still too large (${(fileToSave.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+      }));
+      e.target.value = "";
+      return;
+    }
+
+    // Save the correctly named file
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    setFormData((prev) => ({ ...prev, [name]: fileToSave }));
+
+    const urlField = `${name}Url` as keyof FormData;
+    const url = await uploadDocumentToDraft(name, fileToSave);
+    if (url) {
+      setFormData((prev) => ({ ...prev, [urlField]: url }));
+    }
+  };
+
+  // const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, files } = e.target
+
+  //   if (files && files[0]) {
+  //     let file = files[0];
+  //     const originalName = file.name;
+  //     const originalSize = (file.size / (1024 * 1024)).toFixed(1);
+
+  //      // Compress only images
+  //     if (file.type.startsWith('image/')) {
+  //       try {
+  //         setCompressingField(name); 
+  //         showNotification(`Compressing ${file.name}...`, "info");
+
+  //         const options = {
+  //           maxSizeMB: 1,           // Target 1 MB max per image
+  //           maxWidthOrHeight: 2000,
+  //           useWebWorker: true,
+  //           preserveExif: false,
+  //         };
+
+  //         const compressedFile = await imageCompression(file, options);
+
+  //         // create new file with proper name
+  //         const fileExtension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+  //         const newFileName = `compressed_${Date.now()}.${fileExtension}`;
+
+  //         file = new File([compressedFile], newFileName, {
+  //           type: compressedFile.type || 'image/jpeg',
+  //         });
+
+  //         const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
+
+  //         console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
+  //         // file = compressedFile;
+
+  //         showNotification(`Compression complete: ${compressedSize} MB`, "success");
+  //       } catch (error) {
+  //         console.error("Image compression failed:", error);
+  //         showNotification("Compression failed. Using original image.", "error");
+  //       }finally {
+  //         setCompressingField(null);                    
+  //       }
+  //     } 
+  //     // For PDFs - just warn user (can't compress easily)
+  //     else if (file.type === 'application/pdf') {
+  //       showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
+  //     } 
+  //     else {
+  //       showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
+  //     }
+
+  //     if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
+  //       setFormErrors((prev) => ({
+  //         ...prev,
+  //         [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+  //       }));
+  //       e.target.value = "";
+  //       return;
+  //     }
+
+  //      setFormErrors((prev) => ({ ...prev, [name]: "" }))
+  //     setFormData((prev) => ({ ...prev, [name]: file }))
+  //   }
+  // }
 
   // HANDLE SAVE DRAFT
   const saveDraft = async (showMessage = false) => {
-  try {
-    // Create clean payload - REMOVE ALL FILES and non-serializable data
-    const draftPayload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      middleName: formData.middleName,
-      dateOfBirth: formData.dateOfBirth,
-      gender: formData.gender,
-      nationality: formData.nationality,
-      nin: formData.nin,
-      passportNumber: formData.passportNumber,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-      disabled: formData.disabled,
-      nextOfKinName: formData.nextOfKinName,
-      nextOfKinContact: formData.nextOfKinContact,
-      nextOfKinRelationship: formData.nextOfKinRelationship,
-      campus: formData.campus,
-      academic_level: formData.academic_level,
-      programs: formData.programs,
-      oLevelYear: formData.oLevelYear,
-      oLevelIndexNumber: formData.oLevelIndexNumber,
-      oLevelSchool: formData.oLevelSchool,
-      oLevelSubjects: formData.oLevelSubjects,
-      aLevelYear: formData.aLevelYear,
-      aLevelIndexNumber: formData.aLevelIndexNumber,
-      aLevelSchool: formData.aLevelSchool,
-      aLevelSubjects: formData.aLevelSubjects,
-      alevel_combination: formData.alevel_combination,
-      additionalQualifications: formData.additionalQualifications,
-      application_fee_paid: formData.application_fee_paid,
-      externalReference: formData.externalReference,
-      hasOlevel: formData.hasOLevel,
-      hasAlevel: formData.hasALevel,
-      status: "draft",
-      applicant: loggeduser?.user_id,
-      batch: batch?.id,
-    };
+    try {
+      // Create clean payload - REMOVE ALL FILES and non-serializable data
+      const draftPayload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        middleName: formData.middleName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        nationality: formData.nationality,
+        nin: formData.nin,
+        passportNumber: formData.passportNumber,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        disabled: formData.disabled,
+        nextOfKinName: formData.nextOfKinName,
+        nextOfKinContact: formData.nextOfKinContact,
+        nextOfKinRelationship: formData.nextOfKinRelationship,
+        campus: formData.campus,
+        academic_level: formData.academic_level,
+        programs: formData.programs,
+        oLevelYear: formData.oLevelYear,
+        oLevelIndexNumber: formData.oLevelIndexNumber,
+        oLevelSchool: formData.oLevelSchool,
+        oLevelSubjects: formData.oLevelSubjects,
+        aLevelYear: formData.aLevelYear,
+        aLevelIndexNumber: formData.aLevelIndexNumber,
+        aLevelSchool: formData.aLevelSchool,
+        aLevelSubjects: formData.aLevelSubjects,
+        alevel_combination: formData.alevel_combination,
+        additionalQualifications: formData.additionalQualifications,
+        application_fee_paid: formData.application_fee_paid,
+        externalReference: formData.externalReference,
+        hasOlevel: formData.hasOLevel,
+        hasAlevel: formData.hasALevel,
+        status: "draft",
+        applicant: loggeduser?.user_id,
+        batch: batch?.id,
+      };
 
-    await AxiosInstance.post(
-      "/api/drafts/save_draft/",
-      draftPayload
-    );
-  
-    if (showMessage) showNotification("Draft saved successfully", "success");
+      await AxiosInstance.post(
+        "/api/drafts/save_draft/",
+        draftPayload
+      );
 
-  } catch (err) {
-    console.error("Failed to save draft", err);
-    if (showMessage) {
-      showNotification("Failed to save draft", "error");
+      if (showMessage) showNotification("Draft saved successfully", "success");
+
+    } catch (err) {
+      console.error("Failed to save draft", err);
+      if (showMessage) {
+        showNotification("Failed to save draft", "error");
+      }
     }
-  }
-};
+  };
 
   // handle next
   const handleNext = async () => {
@@ -613,259 +714,260 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
-  if (isSubmitting || submitLoader) return;
+  const clearPaymentState = () => {
+    setFormData((prev) => ({
+      ...prev,
+      externalReference: "",
+      application_fee_paid: false,
+    }));
+  };
 
-  const isPaid = paymentOverride?.forcePaid || formData.application_fee_paid;
-  const resolvedExternalReference = paymentOverride?.externalReference || formData.externalReference;
+  const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
+    if (isSubmitting || submitLoader) return;
 
-  if (!isPaid) {
-    showNotification("Please complete payment before submitting", "error");
-    return;
-  }
+    const isPaid = paymentOverride?.forcePaid || formData.application_fee_paid;
+    const resolvedExternalReference = paymentOverride?.externalReference || formData.externalReference;
 
-  setIsSubmitting(true);
-  setUploadProgress(0);
-  setSubmitLoader(true);
-
-  try {
-    const formDataToSend = new FormData();
-
-    // Personal & Program Info
-    formDataToSend.append("applicant", String(loggeduser?.user_id));
-    formDataToSend.append("batch", String(batch?.id));
-    formDataToSend.append("first_name", formData.firstName);
-    formDataToSend.append("last_name", formData.lastName);
-    formDataToSend.append("middle_name", formData.middleName || "");
-    formDataToSend.append("date_of_birth", formData.dateOfBirth);
-    formDataToSend.append("gender", formData.gender);
-    formDataToSend.append("nationality", formData.nationality);
-    formDataToSend.append("phone", String(formData.phone));
-    formDataToSend.append("email", formData.email);
-    formDataToSend.append("disabled", formData?.disabled || "no");
-    formDataToSend.append("address", formData.address || "");
-    formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
-    formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
-    formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
-    formDataToSend.append("campus", formData.campus);
-    formDataToSend.append("academic_level", formData.academic_level);
-    
-    formDataToSend.append("status", "submitted");
-
-    // Optional fields
-    if (formData.nin) formDataToSend.append("nin", formData.nin);
-    if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
-
-    // Programs
-    formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
-
-    // Academic Details
-    formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
-    formDataToSend.append("has_alevel", formData.hasALevel ? "true" : "false");
-    
-    if (formData.hasOLevel || formData.hasALevel) {
-      formDataToSend.append("olevel_year", formData.oLevelYear || "");
-      formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
-      formDataToSend.append("olevel_school", formData.oLevelSchool || "");
-      formDataToSend.append("alevel_year", formData.aLevelYear || "");
-      formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
-      formDataToSend.append("alevel_school", formData.aLevelSchool || "");
-      formDataToSend.append("alevel_combination", formData.alevel_combination || "");
+    if (!isPaid) {
+      showNotification("Please complete payment before submitting", "error");
+      return;
     }
 
-    // Additional Qualifications
-    formDataToSend.append(
-      "additional_qualifications",
-      JSON.stringify(formData.additionalQualifications.filter(q => q.institution || q.type))
-    );
-
-    // Results as JSON strings
-    if (formData.hasOLevel) {
-      formDataToSend.append(
-        "olevel_results",
-        JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade))
-      );
-    }
-
-    if (formData.hasALevel) {
-      formDataToSend.append(
-        "alevel_results",
-        JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade))
-      );
-    }
-
-    // Resolve each document: use File object if fresh, otherwise fetch saved URL as blob
-    const resolveDoc = async (file: File | null, url: string | null, fallbackName: string): Promise<File | null> => {
-      if (file) return file;
-      if (url) {
-        try {
-          const res = await fetch(url);
-          const blob = await res.blob();
-          const name = url.split('/').pop() || fallbackName;
-          return new File([blob], name, { type: blob.type });
-        } catch { return null; }
-      }
-      return null;
-    };
-
-    const passportPhoto = await resolveDoc(formData.passportPhoto, formData.passportPhotoUrl, 'passport_photo');
-    const oLevelDoc     = await resolveDoc(formData.oLevelDocuments, formData.oLevelDocumentsUrl, 'olevel_doc');
-    const aLevelDoc     = await resolveDoc(formData.aLevelDocuments, formData.aLevelDocumentsUrl, 'alevel_doc');
-    const otherDoc      = await resolveDoc(formData.otherInstitutionDocuments, formData.otherInstitutionDocumentsUrl, 'other_doc');
-
-    if (passportPhoto) formDataToSend.append("passport_photo", passportPhoto);
-    if (oLevelDoc) { formDataToSend.append("documents", oLevelDoc); formDataToSend.append("document_types", "OLevel"); }
-    if (aLevelDoc) { formDataToSend.append("documents", aLevelDoc); formDataToSend.append("document_types", "ALevel"); }
-    if (otherDoc)  { formDataToSend.append("documents", otherDoc);  formDataToSend.append("document_types", "Others"); }
-
-    if (resolvedExternalReference) {
-      formDataToSend.append("external_reference", resolvedExternalReference);
-    }
-
-    // Retry helper
-    const postWithRetry = async (maxRetries = 5) => {
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          return await AxiosInstance.post(
-            "/api/admissions/create_applications",
-            formDataToSend,
-            {
-              timeout: 300000,
-              onUploadProgress: (progressEvent) => {
-                if (progressEvent.total) {
-                  const percent = Math.round(
-                    (progressEvent.loaded * 100) / progressEvent.total
-                  );
-                  setUploadProgress(percent);
-                }
-              },
-            }
-          );
-        } catch (err: any) {
-          const isNetworkOrServerError =
-            !err.response || (err.response && err.response.status >= 500);
-
-          if (attempt === maxRetries || !isNetworkOrServerError) {
-            throw err;
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-          console.log(`Retry attempt ${attempt}...`);
-        }
-      }
-    };
-
-    await postWithRetry();
-
-    // Success
-    setSubmitLoader(false);
-    setOpenSummary(true);
-
-    setTimeout(() => {
-      navigate("/applicant/dashboard");
-    }, 2000);
-
-  } catch (err: any) {
-    if (err.response?.data?.detail) {
-      showNotification(`${err.response.data.detail}`, "error");
-    } else {
-      showNotification(
-        "Submission failed. Please check your connection and try again or Refresh and submit again.",
-        "error"
-      );
-    }
-    console.error("Submission failed:", err);
-  } finally {
-    setSubmitLoader(false);
-    setIsSubmitting(false);
+    setIsSubmitting(true);
     setUploadProgress(0);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-};
+    setSubmitLoader(true);
 
-const loadDraft = async () => {
-  try {
-    setIsLoadingDraft(true)
-    const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+    try {
+      const formDataToSend = new FormData();
 
-    if (data?.draft_exists && data?.data) {
-       setHasDraft(true)
-      const draft = data.data;
+      // Personal & Program Info
+      formDataToSend.append("applicant", String(loggeduser?.user_id));
+      formDataToSend.append("batch", String(batch?.id));
+      formDataToSend.append("first_name", formData.firstName);
+      formDataToSend.append("last_name", formData.lastName);
+      formDataToSend.append("middle_name", formData.middleName || "");
+      formDataToSend.append("date_of_birth", formData.dateOfBirth);
+      formDataToSend.append("gender", formData.gender);
+      formDataToSend.append("nationality", formData.nationality);
+      formDataToSend.append("phone", String(formData.phone));
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("disabled", formData?.disabled || "no");
+      formDataToSend.append("address", formData.address || "");
+      formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
+      formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
+      formDataToSend.append("next_of_kin_relationship", formData.nextOfKinRelationship || "");
+      formDataToSend.append("campus", formData.campus);
+      formDataToSend.append("academic_level", formData.academic_level);
 
-      setFormData(prev => ({
-        ...prev,
-        firstName: draft.first_name || prev.firstName,
-        lastName: draft.last_name || prev.lastName,
-        middleName: draft.middle_name || "",
-        dateOfBirth: draft.dateOfBirth || "",
-        gender: draft.gender || "",
-        nationality: draft.nationality || "",
-        nin: draft.nin || "",
-        passportNumber: draft.passportNumber|| "",
-        phone: draft.phone || prev.phone,
-        email: draft.email || prev.email,
-        address: draft.address || "",
-        disabled: draft.disabled || "",
-        nextOfKinName: draft.nextOfKinName || "",
-        nextOfKinContact: draft.nextOfKinContact || "",
-        nextOfKinRelationship: draft.nextOfKinRelationship || "",
+      formDataToSend.append("status", "submitted");
 
-        // Programs section
-        campus: draft.campus ? String(draft.campus) : "",
-        academic_level: draft.academic_level ? String(draft.academic_level) : "",
-        programs: Array.isArray(draft.programs) ? draft.programs : [],
-        
-        // JSON Fields
-        oLevelYear: draft.oLevelYear || "",
-        oLevelIndexNumber: draft.oLevelIndexNumber || "",
-        oLevelSchool: draft.oLevelSchool || "",
-        oLevelSubjects: draft.oLevelSubjects || prev.oLevelSubjects,
+      // Optional fields
+      if (formData.nin) formDataToSend.append("nin", formData.nin);
+      if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
-        aLevelYear: draft.aLevelYear || "",
-        aLevelIndexNumber: draft.aLevelIndexNumber || "",
-        aLevelSchool: draft.aLevelSchool || "",
-        alevel_combination: draft.alevel_combination || "",
-        aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
+      // Programs
+      formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
 
-        hasOLevel: draft.hasOlevel || false,
-        hasALevel: draft.hasAlevel || false,
+      // Academic Details
+      formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
+      formDataToSend.append("has_alevel", formData.hasALevel ? "true" : "false");
 
-        additionalQualifications: draft.additionalQualifications || [],
-        application_fee_paid: draft.application_fee_paid || false,
-        externalReference: draft.externalReference || "",
+      if (formData.hasOLevel || formData.hasALevel) {
+        formDataToSend.append("olevel_year", formData.oLevelYear || "");
+        formDataToSend.append("olevel_index_number", formData.oLevelIndexNumber || "");
+        formDataToSend.append("olevel_school", formData.oLevelSchool || "");
+        formDataToSend.append("alevel_year", formData.aLevelYear || "");
+        formDataToSend.append("alevel_index_number", formData.aLevelIndexNumber || "");
+        formDataToSend.append("alevel_school", formData.aLevelSchool || "");
+        formDataToSend.append("alevel_combination", formData.alevel_combination || "");
+      }
 
-        passportPhotoUrl: draft.passportPhotoUrl || null,
-        oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
-        aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
-        otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
-      }));
+      // Additional Qualifications
+      formDataToSend.append(
+        "additional_qualifications",
+        JSON.stringify(formData.additionalQualifications.filter(q => q.institution || q.type))
+      );
 
+      // Results as JSON strings
+      if (formData.hasOLevel) {
+        formDataToSend.append(
+          "olevel_results",
+          JSON.stringify(formData.oLevelSubjects.filter(s => s.subject && s.grade))
+        );
+      }
+
+      if (formData.hasALevel) {
+        formDataToSend.append(
+          "alevel_results",
+          JSON.stringify(formData.aLevelSubjects.filter(s => s.subject && s.grade))
+        );
+      }
+
+      // Files
+      if (formData.passportPhoto) {
+        formDataToSend.append("passport_photo", formData.passportPhoto);
+      }
+
+      if (formData.oLevelDocuments) {
+        formDataToSend.append("documents", formData.oLevelDocuments);
+        formDataToSend.append("document_types", "OLevel");
+      }
+      if (formData.aLevelDocuments) {
+        formDataToSend.append("documents", formData.aLevelDocuments);
+        formDataToSend.append("document_types", "ALevel");
+      }
+      if (formData.otherInstitutionDocuments) {
+        formDataToSend.append("documents", formData.otherInstitutionDocuments);
+        formDataToSend.append("document_types", "Others");
+      }
+
+      if (resolvedExternalReference) {
+        formDataToSend.append("external_reference", resolvedExternalReference);
+      }
+
+      // Retry helper
+      const postWithRetry = async (maxRetries = 5) => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            return await AxiosInstance.post(
+              "/api/admissions/create_applications",
+              formDataToSend,
+              {
+                timeout: 300000,
+                onUploadProgress: (progressEvent) => {
+                  if (progressEvent.total) {
+                    const percent = Math.round(
+                      (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setUploadProgress(percent);
+                  }
+                },
+              }
+            );
+          } catch (err: any) {
+            const isNetworkOrServerError =
+              !err.response || (err.response && err.response.status >= 500);
+
+            if (attempt === maxRetries || !isNetworkOrServerError) {
+              throw err;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+            console.log(`Retry attempt ${attempt}...`);
+          }
+        }
+      };
+
+      await postWithRetry();
+
+      // Success
+      setSubmitLoader(false);
+      setOpenSummary(true);
+
+      setTimeout(() => {
+        navigate("/applicant/dashboard");
+      }, 2000);
+
+    } catch (err: any) {
+      if (err.response?.data?.detail) {
+        showNotification(`${err.response.data.detail}`, "error");
+      } else {
+        showNotification(
+          "Submission failed. Please check your connection and try again or Refresh and submit again.",
+          "error"
+        );
+      }
+      console.error("Submission failed:", err);
+    } finally {
+      setSubmitLoader(false);
+      setIsSubmitting(false);
+      setUploadProgress(0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  } catch (err) {
-    console.log("No previous draft found");
-  }finally {
-    setIsLoadingDraft(false)
-  }
-};
+  };
 
-useEffect(() => {
-  loadDraft();
-}, []);   
+  const loadDraft = async () => {
+    try {
+      setIsLoadingDraft(true)
+      const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
-// ====================== LOADING OVERLAY ======================
+      if (data?.draft_exists && data?.data) {
+        setHasDraft(true)
+        const draft = data.data;
+
+        setFormData(prev => ({
+          ...prev,
+          firstName: draft.first_name || prev.firstName,
+          lastName: draft.last_name || prev.lastName,
+          middleName: draft.middle_name || "",
+          dateOfBirth: draft.dateOfBirth || "",
+          gender: draft.gender || "",
+          nationality: draft.nationality || "",
+          nin: draft.nin || "",
+          passportNumber: draft.passportNumber || "",
+          phone: draft.phone || prev.phone,
+          email: draft.email || prev.email,
+          address: draft.address || "",
+          disabled: draft.disabled || "",
+          nextOfKinName: draft.nextOfKinName || "",
+          nextOfKinContact: draft.nextOfKinContact || "",
+          nextOfKinRelationship: draft.nextOfKinRelationship || "",
+
+          // Programs section
+          campus: draft.campus ? String(draft.campus) : "",
+          academic_level: draft.academic_level ? String(draft.academic_level) : "",
+          programs: Array.isArray(draft.programs) ? draft.programs : [],
+
+          // JSON Fields
+          oLevelYear: draft.oLevelYear || "",
+          oLevelIndexNumber: draft.oLevelIndexNumber || "",
+          oLevelSchool: draft.oLevelSchool || "",
+          oLevelSubjects: draft.oLevelSubjects || prev.oLevelSubjects,
+
+          aLevelYear: draft.aLevelYear || "",
+          aLevelIndexNumber: draft.aLevelIndexNumber || "",
+          aLevelSchool: draft.aLevelSchool || "",
+          alevel_combination: draft.alevel_combination || "",
+          aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
+
+          hasOLevel: draft.hasOlevel || false,
+          hasALevel: draft.hasAlevel || false,
+
+          additionalQualifications: draft.additionalQualifications || [],
+          application_fee_paid: draft.application_fee_paid || false,
+          externalReference: draft.externalReference || "",
+          passportPhotoUrl: draft.passportPhotoUrl || null,
+          oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
+          aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
+          otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
+        }));
+
+      }
+    } catch (err) {
+      console.log("No previous draft found");
+    } finally {
+      setIsLoadingDraft(false)
+    }
+  };
+
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // ====================== LOADING OVERLAY ======================
   if (isLoadingDraft && hasDraft === null) {
     return (
       <Container maxWidth="xl" sx={{ py: 8 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
           minHeight: '70vh',
           textAlign: 'center'
         }}>
           <CircularProgress size={80} thickness={4} sx={{ color: '#3e397b', mb: 4 }} />
-          
+
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
             Loading your draft...
           </Typography>
@@ -878,49 +980,52 @@ useEffect(() => {
   }
 
   if (submitLoader) {
-  return (
-    <Container maxWidth="xl" sx={{ py: 8 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '80vh',
-        textAlign: 'center',
-        bgcolor: 'rgba(255,255,255,0.95)',
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 9999
-      }}>
-        <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 3 }} />
-        
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
-          Submitting Your Application...
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#555', mb: 3 }}>
-          Please wait — do not refresh
-        </Typography>
+    return (
+      <Container maxWidth="xl" sx={{ py: 8 }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80vh',
+          textAlign: 'center',
+          bgcolor: 'rgba(255,255,255,0.95)',
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 9999
+        }}>
+          <CircularProgress size={90} thickness={5} sx={{ color: '#3e397b', mb: 3 }} />
 
-        {/* Progress bar */}
-        <Box sx={{ width: '70%', maxWidth: 400 }}>
-          <LinearProgress 
-            variant="determinate" 
-            value={uploadProgress} 
-            sx={{ height: 12, borderRadius: 2 }}
-          />
-          <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
-            {uploadProgress}% uploaded
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#1a3a52' }}>
+            Submitting Your Application...
           </Typography>
+          <Typography variant="body1" sx={{ color: '#555', mb: 3 }}>
+            Please wait — do not refresh
+          </Typography>
+
+          {/* Progress bar */}
+          <Box sx={{ width: '70%', maxWidth: 400 }}>
+            <LinearProgress
+              variant="determinate"
+              value={uploadProgress}
+              sx={{ height: 12, borderRadius: 2 }}
+            />
+            <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+              {uploadProgress}% uploaded
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 300, mb: 1, color: '#1a3a52' }}>
+            Note: Upload times may vary based on your connection and file sizes.
+          </Typography>
+          </Box>
         </Box>
-      </Box>
-    </Container>
-  );
-}
+      </Container>
+    );
+  }
 
   // personal details
   const renderPersonalDetails = () => (
     <>
-    {notification && (
+      {notification && (
         <Alert
           severity={notification.type}
           onClose={() => setNotification(null)}
@@ -942,44 +1047,44 @@ useEffect(() => {
   // programs
   const renderPrograms = () => (
     <>
-    <Programs
-      formData={formData}
-      handleChange={handleChange}
-      setFormData={setFormData}
-      formErrors={formErrors}
-    />
+      <Programs
+        formData={formData}
+        handleChange={handleChange}
+        setFormData={setFormData}
+        formErrors={formErrors}
+      />
     </>
   )
 
   // academic results
   const renderAcademicResults = () => (
     <>
-    <AcademicResults
-      formData={formData}
-      handleOLevelSubjectChange={handleOLevelSubjectChange}
-      addOLevelSubject={addOLevelSubject}
-      removeOLevelSubject={removeOLevelSubject}
-      handleALevelSubjectChange={handleALevelSubjectChange}
-      addALevelSubject={addALevelSubject}
-      removeALevelSubject={removeALevelSubject}
-      handleInputChange={handleInputChange}
-      handleChange={handleChange}
-      setFormData={setFormData}
-      formErrors={formErrors}
-    />
+      <AcademicResults
+        formData={formData}
+        handleOLevelSubjectChange={handleOLevelSubjectChange}
+        addOLevelSubject={addOLevelSubject}
+        removeOLevelSubject={removeOLevelSubject}
+        handleALevelSubjectChange={handleALevelSubjectChange}
+        addALevelSubject={addALevelSubject}
+        removeALevelSubject={removeALevelSubject}
+        handleInputChange={handleInputChange}
+        handleChange={handleChange}
+        setFormData={setFormData}
+        formErrors={formErrors}
+      />
     </>
   )
 
   // documents
   const renderDocuments = () => (
     <>
-    <Documents
-      formData={formData}
-      handleFileChange={handleFileChange}
-      setFormData={setFormData}
-      formErrors={formErrors}
-      compressingField={compressingField}     
-    />
+      <Documents
+        formData={formData}
+        handleFileChange={handleFileChange}
+        setFormData={setFormData}
+        formErrors={formErrors}
+        compressingField={compressingField}
+      />
     </>
   )
 
@@ -1217,8 +1322,8 @@ useEffect(() => {
           <CustomButton onClick={() => setOpenSummary(false)} text='Close' />
         </DialogActions>
       </Dialog>
-      
-      <PaymentModal
+
+      {/* <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
@@ -1239,17 +1344,44 @@ useEffect(() => {
           );
 
           // Close modal immediately
-          setTimeout(()=>{
+          setTimeout(() => {
             setPaymentModalOpen(false);
           }, 1000)
-          
+
           // 3. Auto-submit after a tiny delay
           setTimeout(() => {
             handleSubmit({ externalReference: externalRef || "", forcePaid: true });
           }, 1800);
-          
+
         }}
-       />
+      /> */}
+
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        amountPaid={selectedFee?.amount ?? 0}
+        onPaymentSuccess={(externalRef?: string) => {
+            setFormData((prev) => ({
+              ...prev,
+              application_fee_paid: true,
+              externalReference: externalRef || "",        
+            }));
+
+          saveDraft(false);   // Save draft with successful reference
+
+          showNotification("Payment successful! Submitting your application now...", "success");
+
+          // Close modal immediately
+          setTimeout(() => {
+            setPaymentModalOpen(false);
+          }, 3000)
+
+          setTimeout(() => {
+            handleSubmit({ externalReference: externalRef || "", forcePaid: true });
+          }, 3000);
+        }}
+        onPaymentFailed={clearPaymentState}    
+      />
     </Container>
   )
 }

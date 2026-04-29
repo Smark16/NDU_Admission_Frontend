@@ -34,6 +34,7 @@ interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   onPaymentSuccess?: (externalReference?: string) => void;
+  onPaymentFailed?: () => void; 
   amountPaid?: number;
   currency?: string;
   reason?: string;
@@ -45,6 +46,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   open,
   onClose,
   onPaymentSuccess,
+  onPaymentFailed,
   amountPaid,
   currency = 'UGX',
   reason = 'Application Fee',
@@ -57,6 +59,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const hasNotifiedSuccessRef = useRef(false);
+   const [currentPaymentRef, setCurrentPaymentRef] = useState(null);
+   const [isCancelled, setIsCancelled] = useState(false)
+   const [cancelledMsg, setCancelledMsg] = useState<string | null>(null)
 
   const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
@@ -68,6 +73,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setSuccessMessage('');
     setTransactionId('');
     hasNotifiedSuccessRef.current = false;
+     setCurrentPaymentRef(null);
     onClose();
   };
 
@@ -103,6 +109,26 @@ useEffect(() => {
   };
 }, [pollInterval]);
 
+// cancel payment
+// Cancel pending payment
+  const handleCancelPayment = async () => {
+    if (!currentPaymentRef) return;
+
+    try {
+      setIsCancelled(true)
+      await AxiosInstance.post('/api/payments/cancel_pending_payment/');
+      onPaymentFailed?.();  
+      setCancelledMsg('Payment has been cancelled successfully')
+      handleClose();
+    } catch (err:any) {
+      console.log('err', err)
+      setCancelledMsg(`${err?.response?.data?.detail}`)
+    }finally{
+      setIsCancelled(false)
+      setCancelledMsg(null)
+    }
+  };
+
 const handlePayment = async () => {
   // ✅ Validate phone
   if (!phoneNumber.trim() || !validatePhoneNumber(phoneNumber)) {
@@ -133,6 +159,7 @@ const handlePayment = async () => {
 
     // ✅ Save references
     setExtRef(data.external_reference);
+    setCurrentPaymentRef(data.payment_reference);
 
     setSuccessMessage('Payment request sent! Check your phone for prompt...');
     setStatus('processing');
@@ -159,7 +186,7 @@ const handlePayment = async () => {
 
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
-
+          
           // success callback
           if (!hasNotifiedSuccessRef.current) {
             hasNotifiedSuccessRef.current = true;
@@ -172,6 +199,10 @@ const handlePayment = async () => {
         // ✅ FAILED / CANCELLED
         if (statusData.status === 'FAILED') {
           clearInterval(interval);
+          setExtRef(null);
+           // Clear the failed payment state
+           onPaymentFailed?.();    
+
           setPollInterval(null);
 
           setErrorMessage('Payment failed or cancelled');
@@ -191,7 +222,7 @@ const handlePayment = async () => {
         setErrorMessage('Error checking payment status');
         setStatus('error');
       }
-    }, 8000);
+    }, 4000);
 
     // ✅ Save interval so it can be cleared on unmount
     setPollInterval(interval);
@@ -594,8 +625,10 @@ const handlePayment = async () => {
                   fontSize: '0.9rem',
                 }}
               >
-                Please wait while we process your payment
+                {cancelledMsg ? cancelledMsg : "Please wait while we process your payment"}
               </Typography>
+             
+             <CustomButton variant="outlined" onClick={handleCancelPayment} text={isCancelled ? "Cancelling Payment..." : "Cancel Payment and try again"}/>
             </Box>
           </Fade>
         )}
@@ -619,7 +652,7 @@ const handlePayment = async () => {
                 onPaymentSuccess?.(extRef || "");
                 handleClose();
               }}  
-              text="Continue to Submit Application"
+              text="Your Application will be submitted shortly..."
               color="success"
               variant="contained"
             />
@@ -656,3 +689,4 @@ const handlePayment = async () => {
 };
 
 export default PaymentModal;
+ 

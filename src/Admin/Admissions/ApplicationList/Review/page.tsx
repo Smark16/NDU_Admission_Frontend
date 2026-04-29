@@ -99,7 +99,6 @@ export default function ReviewPage() {
           subject: typeof r.subject === "object" ? r.subject : { id: r.subject, name: "???" },
         });
   
-
         setApplication(response.data.application);
         setOlevelResults((response.data.olevel_results ?? []).map(norm));
         setAlevelResults((response.data.alevel_results ?? []).map(norm));

@@ -414,61 +414,71 @@ export default function DirectApplicationForm() {
   // const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
   const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
 
-  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, files } = e.target;
+      if (!files || !files[0]) return;
 
-    if (files && files[0]) {
-      let file = files[0];
-      const originalSize = (file.size / (1024 * 1024)).toFixed(1);
-      
-       // Compress only images
-      if (file.type.startsWith('image/')) {
+      let fileToSave = files[0];
+      const originalName = fileToSave.name;
+      const originalSize = (fileToSave.size / (1024 * 1024)).toFixed(1);
+
+      if (fileToSave.type.startsWith('image/')) {
         try {
-          setCompressingField(name); 
-          showNotification(`Compressing ${file.name}...`, "info");
+          setCompressingField(name);
+          showNotification(`Compressing ${originalName}...`, "info");
 
           const options = {
-            maxSizeMB: 2,           // Target 2 MB max per image
+            maxSizeMB: 1.5,           // Slightly increased for better quality
             maxWidthOrHeight: 2000,
             useWebWorker: true,
             preserveExif: false,
           };
 
-          const compressedFile = await imageCompression(file, options);
-          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
+          // Get compressed Blob
+          const compressedBlob = await imageCompression(fileToSave, options);
 
-          console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
-          file = compressedFile;
+          // Create proper File with original extension
+          const fileExtension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+          const newFileName = `compressed_${Date.now()}.${fileExtension}`;
+
+          fileToSave = new File([compressedBlob], newFileName, {
+            type: compressedBlob.type || `image/${fileExtension}`,
+            lastModified: Date.now(),
+          });
+
+          const compressedSize = (fileToSave.size / (1024 * 1024)).toFixed(1);
+          console.log(`✓ Compressed ${originalName}: ${originalSize}MB → ${compressedSize}MB`);
 
           showNotification(`Compression complete: ${compressedSize} MB`, "success");
         } catch (error) {
-          console.error("Image compression failed:", error);
+          console.error("Compression failed:", error);
           showNotification("Compression failed. Using original image.", "error");
-        }finally {
-          setCompressingField(null);                    
+          // fileToSave remains the original file
+        } finally {
+          setCompressingField(null);
         }
-      } 
-      // For PDFs - just warn user (can't compress easily)
-      else if (file.type === 'application/pdf') {
-        showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
-      } 
-      else {
-        showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
+      }
+      else if (fileToSave.type === 'application/pdf') {
+        showNotification(`PDF detected (${originalSize} MB). Large PDFs upload slower on mobile.`, "info");
+      }
+      else if (originalName.toLowerCase().endsWith('.zip')) {
+        showNotification(`ZIP file detected (${originalSize} MB). Upload may take longer on mobile.`, "info");
       }
 
-      if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
+      // Final size validation
+      if (fileToSave.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
         setFormErrors((prev) => ({
           ...prev,
-          [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+          [name]: `File is still too large (${(fileToSave.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
         }));
         e.target.value = "";
         return;
       }
 
-       setFormErrors((prev) => ({ ...prev, [name]: "" }))
-      setFormData((prev) => ({ ...prev, [name]: files[0] }))
-    }
-  }
+      // Save the correctly named file
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+      setFormData((prev) => ({ ...prev, [name]: fileToSave }));
+    };
 
   const handleSubmit = async () => {
     try {
