@@ -190,7 +190,7 @@ export default function AdmitStudentPage() {
   };
 
   const handleSubmitClick = () => {
-    if (!formData.student_id || !formData.program) {
+    if (!formData.reg_no || !formData.program) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields",
