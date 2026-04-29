@@ -286,9 +286,9 @@ export default function NewApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          // if (formData.oLevelSubjects.length < 8) {
-          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
-          // }
+          if (formData.oLevelSubjects.length < 8) {
+            errors.oLevelSubjects = "Add at least 8 O-Level results";
+          }
         }
 
         if (hasALevel) {
@@ -296,9 +296,9 @@ export default function NewApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          // if (formData.aLevelSubjects.length < 5) {
-          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
-          // }
+          if (formData.aLevelSubjects.length < 5) {
+            errors.aLevelSubjects = "Add at least 5 A-Level results";
+          }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
