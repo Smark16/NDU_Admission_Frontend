@@ -128,6 +128,10 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  passportPhotoUrl: string | null
+  oLevelDocumentsUrl: string | null
+  aLevelDocumentsUrl: string | null
+  otherInstitutionDocumentsUrl: string | null
   hasOLevel: boolean;
   hasALevel: boolean;
   status: string
@@ -188,6 +192,10 @@ export default function NewApplicationForm() {
     oLevelDocuments: null,
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
+    passportPhotoUrl: null,
+    oLevelDocumentsUrl: null,
+    aLevelDocumentsUrl: null,
+    otherInstitutionDocumentsUrl: null,
     externalReference: "",
     hasOLevel: false,
     hasALevel: false,
@@ -446,8 +454,20 @@ export default function NewApplicationForm() {
     }
   }
 
-  // const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
-  const MAX_FILE_SIZE_AFTER_COMPRESSION = 5 * 1024 * 1024 // 5MB
+  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
+  const uploadDocumentToDraft = async (fieldName: string, file: File): Promise<string | null> => {
+    try {
+      const payload = new FormData();
+      payload.append('file', file);
+      payload.append('document_type', fieldName);
+      payload.append('batch', String(batch?.id || ''));
+      const { data } = await AxiosInstance.post('/api/drafts/upload_draft_document/', payload);
+      return data.url as string;
+    } catch {
+      return null;
+    }
+  };
 
   const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target
@@ -455,53 +475,47 @@ export default function NewApplicationForm() {
     if (files && files[0]) {
       let file = files[0];
       const originalSize = (file.size / (1024 * 1024)).toFixed(1);
-      
-       // Compress only images
-      if (file.type.startsWith('image/')) {
-        try {
-          setCompressingField(name); 
-          showNotification(`Compressing ${file.name}...`, "info");
 
-          const options = {
-            maxSizeMB: 2,           // Target 2 MB max per image
-            maxWidthOrHeight: 2000,
-            useWebWorker: true,
-            preserveExif: false,
-          };
-
-          const compressedFile = await imageCompression(file, options);
-          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
-
-          console.log(`Compressed ${file.name}: ${originalSize} MB → ${compressedSize} MB`);
-          file = compressedFile;
-
-          showNotification(`Compression complete: ${compressedSize} MB`, "success");
-        } catch (error) {
-          console.error("Image compression failed:", error);
-          showNotification("Compression failed. Using original image.", "error");
-        }finally {
-          setCompressingField(null);                    
-        }
-      } 
-      // For PDFs - just warn user (can't compress easily)
-      else if (file.type === 'application/pdf') {
-        showNotification(`PDF detected (${originalSize} MB). Large PDFs may take longer to upload on mobile.`, "info");
-      } 
-      else {
-        showNotification(`File type: ${file.type}. Large files may cause issues on mobile data.`, "info");
-      }
-
-      if (file.size > MAX_FILE_SIZE_AFTER_COMPRESSION) {
+      if (file.size > MAX_FILE_SIZE) {
         setFormErrors((prev) => ({
           ...prev,
-          [name]: `File is still too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 8 MB.`,
+          [name]: `File is too large (${(file.size / (1024*1024)).toFixed(1)} MB). Maximum allowed is 100 MB.`,
         }));
         e.target.value = "";
         return;
       }
 
-       setFormErrors((prev) => ({ ...prev, [name]: "" }))
-      setFormData((prev) => ({ ...prev, [name]: files[0] }))
+      // Compress images
+      if (file.type.startsWith('image/')) {
+        try {
+          setCompressingField(name);
+          showNotification(`Compressing ${file.name}...`, "info");
+          const options = { maxSizeMB: 2, maxWidthOrHeight: 2000, useWebWorker: true, preserveExif: false };
+          const compressedFile = await imageCompression(file, options);
+          const compressedSize = (compressedFile.size / (1024 * 1024)).toFixed(1);
+          file = compressedFile;
+          showNotification(`Compression complete: ${compressedSize} MB`, "success");
+        } catch {
+          showNotification("Compression failed. Using original image.", "error");
+        } finally {
+          setCompressingField(null);
+        }
+      } else if (file.size > 20 * 1024 * 1024) {
+        showNotification(
+          `This file is large (${originalSize} MB). On mobile data this may fail — consider using Wi-Fi or uploading a smaller scan.`,
+          "error"
+        );
+      }
+
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+      setFormData((prev) => ({ ...prev, [name]: file }));
+
+      // Upload to draft immediately so it's saved across devices
+      const urlField = `${name}Url` as keyof FormData;
+      const url = await uploadDocumentToDraft(name, file);
+      if (url) {
+        setFormData((prev) => ({ ...prev, [urlField]: url }));
+      }
     }
   }
 
@@ -680,23 +694,29 @@ const handleSubmit = async (paymentOverride?: { externalReference?: string; forc
       );
     }
 
-    // Files
-    if (formData.passportPhoto) {
-      formDataToSend.append("passport_photo", formData.passportPhoto);
-    }
+    // Resolve each document: use File object if fresh, otherwise fetch saved URL as blob
+    const resolveDoc = async (file: File | null, url: string | null, fallbackName: string): Promise<File | null> => {
+      if (file) return file;
+      if (url) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const name = url.split('/').pop() || fallbackName;
+          return new File([blob], name, { type: blob.type });
+        } catch { return null; }
+      }
+      return null;
+    };
 
-    if (formData.oLevelDocuments) {
-      formDataToSend.append("documents", formData.oLevelDocuments);
-      formDataToSend.append("document_types", "OLevel");
-    }
-    if (formData.aLevelDocuments) {
-      formDataToSend.append("documents", formData.aLevelDocuments);
-      formDataToSend.append("document_types", "ALevel");
-    }
-    if (formData.otherInstitutionDocuments) {
-      formDataToSend.append("documents", formData.otherInstitutionDocuments);
-      formDataToSend.append("document_types", "Others");
-    }
+    const passportPhoto = await resolveDoc(formData.passportPhoto, formData.passportPhotoUrl, 'passport_photo');
+    const oLevelDoc     = await resolveDoc(formData.oLevelDocuments, formData.oLevelDocumentsUrl, 'olevel_doc');
+    const aLevelDoc     = await resolveDoc(formData.aLevelDocuments, formData.aLevelDocumentsUrl, 'alevel_doc');
+    const otherDoc      = await resolveDoc(formData.otherInstitutionDocuments, formData.otherInstitutionDocumentsUrl, 'other_doc');
+
+    if (passportPhoto) formDataToSend.append("passport_photo", passportPhoto);
+    if (oLevelDoc) { formDataToSend.append("documents", oLevelDoc); formDataToSend.append("document_types", "OLevel"); }
+    if (aLevelDoc) { formDataToSend.append("documents", aLevelDoc); formDataToSend.append("document_types", "ALevel"); }
+    if (otherDoc)  { formDataToSend.append("documents", otherDoc);  formDataToSend.append("document_types", "Others"); }
 
     if (resolvedExternalReference) {
       formDataToSend.append("external_reference", resolvedExternalReference);
@@ -813,6 +833,11 @@ const loadDraft = async () => {
         additionalQualifications: draft.additionalQualifications || [],
         application_fee_paid: draft.application_fee_paid || false,
         externalReference: draft.externalReference || "",
+
+        passportPhotoUrl: draft.passportPhotoUrl || null,
+        oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
+        aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
+        otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
       }));
 
     }

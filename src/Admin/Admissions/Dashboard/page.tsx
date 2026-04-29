@@ -249,7 +249,7 @@ const AdmissionDashboard = () => {
             <StatCard title="Pending Review" value={dashboardStats?.pendingApplications ?? 0} icon={Clock} color="#f57c00" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
-            <StatCard title="Accepted" value={dashboardStats?.admittedStudents ?? 0} icon={CheckCircle} color="#388e3c" />
+            <StatCard title="Admitted" value={dashboardStats?.admittedStudents ?? 0} icon={CheckCircle} color="#388e3c" />
           </Grid>
           <Grid size={{xs:12, sm:6, md:3}}>
             <StatCard title="Rejected" value={dashboardStats?.rejectedStudents ?? 0} icon={Cancel} color="#d32f2f" />

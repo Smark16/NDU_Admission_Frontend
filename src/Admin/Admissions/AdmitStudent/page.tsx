@@ -129,7 +129,17 @@ export default function AdmitStudentPage() {
     try {
       setLoadApplication(true)
       const response = await AxiosInstance.get(`/api/admissions/single_app/${id}`)
-      setApplication(response.data)
+      const app = response.data
+
+      // Block admission if the application hasn't been approved yet
+      if (app?.status?.toLowerCase() !== 'accepted') {
+        navigate(`/admin/application_review/${id}`, {
+          state: { warning: "This application must be approved before it can be admitted." }
+        })
+        return
+      }
+
+      setApplication(app)
     } catch (err) {
       console.log(err)
     }finally{

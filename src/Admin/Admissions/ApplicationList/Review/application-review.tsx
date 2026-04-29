@@ -36,7 +36,7 @@ import {
 } from "@mui/material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../../ReUsables/custombutton"
 import RejectionForm from "./RejectionForm"
@@ -64,17 +64,34 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [changeNote, setChangeNote] = useState("")
   const [changingProgramme, setChangingProgramme] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const AxiosInstance = useAxios()
+  const returnTo = (location.state as any)?.returnTo || "/admin/application_list"
+  const locationWarning = (location.state as any)?.warning || null
 
   const [notification, setNotification] = useState<{
     message: string
     type: "success" | "error" | "info"
-  } | null>(null)
+  } | null>(
+    // Only show the "must be approved" warning if the application is genuinely
+    // not yet approved. If we got the warning but the app is already accepted,
+    // it's stale (e.g. user approved elsewhere) and would just confuse them.
+    locationWarning && (application?.status || "").toLowerCase() !== "accepted"
+      ? { message: locationWarning, type: "error" }
+      : null
+  )
   const [currentStatus, setCurrentStatus] = useState(application?.status || "submitted")
 
   useEffect(() => {
     setCurrentStatus(application?.status || "submitted")
   }, [application?.status])
+
+  // Clear any stale "must be approved" warning the moment the app becomes accepted.
+  useEffect(() => {
+    if ((currentStatus || "").toLowerCase() === "accepted" && notification?.type === "error") {
+      setNotification(null)
+    }
+  }, [currentStatus, notification])
 
 
   // === NOTIFICATION HELPER ===
@@ -125,8 +142,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setIsLoading(true);
       await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "accepted" });
       setCurrentStatus("accepted")
-      showNotification("Application approved successfully", "success");
-      setTimeout(() => navigate('/admin/application_list'), 800);
+      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "accepted" } }))
+      showNotification("Application approved. You can now admit the student or return to the list.", "success");
     } catch (err: any) {
       showNotification(err?.response?.data?.detail || "Failed to approve application", "error");
     } finally {
@@ -158,7 +175,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
 
     // Optional: Refresh or navigate after success
     setTimeout(() => {
-      navigate('/admin/application_list');
+      navigate(returnTo);
     }, 800);
 
   } catch (err: any) {
@@ -224,28 +241,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setDocLoading(false)
     }
   };
-
-  const handleSendLetter = async () => {
-    try {
-      setIsLoading(true)
-      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`)
-      console.log(response.data)
-      setIsLoading(false)
-      showNotification(`${response.data?.detail}`, "success")
-
-      setTimeout(() => {
-        navigate('/admin/application_list')
-      }, 700)
-    } catch (err: any) {
-      console.log(err)
-      if (err.response?.data.detail) {
-        showNotification(`${err.response?.data.detail}`, "error")
-      } else {
-        showNotification("Failed to send offer letter to student", "error")
-      }
-      setIsLoading(false)
-    }
-  }
 
   const handleEditProfile = async () => {
     setSavingProfile(true)
@@ -732,55 +727,83 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                   Actions
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
-                  {(currentStatus || "").toLowerCase() === "accepted" ? (
-                    <CustomButton
-                      disabled={isLoading}
-                      onClick={handleSendLetter}
-                      text={
-                        isLoading ? <CircularProgress size={15} /> : "Send offer letter to portal"
-                      }
-                    />
-                  ) : (currentStatus || "").toLowerCase() === "admitted" ? (
+
+                  {/* ── Admitted ── */}
+                  {(currentStatus || "").toLowerCase() === "admitted" && (
                     <Chip
                       size="small"
                       color="success"
                       label="Application already admitted"
                       icon={<CheckCircleIcon />}
                     />
-                  ) : (
+                  )}
+
+                  {/* ── Rejected ── */}
+                  {(currentStatus || "").toLowerCase() === "rejected" && (
+                    <Chip size="small" color="error" label="Application rejected" />
+                  )}
+
+                  {/* ── Approved (accepted) — ready for admission ── */}
+                  {(currentStatus || "").toLowerCase() === "accepted" && (
                     <>
-                      <CustomButton component={Link}
-                        to={`/admin/admit_student/${application.id}`}
-                        text='Admit Student'
-                      />
                       <Button
-                        variant="outlined"
+                        variant="contained"
                         size="small"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={() => navigate(`/admin/admit_student/${application.id}`)}
                         sx={{
                           textTransform: "none",
-                          borderColor: "#2e7d32",
-                          color: "#2e7d32",
+                          bgcolor: "#0D0060",
+                          "&:hover": { bgcolor: "#07003a" },
+                          fontWeight: 600,
                         }}
-                        disabled={isLoading}
-                        onClick={handleApprove}
                       >
-                        {isLoading ? <CircularProgress size={15} /> : "Approve Application"}
+                        Admit Student
                       </Button>
                       <Button
                         variant="outlined"
                         size="small"
-                        sx={{
-                          textTransform: "none",
-                          borderColor: "#7c1519",
-                          color: "#7c1519"
-                        }}
+                        sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
                         onClick={() => setOpenReject(true)}
                       >
-                        Reject Student
+                        Reject
                       </Button>
                     </>
                   )}
+
+                  {/* ── Submitted / Under Review — Approve here, or Reject ── */}
+                  {!["accepted", "admitted", "rejected"].includes((currentStatus || "").toLowerCase()) && (
+                    <>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={isLoading ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <CheckCircleIcon />}
+                        disabled={isLoading}
+                        onClick={handleApprove}
+                        sx={{ textTransform: "none", bgcolor: "#2e7d32", "&:hover": { bgcolor: "#1b5e20" } }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={isLoading}
+                        sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
+                        onClick={() => setOpenReject(true)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+
                 </Box>
+
+                {/* Hint shown when not yet approved */}
+                {!["accepted", "admitted", "rejected"].includes((currentStatus || "").toLowerCase()) && (
+                  <Typography variant="caption" sx={{ color: "#888", mt: 1, display: "block" }}>
+                    Approve to send for admission, or reject with a reason.
+                  </Typography>
+                )}
               </Box>
             </CardContent>
           </Card>

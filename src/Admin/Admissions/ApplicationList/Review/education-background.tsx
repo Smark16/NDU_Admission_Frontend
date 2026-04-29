@@ -31,12 +31,25 @@ export default function EducationalBackgroundSection({
   application,
   additionalQualifications
 }: EducationalBackgroundSectionProps) {
-  const gradeColors: Record<string, "success" | "primary" | "warning" | "error"> = {
-    A: "success",
-    B: "primary",
-    C: "warning",
-    D: "error",
-    F: "error",
+  const getGradeColor = (grade: string): "success" | "primary" | "warning" | "error" | "default" => {
+    const letterMap: Record<string, "success" | "primary" | "warning" | "error"> = {
+      A: "success",
+      B: "primary",
+      C: "warning",
+      D: "error",
+      E: "error",
+      O: "warning",
+      F: "error",
+    }
+    if (letterMap[grade]) return letterMap[grade]
+    // Numeric grades: 1–3 distinction (green), 4–6 pass (blue), 7–9 fail (red)
+    const n = parseInt(grade, 10)
+    if (!isNaN(n)) {
+      if (n <= 3) return "success"
+      if (n <= 6) return "primary"
+      return "error"
+    }
+    return "default"
   }
 
   const renderLevelContainer = (level: string, results: any[], school: string, year: string, examType: string) => {
@@ -90,7 +103,7 @@ export default function EducationalBackgroundSection({
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.5, px: 1 }}>
                       {result.grade && (
-                        <Chip label={result.grade} size="small" color={gradeColors[result.grade] || "default"} />
+                        <Chip label={result.grade} size="small" color={getGradeColor(result.grade)} />
                       )}
                     </TableCell>
                   </TableRow>
