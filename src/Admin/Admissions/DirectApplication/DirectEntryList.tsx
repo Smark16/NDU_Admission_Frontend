@@ -18,6 +18,9 @@ import {
   Campaign as CampaignIcon,
   HowToReg as HowToRegIcon,
   ThumbUp as ThumbUpIcon,
+  AutoAwesome as GenerateIcon,
+  PictureAsPdf as PdfIcon,
+  Send as SendIcon,
 } from "@mui/icons-material"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
@@ -127,6 +130,7 @@ export default function DirectEntryList() {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const [approvingId, setApprovingId] = useState<number | null>(null)
+  const [offerActionLoading, setOfferActionLoading] = useState<Record<number, boolean>>({})
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null)
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "info" | "warning" | "error" }>({
     open: false,
@@ -306,6 +310,100 @@ export default function DirectEntryList() {
     }
   }
 
+  const withAbsoluteUrl = (url: string | null) => {
+    if (!url) return null
+    if (url.startsWith("http://") || url.startsWith("https://")) return url
+    return `${window.location.origin}${url}`
+  }
+
+  const setOfferLoading = (applicationId: number, loading: boolean) => {
+    setOfferActionLoading(prev => ({ ...prev, [applicationId]: loading }))
+  }
+
+  const handleGenerateOfferLetter = async (app: Application) => {
+    try {
+      setOfferLoading(app.id, true)
+      const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${app.id}`)
+      setToast({
+        open: true,
+        message: data?.detail || `Offer letter generation started for ${app.first_name} ${app.last_name}.`,
+        severity: "success",
+      })
+    } catch (err: any) {
+      setToast({
+        open: true,
+        message: err?.response?.data?.detail || "Failed to generate offer letter",
+        severity: "error",
+      })
+    } finally {
+      setOfferLoading(app.id, false)
+    }
+  }
+
+  const handleSendOfferLetter = async (app: Application) => {
+    try {
+      setOfferLoading(app.id, true)
+      await AxiosInstance.post(`/api/offer_letter/resend_letter/${app.id}`)
+      setToast({
+        open: true,
+        message: `Offer letter email sent to ${app.first_name} ${app.last_name}.`,
+        severity: "success",
+      })
+    } catch (err: any) {
+      // Fallback: if no generated letter exists yet, generate first.
+      if (err?.response?.status === 400) {
+        try {
+          const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${app.id}`)
+          setToast({
+            open: true,
+            message: data?.detail || `Offer letter generated and email queued for ${app.first_name} ${app.last_name}.`,
+            severity: "success",
+          })
+          return
+        } catch (innerErr: any) {
+          setToast({
+            open: true,
+            message: innerErr?.response?.data?.detail || "Failed to send offer letter",
+            severity: "error",
+          })
+          return
+        }
+      }
+      setToast({
+        open: true,
+        message: err?.response?.data?.detail || "Failed to send offer letter",
+        severity: "error",
+      })
+    } finally {
+      setOfferLoading(app.id, false)
+    }
+  }
+
+  const handlePrintOfferLetter = async (app: Application) => {
+    try {
+      setOfferLoading(app.id, true)
+      const { data } = await AxiosInstance.get(`/api/offer_letter/status/${app.id}`)
+      const pdfUrl = withAbsoluteUrl(data?.pdf_url || null)
+      if (!pdfUrl) {
+        setToast({
+          open: true,
+          message: "No offer letter PDF found yet. Generate first.",
+          severity: "info",
+        })
+        return
+      }
+      window.open(pdfUrl, "_blank", "noopener,noreferrer")
+    } catch (err: any) {
+      setToast({
+        open: true,
+        message: err?.response?.data?.detail || "Failed to load offer letter PDF",
+        severity: "error",
+      })
+    } finally {
+      setOfferLoading(app.id, false)
+    }
+  }
+
   // ── Selection helpers ──
   const allPageIds = paginatedApplications.map(a => a.id)
   const allFilteredIds = filteredApplications.map(a => a.id)
@@ -389,6 +487,56 @@ export default function DirectEntryList() {
           {admitBtn}
           {rejectBtn}
           {viewBtn}
+        </Box>
+      )
+    }
+
+    if (status === "admitted") {
+      return (
+        <Box sx={{ display: "flex", gap: 0.75, justifyContent: "center", flexWrap: "wrap" }}>
+          {viewBtn}
+          <Tooltip title="Generate Offer Letter">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<GenerateIcon />}
+                onClick={() => handleGenerateOfferLetter(app)}
+                disabled={!!offerActionLoading[app.id]}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+              >
+                Generate
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Print Offer Letter">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PdfIcon />}
+                onClick={() => handlePrintOfferLetter(app)}
+                disabled={!!offerActionLoading[app.id]}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+              >
+                Print
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Send Offer Letter Email">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<SendIcon />}
+                onClick={() => handleSendOfferLetter(app)}
+                disabled={!!offerActionLoading[app.id]}
+                sx={{ textTransform: "none", fontSize: "0.75rem" }}
+              >
+                Send
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       )
     }

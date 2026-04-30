@@ -169,6 +169,19 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
     Numeric: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
   };
   const [aLevelExamBody, setALevelExamBody] = useState<'UACE' | 'Numeric'>('UACE');
+  const ALEVEL_NUMERIC_ONLY_SUBJECTS = [
+    'sub math',
+    'subsidiary mathematics',
+    'subsidiary computer',
+    'subsidiary ict',
+    'general paper',
+    'gp',
+  ];
+
+  const requiresNumericOnlyGrade = (subjectName: string) => {
+    const name = (subjectName || '').trim().toLowerCase();
+    return ALEVEL_NUMERIC_ONLY_SUBJECTS.includes(name);
+  };
 
   const aGradeMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -484,7 +497,9 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
             <Box sx={{ border: "1px solid #e0eef7", borderRadius: 1, overflow: "hidden" }}>
               {sortedALevelSubjects.map((subj, idx) => {
                 const selectedGrade = aGradeMap[subj.id.toString()];
-                const grades = ALEVEL_EXAM_GRADES[aLevelExamBody];
+                const grades = requiresNumericOnlyGrade(subj.name)
+                  ? ALEVEL_EXAM_GRADES.Numeric
+                  : ALEVEL_EXAM_GRADES[aLevelExamBody];
                 return (
                   <Box
                     key={subj.id}
