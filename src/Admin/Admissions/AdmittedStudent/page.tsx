@@ -32,6 +32,8 @@ import {
   useTheme,
   useMediaQuery,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import SearchIcon from "@mui/icons-material/Search"
 import SchoolIcon from "@mui/icons-material/School"
@@ -43,7 +45,13 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import { Link } from "react-router-dom"
-import { Visibility, Campaign as CampaignIcon, PictureAsPdf as PdfIcon } from "@mui/icons-material"
+import {
+  Visibility,
+  Campaign as CampaignIcon,
+  PictureAsPdf as PdfIcon,
+  AutoAwesome as GenerateIcon,
+  Send as SendIcon,
+} from "@mui/icons-material"
 import { Checkbox } from "@mui/material"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import { useContext } from "react"
@@ -95,6 +103,12 @@ export default function AdmittedStudents() {
   const [declineReason, setDeclineReason] = useState("")
   const [actionLoading, setActionLoading] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null)
+  const [letterActionLoading, setLetterActionLoading] = useState<Record<number, boolean>>({})
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>({
+    open: false,
+    message: "",
+    severity: "info",
+  })
 
   // Communication selection (use application IDs for emailing)
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([])
@@ -247,6 +261,67 @@ export default function AdmittedStudents() {
     } catch (err) {
       console.error("Delete failed:", err)
     }
+  }
+
+  const showToast = (message: string, severity: "success" | "error" | "info" = "info") => {
+    setSnackbar({ open: true, message, severity })
+  }
+
+  const setStudentActionLoading = (studentId: number, loadingState: boolean) => {
+    setLetterActionLoading((prev) => ({ ...prev, [studentId]: loadingState }))
+  }
+
+  const toAbsoluteUrl = (url: string | null) => {
+    if (!url) return null
+    if (url.startsWith("http://") || url.startsWith("https://")) return url
+    return `${window.location.origin}${url}`
+  }
+
+  const handleGenerateOfferLetter = async (student: Admitted) => {
+    setStudentActionLoading(student.id, true)
+    try {
+      const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${student.application}`)
+      const updatedPdf = data?.pdf_url ? toAbsoluteUrl(data.pdf_url) : student.admission_letter_pdf
+
+      setAdmittedStudents((prev) =>
+        prev.map((s) => (s.id === student.id ? { ...s, admission_letter_pdf: updatedPdf } : s))
+      )
+      showToast(data?.detail || "Offer letter generation started.", "success")
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to generate offer letter.", "error")
+    } finally {
+      setStudentActionLoading(student.id, false)
+    }
+  }
+
+  const handleSendOfferLetter = async (student: Admitted) => {
+    setStudentActionLoading(student.id, true)
+    try {
+      if (student.admission_letter_pdf) {
+        const { data } = await AxiosInstance.post(`/api/offer_letter/resend_letter/${student.application}`)
+        showToast(data?.detail || "Offer letter email sent.", "success")
+      } else {
+        const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${student.application}`)
+        const updatedPdf = data?.pdf_url ? toAbsoluteUrl(data.pdf_url) : student.admission_letter_pdf
+        setAdmittedStudents((prev) =>
+          prev.map((s) => (s.id === student.id ? { ...s, admission_letter_pdf: updatedPdf } : s))
+        )
+        showToast(data?.detail || "Offer letter generated and sent.", "success")
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to send offer letter.", "error")
+    } finally {
+      setStudentActionLoading(student.id, false)
+    }
+  }
+
+  const handlePrintOfferLetter = (student: Admitted) => {
+    if (!student.admission_letter_pdf) {
+      showToast("No offer letter PDF yet. Generate it first.", "info")
+      return
+    }
+    const target = toAbsoluteUrl(student.admission_letter_pdf)
+    if (target) window.open(target, "_blank", "noopener,noreferrer")
   }
 
   return (
@@ -489,19 +564,35 @@ export default function AdmittedStudents() {
                               <Visibility fontSize="small" />
                             </IconButton>
 
-                            {student.admission_letter_pdf && (
-                              <IconButton
-                                size="small"
-                                color="success"
-                                component="a"
-                                href={student.admission_letter_pdf}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Print Offer Letter"
-                              >
-                                <PdfIcon fontSize="small" />
-                              </IconButton>
-                            )}
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              onClick={() => handleGenerateOfferLetter(student)}
+                              disabled={!!letterActionLoading[student.id]}
+                              title="Generate Offer Letter"
+                            >
+                              <GenerateIcon fontSize="small" />
+                            </IconButton>
+
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handlePrintOfferLetter(student)}
+                              disabled={!!letterActionLoading[student.id]}
+                              title="Print Offer Letter"
+                            >
+                              <PdfIcon fontSize="small" />
+                            </IconButton>
+
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleSendOfferLetter(student)}
+                              disabled={!!letterActionLoading[student.id]}
+                              title="Send Offer Letter"
+                            >
+                              <SendIcon fontSize="small" />
+                            </IconButton>
                         
                             <IconButton
                               size="small"
@@ -673,6 +764,21 @@ export default function AdmittedStudents() {
         selectedIds={selectedAppIds.length > 0 ? selectedAppIds : undefined}
         context="admitted student"
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3500}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   )
 }
