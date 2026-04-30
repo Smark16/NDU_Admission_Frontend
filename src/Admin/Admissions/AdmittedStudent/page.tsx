@@ -271,10 +271,13 @@ export default function AdmittedStudents() {
     setLetterActionLoading((prev) => ({ ...prev, [studentId]: loadingState }))
   }
 
+  const apiBaseUrl = ((import.meta.env.VITE_API_BASE_URL as string) || "").trim().replace(/\/+$/, "")
+
   const toAbsoluteUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith("http://") || url.startsWith("https://")) return url
-    return `${window.location.origin}${url}`
+    const normalizedPath = url.startsWith("/") ? url : `/${url}`
+    return `${apiBaseUrl || window.location.origin}${normalizedPath}`
   }
 
   const handleGenerateOfferLetter = async (student: Admitted) => {

@@ -310,10 +310,13 @@ export default function DirectEntryList() {
     }
   }
 
+  const apiBaseUrl = ((import.meta.env.VITE_API_BASE_URL as string) || "").trim().replace(/\/+$/, "")
+
   const withAbsoluteUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith("http://") || url.startsWith("https://")) return url
-    return `${window.location.origin}${url}`
+    const normalizedPath = url.startsWith("/") ? url : `/${url}`
+    return `${apiBaseUrl || window.location.origin}${normalizedPath}`
   }
 
   const setOfferLoading = (applicationId: number, loading: boolean) => {
