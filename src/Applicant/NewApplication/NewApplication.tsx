@@ -286,9 +286,9 @@ export default function NewApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          if (formData.oLevelSubjects.length < 8) {
-            errors.oLevelSubjects = "Add at least 8 O-Level results";
-          }
+          // if (formData.oLevelSubjects.length < 8) {
+          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
+          // }
         }
 
         if (hasALevel) {
@@ -296,9 +296,9 @@ export default function NewApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          if (formData.aLevelSubjects.length < 5) {
-            errors.aLevelSubjects = "Add at least 5 A-Level results";
-          }
+          // if (formData.aLevelSubjects.length < 5) {
+          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
+          // }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
@@ -326,20 +326,30 @@ export default function NewApplicationForm() {
 
         break;
       case 3: // Documents
-        if (!formData.passportPhoto) errors.passportPhoto = "Passport photo is required";
-
-        if (formData.hasOLevel) {
-          if (!formData.oLevelDocuments) errors.oLevelDocuments = "O-Level certificate is required";
-        }
-
-        // Only require A-Level doc if they have A-Level
-        if (formData.hasALevel) {
-          if (!formData.aLevelDocuments) {
-            errors.aLevelDocuments = "A-Level certificate is required";
+         if (!formData.passportPhoto && !formData.passportPhotoUrl) {
+            errors.passportPhoto = "Passport photo is required";
           }
-        }
 
-        if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
+          // O-Level Documents
+          if (formData.hasOLevel) {
+            if (!formData.oLevelDocuments && !formData.oLevelDocumentsUrl) {
+              errors.oLevelDocuments = "O-Level certificate is required";
+            }
+          }
+
+          // A-Level Documents
+          if (formData.hasALevel) {
+            if (!formData.aLevelDocuments && !formData.aLevelDocumentsUrl) {
+              errors.aLevelDocuments = "A-Level certificate is required";
+            }
+          }
+
+          // Other Documents (only if they have additional qualifications)
+          if (formData.additionalQualifications && formData.additionalQualifications.length > 0) {
+            if (!formData.otherInstitutionDocuments && !formData.otherInstitutionDocumentsUrl) {
+              errors.otherInstitutionDocuments = "Other institution documents are required";
+            }
+          }
         break;
 
       case 4:
@@ -525,62 +535,90 @@ export default function NewApplicationForm() {
     setFormData((prev) => ({ ...prev, [name]: fileToSave }));
   };
 
-  // HANDLE SAVE DRAFT
-  const saveDraft = async (showMessage = false) => {
-    try {
-      // Create clean payload - REMOVE ALL FILES and non-serializable data
-      const draftPayload = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        middleName: formData.middleName,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        nationality: formData.nationality,
-        nin: formData.nin,
-        passportNumber: formData.passportNumber,
-        phone: formData.phone,
-        email: formData.email,
-        address: formData.address,
-        disabled: formData.disabled,
-        nextOfKinName: formData.nextOfKinName,
-        nextOfKinContact: formData.nextOfKinContact,
-        nextOfKinRelationship: formData.nextOfKinRelationship,
-        campus: formData.campus,
-        academic_level: formData.academic_level,
-        programs: formData.programs,
-        oLevelYear: formData.oLevelYear,
-        oLevelIndexNumber: formData.oLevelIndexNumber,
-        oLevelSchool: formData.oLevelSchool,
-        oLevelSubjects: formData.oLevelSubjects,
-        aLevelYear: formData.aLevelYear,
-        aLevelIndexNumber: formData.aLevelIndexNumber,
-        aLevelSchool: formData.aLevelSchool,
-        aLevelSubjects: formData.aLevelSubjects,
-        alevel_combination: formData.alevel_combination,
-        additionalQualifications: formData.additionalQualifications,
-        application_fee_paid: formData.application_fee_paid,
-        externalReference: formData.externalReference,
-        hasOlevel: formData.hasOLevel,
-        hasAlevel: formData.hasALevel,
-        status: "draft",
-        applicant: loggeduser?.user_id,
-        batch: batch?.id,
-      };
+  // HANDLE SAVE DRAFT - Now also saves documents
+const saveDraft = async (showMessage = false) => {
+  try {
+    const draftPayload = new FormData();
 
-      await AxiosInstance.post(
-        "/api/drafts/save_draft/",
-        draftPayload
-      );
+    // ====================== TEXT FIELDS ======================
+    draftPayload.append("firstName", formData.firstName || "");
+    draftPayload.append("lastName", formData.lastName || "");
+    draftPayload.append("middleName", formData.middleName || "");
+    draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
+    draftPayload.append("gender", formData.gender || "");
+    draftPayload.append("nationality", formData.nationality || "");
+    draftPayload.append("nin", formData.nin || "");
+    draftPayload.append("passportNumber", formData.passportNumber || "");
+    draftPayload.append("phone", String(formData.phone || ""));
+    draftPayload.append("email", formData.email || "");
+    draftPayload.append("address", formData.address || "");
+    draftPayload.append("disabled", formData.disabled || "");
+    draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
+    draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
+    draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
+    draftPayload.append("campus", formData.campus || "");
+    draftPayload.append("academic_level", formData.academic_level || "");
 
-      if (showMessage) showNotification("Draft saved successfully", "success");
-
-    } catch (err) {
-      console.error("Failed to save draft", err);
-      if (showMessage) {
-        showNotification("Failed to save draft", "error");
-      }
+    // ====================== PROGRAMS (ManyToMany) ======================
+    if (Array.isArray(formData.programs)) {
+      formData.programs.forEach(id => {
+        draftPayload.append("programs", String(id));
+      });
     }
-  };
+
+    // ====================== JSON FIELDS ======================
+    draftPayload.append("oLevelYear", formData.oLevelYear || "");
+    draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
+    draftPayload.append("oLevelSchool", formData.oLevelSchool || "");
+    draftPayload.append("oLevelSubjects", JSON.stringify(formData.oLevelSubjects || []));
+
+    draftPayload.append("aLevelYear", formData.aLevelYear || "");
+    draftPayload.append("aLevelIndexNumber", formData.aLevelIndexNumber || "");
+    draftPayload.append("aLevelSchool", formData.aLevelSchool || "");
+    draftPayload.append("alevel_combination", formData.alevel_combination || "");
+    draftPayload.append("aLevelSubjects", JSON.stringify(formData.aLevelSubjects || []));
+
+    draftPayload.append("additionalQualifications", JSON.stringify(formData.additionalQualifications || []));
+
+    // ====================== BOOLEAN FIELDS - FIXED ======================
+    draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
+    draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
+    draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
+
+    draftPayload.append("externalReference", formData.externalReference || "");
+    draftPayload.append("status", "draft");
+    draftPayload.append("applicant", String(loggeduser?.user_id || ""));
+    draftPayload.append("batch", String(batch?.id || ""));
+
+    // ====================== FILES ======================
+    if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
+    if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
+    if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
+    if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
+
+    // Send the request
+    const response = await AxiosInstance.post(
+      "/api/drafts/save_draft/",
+      draftPayload,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+
+    if (showMessage) {
+      showNotification("Draft saved successfully", "success");
+    }
+
+    return response.data;
+
+  } catch (err: any) {
+    console.error("Failed to save draft", err?.response?.data || err);
+    if (showMessage) {
+      showNotification("Failed to save draft", "error");
+    }
+    throw err;
+  }
+};
 
   // handle next
   const handleNext = async () => {
@@ -593,13 +631,17 @@ export default function NewApplicationForm() {
     if (activeStep < steps.length - 1) {
       setIsSavingDraft(true);
 
-      // Save draft ONLY when moving to next step
-      await saveDraft(false);
+      try {
+        await saveDraft(false);        // Now saves files too
+      } catch (err) {
+        console.error("Draft save failed", err);
+      }
 
       setActiveStep(activeStep + 1);
       setIsSavingDraft(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+};
 
   // selected application amount
   const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
@@ -714,6 +756,8 @@ export default function NewApplicationForm() {
       // Files
       if (formData.passportPhoto) {
         formDataToSend.append("passport_photo", formData.passportPhoto);
+      } else if (formData.passportPhotoUrl) {
+        formDataToSend.append("passport_photo_url", formData.passportPhotoUrl);  
       }
 
       if (formData.oLevelDocuments) {
@@ -795,64 +839,74 @@ export default function NewApplicationForm() {
   };
 
   const loadDraft = async () => {
-    try {
-      setIsLoadingDraft(true)
-      const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+  try {
+    setIsLoadingDraft(true);
+    const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
-      if (data?.draft_exists && data?.data) {
-        setHasDraft(true)
-        const draft = data.data;
+    if (data?.draft_exists && data?.data) {
+      const draft = data.data;
 
-        setFormData(prev => ({
-          ...prev,
-          firstName: draft.first_name || prev.firstName,
-          lastName: draft.last_name || prev.lastName,
-          middleName: draft.middle_name || "",
-          dateOfBirth: draft.dateOfBirth || "",
-          gender: draft.gender || "",
-          nationality: draft.nationality || "",
-          nin: draft.nin || "",
-          passportNumber: draft.passportNumber || "",
-          phone: draft.phone || prev.phone,
-          email: draft.email || prev.email,
-          address: draft.address || "",
-          disabled: draft.disabled || "",
-          nextOfKinName: draft.nextOfKinName || "",
-          nextOfKinContact: draft.nextOfKinContact || "",
-          nextOfKinRelationship: draft.nextOfKinRelationship || "",
+      setFormData(prev => ({
+        ...prev,
+        firstName: draft.firstName || "",
+        lastName: draft.lastName || "",
+        middleName: draft.middleName || "",
+        dateOfBirth: draft.dateOfBirth || "",
+        gender: draft.gender || "",
+        nationality: draft.nationality || "",
+        nin: draft.nin || "",
+        passportNumber: draft.passportNumber || "",
+        phone: draft.phone || prev.phone,
+        email: draft.email || prev.email,
+        address: draft.address || "",
+        disabled: draft.disabled || "",
+        nextOfKinName: draft.nextOfKinName || "",
+        nextOfKinContact: draft.nextOfKinContact || "",
+        nextOfKinRelationship: draft.nextOfKinRelationship || "",
 
-          // Programs section
-          campus: draft.campus ? String(draft.campus) : "",
-          academic_level: draft.academic_level ? String(draft.academic_level) : "",
-          programs: Array.isArray(draft.programs) ? draft.programs : [],
+        campus: draft.campus ? String(draft.campus) : "",
+        academic_level: draft.academic_level ? String(draft.academic_level) : "",
+        programs: Array.isArray(draft.programs) ? draft.programs : [],
 
-          // JSON Fields
-          oLevelYear: draft.oLevelYear || "",
-          oLevelIndexNumber: draft.oLevelIndexNumber || "",
-          oLevelSchool: draft.oLevelSchool || "",
-          oLevelSubjects: draft.oLevelSubjects || prev.oLevelSubjects,
+        hasOLevel: draft.hasOlevel || false,
+        oLevelYear: draft.oLevelYear || "",
+        oLevelIndexNumber: draft.oLevelIndexNumber || "",
+        oLevelSchool: draft.oLevelSchool || "",
+        oLevelSubjects: Array.isArray(draft.oLevelSubjects) ? draft.oLevelSubjects : prev.oLevelSubjects,
 
-          aLevelYear: draft.aLevelYear || "",
-          aLevelIndexNumber: draft.aLevelIndexNumber || "",
-          aLevelSchool: draft.aLevelSchool || "",
-          alevel_combination: draft.alevel_combination || "",
-          aLevelSubjects: draft.aLevelSubjects || prev.aLevelSubjects,
+        hasALevel: draft.hasAlevel || false,
+        aLevelYear: draft.aLevelYear || "",
+        aLevelIndexNumber: draft.aLevelIndexNumber || "",
+        aLevelSchool: draft.aLevelSchool || "",
+        alevel_combination: draft.alevel_combination || "",
+        aLevelSubjects: Array.isArray(draft.aLevelSubjects) ? draft.aLevelSubjects : prev.aLevelSubjects,
 
-          hasOLevel: draft.hasOlevel || false,
-          hasALevel: draft.hasAlevel || false,
+        additionalQualifications: Array.isArray(draft.additionalQualifications) 
+          ? draft.additionalQualifications 
+          : [],
 
-          additionalQualifications: draft.additionalQualifications || [],
-          application_fee_paid: draft.application_fee_paid || false,
-          externalReference: draft.externalReference || "",
-        }));
+        application_fee_paid: draft.application_fee_paid || false,
+        externalReference: draft.externalReference || "",
 
-      }
-    } catch (err) {
-      console.log("No previous draft found");
-    } finally {
-      setIsLoadingDraft(false)
+        // Document URLs
+        passportPhotoUrl: draft.passportPhotoUrl || null,
+        oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
+        aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
+        otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
+
+        // Reset File objects
+        passportPhoto: null,
+        oLevelDocuments: null,
+        aLevelDocuments: null,
+        otherInstitutionDocuments: null,
+      }));
     }
-  };
+  } catch (err) {
+    console.log("No previous draft found");
+  } finally {
+    setIsLoadingDraft(false);
+  }
+};
 
   useEffect(() => {
     loadDraft();
@@ -1085,10 +1139,16 @@ export default function NewApplicationForm() {
       </Paper>
 
       <Alert>
+      {formData.application_fee_paid ? (
+        <Typography>
+          <strong>Payment of UGX {selectedFee?.amount} was sucessfull, Please continue with Submission</strong>
+        </Typography>
+      ) : (
         <Typography>
           Note: Your Required to pay a nonrefundable application fee of {" "}
           <strong>UGX {selectedFee?.amount}</strong> before application submission
         </Typography>
+      )}
       </Alert>
     </Box>
   )
