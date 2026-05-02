@@ -354,7 +354,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="otherInstitutionDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip"
+              accept=".pdf,.zip,.jpg,.png,.jpeg"
               style={{ display: "none" }}
               id="other-docs"
             />
