@@ -295,7 +295,11 @@ export default function NewApplicationForm() {
           if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
-          if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
+          if (!formData.alevel_combination?.trim()) {
+            errors.alevel_combination = "A-Level combination is required";
+          } else if (formData.alevel_combination.length > 10) {
+            errors.alevel_combination = "Combination cannot exceed 10 characters";
+          }
           // if (formData.aLevelSubjects.length < 5) {
           //   errors.aLevelSubjects = "Add at least 5 A-Level results";
           // }
@@ -536,89 +540,186 @@ export default function NewApplicationForm() {
   };
 
   // HANDLE SAVE DRAFT - Now also saves documents
-const saveDraft = async (showMessage = false) => {
-  try {
-    const draftPayload = new FormData();
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // ====================== TEXT FIELDS ======================
-    draftPayload.append("firstName", formData.firstName || "");
-    draftPayload.append("lastName", formData.lastName || "");
-    draftPayload.append("middleName", formData.middleName || "");
-    draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
-    draftPayload.append("gender", formData.gender || "");
-    draftPayload.append("nationality", formData.nationality || "");
-    draftPayload.append("nin", formData.nin || "");
-    draftPayload.append("passportNumber", formData.passportNumber || "");
-    draftPayload.append("phone", String(formData.phone || ""));
-    draftPayload.append("email", formData.email || "");
-    draftPayload.append("address", formData.address || "");
-    draftPayload.append("disabled", formData.disabled || "");
-    draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
-    draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
-    draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
-    draftPayload.append("campus", formData.campus || "");
-    draftPayload.append("academic_level", formData.academic_level || "");
+  const saveDraft = async (showMessage = false, retries = 3) => {
+    let attempt = 0;
 
-    // ====================== PROGRAMS (ManyToMany) ======================
-    if (Array.isArray(formData.programs)) {
-      formData.programs.forEach(id => {
-        draftPayload.append("programs", String(id));
-      });
-    }
+    while (attempt < retries) {
+      try {
+        const draftPayload = new FormData();
 
-    // ====================== JSON FIELDS ======================
-    draftPayload.append("oLevelYear", formData.oLevelYear || "");
-    draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
-    draftPayload.append("oLevelSchool", formData.oLevelSchool || "");
-    draftPayload.append("oLevelSubjects", JSON.stringify(formData.oLevelSubjects || []));
+        // ====================== TEXT FIELDS ======================
+        draftPayload.append("firstName", formData.firstName || "");
+        draftPayload.append("lastName", formData.lastName || "");
+        draftPayload.append("middleName", formData.middleName || "");
+        draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
+        draftPayload.append("gender", formData.gender || "");
+        draftPayload.append("nationality", formData.nationality || "");
+        draftPayload.append("nin", formData.nin || "");
+        draftPayload.append("passportNumber", formData.passportNumber || "");
+        draftPayload.append("phone", String(formData.phone || ""));
+        draftPayload.append("email", formData.email || "");
+        draftPayload.append("address", formData.address || "");
+        draftPayload.append("disabled", formData.disabled || "");
+        draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
+        draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
+        draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
+        draftPayload.append("campus", formData.campus || "");
+        draftPayload.append("academic_level", formData.academic_level || "");
 
-    draftPayload.append("aLevelYear", formData.aLevelYear || "");
-    draftPayload.append("aLevelIndexNumber", formData.aLevelIndexNumber || "");
-    draftPayload.append("aLevelSchool", formData.aLevelSchool || "");
-    draftPayload.append("alevel_combination", formData.alevel_combination || "");
-    draftPayload.append("aLevelSubjects", JSON.stringify(formData.aLevelSubjects || []));
+        // Programs
+        if (Array.isArray(formData.programs)) {
+          formData.programs.forEach(id => {
+            draftPayload.append("programs", String(id));
+          });
+        }
 
-    draftPayload.append("additionalQualifications", JSON.stringify(formData.additionalQualifications || []));
+        // JSON
+        draftPayload.append("oLevelYear", formData.oLevelYear || "");
+        draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
+        draftPayload.append("oLevelSchool", formData.oLevelSchool || "");
+        draftPayload.append("oLevelSubjects", JSON.stringify(formData.oLevelSubjects || []));
 
-    // ====================== BOOLEAN FIELDS - FIXED ======================
-    draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
-    draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
-    draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
+        draftPayload.append("aLevelYear", formData.aLevelYear || "");
+        draftPayload.append("aLevelIndexNumber", formData.aLevelIndexNumber || "");
+        draftPayload.append("aLevelSchool", formData.aLevelSchool || "");
+        draftPayload.append("alevel_combination", formData.alevel_combination || "");
+        draftPayload.append("aLevelSubjects", JSON.stringify(formData.aLevelSubjects || []));
 
-    draftPayload.append("externalReference", formData.externalReference || "");
-    draftPayload.append("status", "draft");
-    draftPayload.append("applicant", String(loggeduser?.user_id || ""));
-    draftPayload.append("batch", String(batch?.id || ""));
+        draftPayload.append("additionalQualifications", JSON.stringify(formData.additionalQualifications || []));
 
-    // ====================== FILES ======================
-    if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
-    if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
-    if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
-    if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
+        // Booleans
+        draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
+        draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
+        draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
 
-    // Send the request
-    const response = await AxiosInstance.post(
-      "/api/drafts/save_draft/",
-      draftPayload,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        draftPayload.append("externalReference", formData.externalReference || "");
+        draftPayload.append("status", "draft");
+        draftPayload.append("applicant", String(loggeduser?.user_id || ""));
+        draftPayload.append("batch", String(batch?.id || ""));
+
+        // FILES
+        if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
+        if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
+        if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
+        if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
+
+        const response = await AxiosInstance.post(
+          "/api/drafts/save_draft/",
+          draftPayload,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+
+        if (showMessage) {
+          showNotification("Draft saved successfully", "success");
+        }
+
+        return response.data;
+
+      } catch (err) {
+        attempt++;
+
+        console.warn(`Draft save attempt ${attempt} failed`);
+
+        if (attempt >= retries) {
+          console.error("All retries failed", err);
+
+          if (showMessage) {
+            showNotification("Failed to save draft after multiple attempts", "error");
+          }
+
+          throw err;
+        }
+
+        // ⏳ Wait before retrying (exponential backoff)
+        await delay(1000 * attempt); // 1s, 2s, 3s...
       }
-    );
-
-    if (showMessage) {
-      showNotification("Draft saved successfully", "success");
     }
+  };
+// const saveDraft = async (showMessage = false) => {
+//   try {
+//     const draftPayload = new FormData();
 
-    return response.data;
+//     // ====================== TEXT FIELDS ======================
+//     draftPayload.append("firstName", formData.firstName || "");
+//     draftPayload.append("lastName", formData.lastName || "");
+//     draftPayload.append("middleName", formData.middleName || "");
+//     draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
+//     draftPayload.append("gender", formData.gender || "");
+//     draftPayload.append("nationality", formData.nationality || "");
+//     draftPayload.append("nin", formData.nin || "");
+//     draftPayload.append("passportNumber", formData.passportNumber || "");
+//     draftPayload.append("phone", String(formData.phone || ""));
+//     draftPayload.append("email", formData.email || "");
+//     draftPayload.append("address", formData.address || "");
+//     draftPayload.append("disabled", formData.disabled || "");
+//     draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
+//     draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
+//     draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
+//     draftPayload.append("campus", formData.campus || "");
+//     draftPayload.append("academic_level", formData.academic_level || "");
 
-  } catch (err: any) {
-    console.error("Failed to save draft", err?.response?.data || err);
-    if (showMessage) {
-      showNotification("Failed to save draft", "error");
-    }
-    throw err;
-  }
-};
+//     // ====================== PROGRAMS (ManyToMany) ======================
+//     if (Array.isArray(formData.programs)) {
+//       formData.programs.forEach(id => {
+//         draftPayload.append("programs", String(id));
+//       });
+//     }
+
+//     // ====================== JSON FIELDS ======================
+//     draftPayload.append("oLevelYear", formData.oLevelYear || "");
+//     draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
+//     draftPayload.append("oLevelSchool", formData.oLevelSchool || "");
+//     draftPayload.append("oLevelSubjects", JSON.stringify(formData.oLevelSubjects || []));
+
+//     draftPayload.append("aLevelYear", formData.aLevelYear || "");
+//     draftPayload.append("aLevelIndexNumber", formData.aLevelIndexNumber || "");
+//     draftPayload.append("aLevelSchool", formData.aLevelSchool || "");
+//     draftPayload.append("alevel_combination", formData.alevel_combination || "");
+//     draftPayload.append("aLevelSubjects", JSON.stringify(formData.aLevelSubjects || []));
+
+//     draftPayload.append("additionalQualifications", JSON.stringify(formData.additionalQualifications || []));
+
+//     // ====================== BOOLEAN FIELDS - FIXED ======================
+//     draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
+//     draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
+//     draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
+
+//     draftPayload.append("externalReference", formData.externalReference || "");
+//     draftPayload.append("status", "draft");
+//     draftPayload.append("applicant", String(loggeduser?.user_id || ""));
+//     draftPayload.append("batch", String(batch?.id || ""));
+
+//     // ====================== FILES ======================
+//     if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
+//     if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
+//     if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
+//     if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
+
+//     // Send the request
+//     const response = await AxiosInstance.post(
+//       "/api/drafts/save_draft/",
+//       draftPayload,
+//       {
+//         headers: { 'Content-Type': 'multipart/form-data' },
+//       }
+//     );
+
+//     if (showMessage) {
+//       showNotification("Draft saved successfully", "success");
+//     }
+
+//     return response.data;
+
+//   } catch (err: any) {
+//     console.error("Failed to save draft", err?.response?.data || err);
+//     if (showMessage) {
+//       showNotification("Failed to save draft", "error");
+//     }
+//     throw err;
+//   }
+// };
 
   // handle next
   const handleNext = async () => {
@@ -753,25 +854,26 @@ const saveDraft = async (showMessage = false) => {
         );
       }
 
-      // Files
-      if (formData.passportPhoto) {
-        formDataToSend.append("passport_photo", formData.passportPhoto);
-      } else if (formData.passportPhotoUrl) {
-        formDataToSend.append("passport_photo_url", formData.passportPhotoUrl);  
-      }
+      // Passport photo
+      // if (!formData.passportPhotoUrl && formData.passportPhoto) {
+      //   formDataToSend.append("passport_photo", formData.passportPhoto);
+      // }
 
-      if (formData.oLevelDocuments) {
-        formDataToSend.append("documents", formData.oLevelDocuments);
-        formDataToSend.append("document_types", "OLevel");
-      }
-      if (formData.aLevelDocuments) {
-        formDataToSend.append("documents", formData.aLevelDocuments);
-        formDataToSend.append("document_types", "ALevel");
-      }
-      if (formData.otherInstitutionDocuments) {
-        formDataToSend.append("documents", formData.otherInstitutionDocuments);
-        formDataToSend.append("document_types", "Others");
-      }
+      // // Documents (ONLY if not already saved in draft)
+      // if (!formData.oLevelDocumentsUrl && formData.oLevelDocuments) {
+      //   formDataToSend.append("documents", formData.oLevelDocuments);
+      //   formDataToSend.append("document_types", "OLevel");
+      // }
+
+      // if (!formData.aLevelDocumentsUrl && formData.aLevelDocuments) {
+      //   formDataToSend.append("documents", formData.aLevelDocuments);
+      //   formDataToSend.append("document_types", "ALevel");
+      // }
+
+      // if (!formData.otherInstitutionDocumentsUrl && formData.otherInstitutionDocuments) {
+      //   formDataToSend.append("documents", formData.otherInstitutionDocuments);
+      //   formDataToSend.append("document_types", "Others");
+      // }
 
       if (resolvedExternalReference) {
         formDataToSend.append("external_reference", resolvedExternalReference);
@@ -1324,25 +1426,62 @@ const saveDraft = async (showMessage = false) => {
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
-        onPaymentSuccess={(externalRef?: string) => {
+        // onPaymentSuccess={(externalRef?: string) => {
+        //     setFormData((prev) => ({
+        //       ...prev,
+        //       application_fee_paid: true,
+        //       externalReference: externalRef || "",        
+        //     }));
+
+        //   saveDraft(false);   // Save draft with successful reference
+
+        //   showNotification("Payment successful! Submitting your application now...", "success");
+
+        //   // Close modal immediately
+        //   setTimeout(() => {
+        //     setPaymentModalOpen(false);
+        //   }, 3000)
+
+        //   setTimeout(() => {
+        //     handleSubmit({ externalReference: externalRef || "", forcePaid: true });
+        //   }, 3000);
+        // }}
+        onPaymentSuccess={async(externalRef?: string) => {
+          try {
+            // 1. Update state
             setFormData((prev) => ({
               ...prev,
               application_fee_paid: true,
-              externalReference: externalRef || "",        
+              externalReference: externalRef || "",
             }));
 
-          saveDraft(false);   // Save draft with successful reference
+            // 2. FORCE save draft and WAIT
+            await saveDraft(false);
 
-          showNotification("Payment successful! Submitting your application now...", "success");
+            showNotification("Payment successful! Submitting your application now...", "success");
 
-          // Close modal immediately
-          setTimeout(() => {
-            setPaymentModalOpen(false);
-          }, 3000)
+            // 4. Close modal AFTER everything
+            setTimeout(() => {
+              setPaymentModalOpen(false);
+            }, 1500)  
 
-          setTimeout(() => {
-            handleSubmit({ externalReference: externalRef || "", forcePaid: true });
-          }, 3000);
+
+            // 3. Submit ONLY after draft is saved
+            setTimeout(()=>{
+              handleSubmit({ 
+                externalReference: externalRef || "", 
+                forcePaid: true 
+              });
+            }, 1500)
+
+          } catch (error) {
+            console.error("Critical flow failed:", error);
+
+            showNotification(
+              "Payment received but failed to save your application. Please try again.",
+              "error"
+            );
+          }
         }}
         onPaymentFailed={clearPaymentState}    
       />

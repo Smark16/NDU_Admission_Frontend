@@ -158,39 +158,39 @@ const handlePayment = async () => {
     const data = res.data;
 
     // ✅ Save references
-    setExtRef(data.external_reference);
     setCurrentPaymentRef(data.payment_reference);
-
+    
     setSuccessMessage('Payment request sent! Check your phone for prompt...');
     setStatus('processing');
-
+    
     // ✅ START POLLING
     const interval = setInterval(async () => {
       try {
         const statusRes = await AxiosInstance.get(
           `/api/payments/check_payment_status/${data.payment_reference}/`
         );
-
+        
         const statusData = statusRes.data;
 
         // ✅ SUCCESS
         if (statusData.status === 'PAID') {
           clearInterval(interval);
           setPollInterval(null);
-
+          
           setTransactionId(
             statusData.transactionId ||
             statusData.receiptNumber ||
             'N/A'
           );
-
+          setExtRef(data.external_reference);
+          
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
           
           // success callback
           if (!hasNotifiedSuccessRef.current) {
             hasNotifiedSuccessRef.current = true;
-            onPaymentSuccess?.(extRef || data.external_reference);
+            onPaymentSuccess?.(data.external_reference);
           }
 
           return;
@@ -648,12 +648,13 @@ const handlePayment = async () => {
 
           {status === 'success' && (
             <CustomButton 
-              onClick={() => {
-                onPaymentSuccess?.(extRef || "");
-                handleClose();
-              }}  
+              // onClick={() => {
+              //   onPaymentSuccess?.(extRef || "");
+              //   handleClose();
+              // }}  
               text="Your Application will be submitted shortly..."
               color="success"
+              disabled={true}
               variant="contained"
             />
           )}

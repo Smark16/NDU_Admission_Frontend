@@ -457,9 +457,34 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField fullWidth label="School Name" name="aLevelSchool" value={formData.aLevelSchool} onChange={handleInputChange} error={!!formErrors.aLevelSchool} helperText={formErrors.aLevelSchool} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <TextField fullWidth label="Combination" name="alevel_combination" placeholder="e.g PCM" value={formData.alevel_combination} onChange={handleInputChange} error={!!formErrors.alevel_combination} helperText={formErrors.alevel_combination} />
+
+                        <Grid size={{ xs: 12, sm: 12, md: 2 }}>
+              <TextField 
+                fullWidth 
+                label="Combination" 
+                name="alevel_combination" 
+                placeholder="e.g PCM" 
+                value={formData.alevel_combination} 
+                onChange={handleInputChange} 
+                error={!!formErrors.alevel_combination} 
+                helperText={formErrors.alevel_combination}
+                inputProps={{ maxLength: 10 }}
+              />
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block', 
+                  textAlign: 'right', 
+                  mt: 0.5,
+                  color: formData.alevel_combination.length >= 10 ? 'error.main' : 'text.secondary' 
+                }}
+              >
+                {formData.alevel_combination.length}/10 characters
+              </Typography>
             </Grid>
+            {/* <Grid size={{ xs: 12, sm: 12, md: 2 }}>
+              <TextField fullWidth label="Combination" name="alevel_combination" placeholder="e.g PCM" value={formData.alevel_combination} onChange={handleInputChange} error={!!formErrors.alevel_combination} helperText={formErrors.alevel_combination} />
+            </Grid> */}
           </Grid>
 
           {/* Exam type selector */}

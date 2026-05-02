@@ -354,7 +354,7 @@ const Documents: React.FC<DocumentProps> = ({
               type="file"
               name="otherInstitutionDocuments"
               onChange={handleFileChange}
-              accept=".pdf,.zip"
+              accept=".pdf,.zip,.jpg,.png,.jpeg"
               style={{ display: "none" }}
               id="other-docs"
             />
@@ -364,7 +364,7 @@ const Documents: React.FC<DocumentProps> = ({
                 Click to upload or drag and drop
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP (Max 100MB) - Optional
+                PDF, ZIP, IMAGE (Max 100MB) - Optional
               </Typography>
               {compressingField === "otherInstitutionDocuments" ? (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
