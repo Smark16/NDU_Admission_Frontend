@@ -149,7 +149,7 @@ export default function NewApplicationForm() {
 
   // drafts
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
-  const [hasDraft, setHasDraft] = useState<boolean | null>(null)
+  // const [hasDraft, setHasDraft] = useState<boolean | null>(null)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
 
   const [activeStep, setActiveStep] = useState(0)
@@ -540,7 +540,7 @@ export default function NewApplicationForm() {
   };
 
   // HANDLE SAVE DRAFT - Now also saves documents
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = (ms:any) => new Promise(resolve => setTimeout(resolve, ms));
 
   const saveDraft = async (showMessage = false, retries = 3) => {
     let attempt = 0;
@@ -1015,7 +1015,7 @@ export default function NewApplicationForm() {
   }, []);
 
   // ====================== LOADING OVERLAY ======================
-  if (isLoadingDraft && hasDraft === null) {
+  if (isLoadingDraft) {
     return (
       <Container maxWidth="xl" sx={{ py: 8 }}>
         <Box sx={{
