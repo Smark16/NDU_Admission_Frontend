@@ -72,17 +72,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (response.status === 200 || response.status === 201) {
         const data: AuthTokens = response.data;
+        const decoded = jwtDecode<DecodedUser>(data.access);
+
+        // This SPA is applicants/students only; staff use main-erp-portal.
+        if (decoded.is_staff) {
+          setNoAccount(
+            "Staff accounts cannot sign in here. Please use the internal ERP portal.",
+          );
+          showErrorAlert(
+            "Staff accounts cannot sign in here. Please use the internal ERP portal.",
+          );
+          return;
+        }
+
         localStorage.setItem("authtokens", JSON.stringify(data));
         setAuthTokens(data);
-
-        // Decode will trigger useEffect above
-        const decoded = jwtDecode<DecodedUser>(data.access);
         setLoggedUser(decoded);
-
-        { decoded?.is_staff ? navigate('/admin/admission_dashboard') : navigate('/applicant/dashboard') }
-
+        navigate("/applicant/dashboard");
         showSuccessAlert("Login successful!");
-        // Navigation happens in useEffect
       }
     } catch (err: any) {
       const message = err.response?.data?.detail || "Invalid username or password";
@@ -138,11 +145,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (authTokens?.access) {
       try {
         const decoded = jwtDecode<DecodedUser>(authTokens.access);
+        if (decoded.is_staff) {
+          localStorage.removeItem('authtokens');
+          setAuthTokens(null);
+          setLoggedUser(null);
+          localStorage.removeItem('lastPath');
+          setLoading(false);
+          return;
+        }
         const lastPath = localStorage.getItem('lastPath');
         setLoggedUser(decoded);
 
-        if (lastPath) {
+        if (lastPath && !lastPath.startsWith('/admin')) {
           navigate(lastPath);
+          localStorage.removeItem('lastPath');
+        } else if (lastPath?.startsWith('/admin')) {
           localStorage.removeItem('lastPath');
         }
       } catch (err) {
