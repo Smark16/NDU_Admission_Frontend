@@ -146,6 +146,8 @@ export default function NewApplicationForm() {
   const { loggeduser } = useContext(AuthContext) || {}
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressingField, setCompressingField] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false)
+  const [docType, setDocType] = useState<string | null>(null);
 
   // drafts
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
@@ -536,6 +538,8 @@ export default function NewApplicationForm() {
 
      // ================= UPLOAD IMMEDIATELY =================
       try {
+        setIsUploading(true)
+        setDocType(name)
         const uploadData = new FormData();
         uploadData.append("file", fileToSave);
         uploadData.append("document_type", name); // IMPORTANT (matches backend)
@@ -548,7 +552,7 @@ export default function NewApplicationForm() {
             headers: { "Content-Type": "multipart/form-data" },
           }
         );
-
+     
         const { url, filename } = res.data;
 
         // ================= UPDATE STATE =================
@@ -568,6 +572,9 @@ export default function NewApplicationForm() {
       } catch (error) {
         console.error("Upload failed:", error);
         showNotification("File upload failed", "error");
+      }finally{
+        setIsUploading(false)
+        setDocType(null)
       }
 
     // Save the correctly named file
@@ -1097,6 +1104,8 @@ export default function NewApplicationForm() {
         setFormData={setFormData}
         formErrors={formErrors}
         compressingField={compressingField}
+        loading={isUploading}
+        docType={docType}
       />
     </>
   )

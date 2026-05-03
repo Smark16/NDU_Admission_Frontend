@@ -71,6 +71,8 @@ interface FormData {
 
 interface DocumentProps {
   formData: FormData;
+  loading:boolean;
+  docType: string | null;
   compressingField: string | null;    
   formErrors: Record<string, string>
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -114,7 +116,9 @@ const SavedFileChip = ({
 
 const Documents: React.FC<DocumentProps> = ({
   formData,
+  loading,
   formErrors,
+  docType,
   compressingField,
   handleFileChange,
   setFormData
@@ -170,6 +174,11 @@ const Documents: React.FC<DocumentProps> = ({
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
                   <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
                   <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
+                </Box>
+              ) : docType === "passportPhoto" && loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                  <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                  <Typography variant="caption" sx={{ color: "#666" }}>Uploading image...</Typography>
                 </Box>
               ) : (
                 <SavedFileChip file={formData.passportPhoto} url={formData.passportPhotoUrl} fieldName="passportPhoto" setFormData={setFormData} />
@@ -236,6 +245,11 @@ const Documents: React.FC<DocumentProps> = ({
                     <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
                       <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
                       <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
+                    </Box>
+                  ) : docType === "oLevelDocuments" && loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                      <Typography variant="caption" sx={{ color: "#666" }}>Uploading Document...</Typography>
                     </Box>
                   ) : (
                     <SavedFileChip file={formData.oLevelDocuments} url={formData.oLevelDocumentsUrl} fieldName="oLevelDocuments" setFormData={setFormData} />
@@ -304,7 +318,12 @@ const Documents: React.FC<DocumentProps> = ({
                   <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
                   <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                 </Box>
-              ) : (
+              ) : docType === "aLevelDocuments" && loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                      <Typography variant="caption" sx={{ color: "#666" }}>Uploading Document...</Typography>
+                    </Box>
+                  ) : (
                 <SavedFileChip file={formData.aLevelDocuments} url={formData.aLevelDocumentsUrl} fieldName="aLevelDocuments" setFormData={setFormData} />
               )}
             </label>
@@ -371,7 +390,12 @@ const Documents: React.FC<DocumentProps> = ({
                   <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
                   <Typography variant="caption" sx={{ color: "#666" }}>Compressing image...</Typography>
                 </Box>
-              ) : (
+              ) : docType === "otherInstitutionDocuments" && loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                      <Typography variant="caption" sx={{ color: "#666" }}>Uploading Document...</Typography>
+                    </Box>
+                  ) : (
                 <SavedFileChip file={formData.otherInstitutionDocuments} url={formData.otherInstitutionDocumentsUrl} fieldName="otherInstitutionDocuments" setFormData={setFormData} />
               )}
             </label>
