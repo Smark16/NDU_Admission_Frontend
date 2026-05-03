@@ -534,9 +534,45 @@ export default function NewApplicationForm() {
       return;
     }
 
+     // ================= UPLOAD IMMEDIATELY =================
+      try {
+        const uploadData = new FormData();
+        uploadData.append("file", fileToSave);
+        uploadData.append("document_type", name); // IMPORTANT (matches backend)
+        uploadData.append("batch", String(batch?.id || ""));
+
+        const res = await AxiosInstance.post(
+          "/api/drafts/upload_draft_document/",
+          uploadData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+
+        const { url, filename } = res.data;
+
+        // ================= UPDATE STATE =================
+        setFormErrors((prev) => ({ ...prev, [name]: "" }));
+        setFormData((prev) => ({
+          ...prev,
+
+          // Clear file object (optional)
+          [name]: null,
+
+          // Save URL
+          [`${name}Url`]: url,
+        }));
+
+        showNotification(`${filename} uploaded successfully`, "success");
+
+      } catch (error) {
+        console.error("Upload failed:", error);
+        showNotification("File upload failed", "error");
+      }
+
     // Save the correctly named file
-    setFormErrors((prev) => ({ ...prev, [name]: "" }));
-    setFormData((prev) => ({ ...prev, [name]: fileToSave }));
+    // setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    // setFormData((prev) => ({ ...prev, [name]: fileToSave }));
   };
 
   // HANDLE SAVE DRAFT - Now also saves documents
@@ -600,10 +636,10 @@ export default function NewApplicationForm() {
         draftPayload.append("batch", String(batch?.id || ""));
 
         // FILES
-        if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
-        if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
-        if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
-        if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
+        // if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
+        // if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
+        // if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
+        // if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
 
         const response = await AxiosInstance.post(
           "/api/drafts/save_draft/",
@@ -637,89 +673,6 @@ export default function NewApplicationForm() {
       }
     }
   };
-// const saveDraft = async (showMessage = false) => {
-//   try {
-//     const draftPayload = new FormData();
-
-//     // ====================== TEXT FIELDS ======================
-//     draftPayload.append("firstName", formData.firstName || "");
-//     draftPayload.append("lastName", formData.lastName || "");
-//     draftPayload.append("middleName", formData.middleName || "");
-//     draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
-//     draftPayload.append("gender", formData.gender || "");
-//     draftPayload.append("nationality", formData.nationality || "");
-//     draftPayload.append("nin", formData.nin || "");
-//     draftPayload.append("passportNumber", formData.passportNumber || "");
-//     draftPayload.append("phone", String(formData.phone || ""));
-//     draftPayload.append("email", formData.email || "");
-//     draftPayload.append("address", formData.address || "");
-//     draftPayload.append("disabled", formData.disabled || "");
-//     draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
-//     draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
-//     draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
-//     draftPayload.append("campus", formData.campus || "");
-//     draftPayload.append("academic_level", formData.academic_level || "");
-
-//     // ====================== PROGRAMS (ManyToMany) ======================
-//     if (Array.isArray(formData.programs)) {
-//       formData.programs.forEach(id => {
-//         draftPayload.append("programs", String(id));
-//       });
-//     }
-
-//     // ====================== JSON FIELDS ======================
-//     draftPayload.append("oLevelYear", formData.oLevelYear || "");
-//     draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
-//     draftPayload.append("oLevelSchool", formData.oLevelSchool || "");
-//     draftPayload.append("oLevelSubjects", JSON.stringify(formData.oLevelSubjects || []));
-
-//     draftPayload.append("aLevelYear", formData.aLevelYear || "");
-//     draftPayload.append("aLevelIndexNumber", formData.aLevelIndexNumber || "");
-//     draftPayload.append("aLevelSchool", formData.aLevelSchool || "");
-//     draftPayload.append("alevel_combination", formData.alevel_combination || "");
-//     draftPayload.append("aLevelSubjects", JSON.stringify(formData.aLevelSubjects || []));
-
-//     draftPayload.append("additionalQualifications", JSON.stringify(formData.additionalQualifications || []));
-
-//     // ====================== BOOLEAN FIELDS - FIXED ======================
-//     draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
-//     draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
-//     draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
-
-//     draftPayload.append("externalReference", formData.externalReference || "");
-//     draftPayload.append("status", "draft");
-//     draftPayload.append("applicant", String(loggeduser?.user_id || ""));
-//     draftPayload.append("batch", String(batch?.id || ""));
-
-//     // ====================== FILES ======================
-//     if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
-//     if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
-//     if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
-//     if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
-
-//     // Send the request
-//     const response = await AxiosInstance.post(
-//       "/api/drafts/save_draft/",
-//       draftPayload,
-//       {
-//         headers: { 'Content-Type': 'multipart/form-data' },
-//       }
-//     );
-
-//     if (showMessage) {
-//       showNotification("Draft saved successfully", "success");
-//     }
-
-//     return response.data;
-
-//   } catch (err: any) {
-//     console.error("Failed to save draft", err?.response?.data || err);
-//     if (showMessage) {
-//       showNotification("Failed to save draft", "error");
-//     }
-//     throw err;
-//   }
-// };
 
   // handle next
   const handleNext = async () => {
@@ -855,25 +808,25 @@ export default function NewApplicationForm() {
       }
 
       // Passport photo
-      // if (!formData.passportPhotoUrl && formData.passportPhoto) {
-      //   formDataToSend.append("passport_photo", formData.passportPhoto);
-      // }
+      if (!formData.passportPhotoUrl && formData.passportPhoto) {
+        formDataToSend.append("passport_photo", formData.passportPhoto);
+      }
 
-      // // Documents (ONLY if not already saved in draft)
-      // if (!formData.oLevelDocumentsUrl && formData.oLevelDocuments) {
-      //   formDataToSend.append("documents", formData.oLevelDocuments);
-      //   formDataToSend.append("document_types", "OLevel");
-      // }
+      // Documents (ONLY if not already saved in draft)
+      if (!formData.oLevelDocumentsUrl && formData.oLevelDocuments) {
+        formDataToSend.append("documents", formData.oLevelDocuments);
+        formDataToSend.append("document_types", "OLevel");
+      }
 
-      // if (!formData.aLevelDocumentsUrl && formData.aLevelDocuments) {
-      //   formDataToSend.append("documents", formData.aLevelDocuments);
-      //   formDataToSend.append("document_types", "ALevel");
-      // }
+      if (!formData.aLevelDocumentsUrl && formData.aLevelDocuments) {
+        formDataToSend.append("documents", formData.aLevelDocuments);
+        formDataToSend.append("document_types", "ALevel");
+      }
 
-      // if (!formData.otherInstitutionDocumentsUrl && formData.otherInstitutionDocuments) {
-      //   formDataToSend.append("documents", formData.otherInstitutionDocuments);
-      //   formDataToSend.append("document_types", "Others");
-      // }
+      if (!formData.otherInstitutionDocumentsUrl && formData.otherInstitutionDocuments) {
+        formDataToSend.append("documents", formData.otherInstitutionDocuments);
+        formDataToSend.append("document_types", "Others");
+      }
 
       if (resolvedExternalReference) {
         formDataToSend.append("external_reference", resolvedExternalReference);
