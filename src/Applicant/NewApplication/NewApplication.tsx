@@ -572,6 +572,7 @@ export default function NewApplicationForm() {
       } catch (error) {
         console.error("Upload failed:", error);
         showNotification("File upload failed", "error");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }finally{
         setIsUploading(false)
         setDocType(null)
@@ -1098,6 +1099,15 @@ export default function NewApplicationForm() {
   // documents
   const renderDocuments = () => (
     <>
+    {notification && (
+        <Alert
+          severity={notification.type}
+          onClose={() => setNotification(null)}
+          sx={{ mb: 3 }}
+        >
+          {notification.message}
+        </Alert>
+      )}
       <Documents
         formData={formData}
         handleFileChange={handleFileChange}
