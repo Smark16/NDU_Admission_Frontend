@@ -569,9 +569,9 @@ export default function NewApplicationForm() {
 
         showNotification(`${filename} uploaded successfully`, "success");
 
-      } catch (error) {
+      } catch (error:any) {
         console.error("Upload failed:", error);
-        showNotification("File upload failed", "error");
+        showNotification(`${error?.response?.data?.detail}` | "File upload failed", "error");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }finally{
         setIsUploading(false)
