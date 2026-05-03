@@ -574,7 +574,7 @@ export default function NewApplicationForm() {
         if(error.response?.data?.detail){
           showNotification(`${error.response.data.detail}`, "error");
         }else{
-          showNotification("File upload failed", "error");
+          showNotification("File upload failed, check your connection and try refresh", "error");
         }
         window.scrollTo({ top: 0, behavior: "smooth" });
       }finally{
@@ -892,7 +892,7 @@ export default function NewApplicationForm() {
         showNotification(`${err.response.data.detail}`, "error");
       } else {
         showNotification(
-          "Submission failed. Please check your connection and try again or Refresh and submit again.",
+          "Submission failed. Try Refresh and submit again.",
           "error"
         );
       }
