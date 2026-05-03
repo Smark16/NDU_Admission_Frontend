@@ -571,7 +571,11 @@ export default function NewApplicationForm() {
 
       } catch (error:any) {
         console.error("Upload failed:", error);
-        showNotification(`${error?.response?.data?.detail}` | "File upload failed", "error");
+        if(error.response?.data?.detail){
+          showNotification(`${error.response.data.detail}`, "error");
+        }else{
+          showNotification("File upload failed", "error");
+        }
         window.scrollTo({ top: 0, behavior: "smooth" });
       }finally{
         setIsUploading(false)
