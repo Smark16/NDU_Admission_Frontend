@@ -173,8 +173,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 onChange={handleChange}
                 label="Title"
               >
-                <MenuItem value="Mr">Mr</MenuItem>
-                <MenuItem value="Mrs">Mrs</MenuItem>
+                <MenuItem value="Mr.">Mr</MenuItem>
+                <MenuItem value="Ms.">Ms</MenuItem>
+                <MenuItem value="Mrs.">Mrs</MenuItem>
               </Select>
               {formErrors.title && (
                 <FormHelperText>{formErrors.title}</FormHelperText>
