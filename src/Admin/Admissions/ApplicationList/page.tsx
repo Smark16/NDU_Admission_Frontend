@@ -24,7 +24,7 @@ import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "./Review/RejectionForm"
 
-type AppStatus = "submitted" | "accepted" | "rejected" | "under_review" | "pending_approval" | "admitted"
+type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected'
 
 interface Application {
   id: number
@@ -39,6 +39,7 @@ interface Application {
   academic_level: string
   batch: string
   campus: string
+  is_direct_entry: boolean;
 }
 
 interface Campus {
@@ -54,8 +55,9 @@ const statusConfig: Record<
   under_review:     { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
   pending_approval: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
   accepted:         { color: "success", icon: <ThumbUpIcon fontSize="small" /> },
+  direct_entry:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
+  online:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
   rejected:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
-  admitted:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
 }
 
 const getStatusLabel = (status: AppStatus) => {
@@ -63,18 +65,20 @@ const getStatusLabel = (status: AppStatus) => {
     case "accepted":  return "Approved"
     case "under_review": return "Under Review"
     case "pending_approval": return "Awaiting Registrar"
-    case "admitted":  return "Admitted"
+    case "online":  return "Online"
+    case "rejected":  return "Rejected"
     default: return status.replace("_", " ")
   }
 }
 
 const normalizeStatus = (status: string): AppStatus => {
   const s = (status || "").trim().toLowerCase()
-  if (s === "admitted") return "admitted"
+  if (s === "online") return "online"
   if (s === "accepted") return "accepted"
-  if (s === "rejected") return "rejected"
+  if (s === "direct_entry") return "direct_entry"
   if (s === "under_review") return "under_review"
   if (s === "pending_approval" || s === "pending") return "pending_approval"
+  if (s === "rejected") return "rejected"
   return "submitted"
 }
 
@@ -102,6 +106,7 @@ const normalizeApplication = (raw: any): Application => {
     academic_level: String(raw?.academic_level ?? ""),
     batch: String(raw?.batch ?? ""),
     campus: String(raw?.campus ?? ""),
+    is_direct_entry: Boolean(raw?.is_direct_entry),
   }
 }
 
@@ -432,8 +437,8 @@ export default function ApplicationList() {
           { label: "Submitted",      value: applications.filter(a => a.status === "submitted").length,               filter: "submitted" },
           { label: "Under Review",   value: applications.filter(a => a.status === "under_review").length,            filter: "under_review" },
           { label: "Approved",       value: applications.filter(a => a.status === "accepted").length,                filter: "accepted" },
-          { label: "Admitted",       value: applications.filter(a => a.status === "admitted").length, filter: "admitted" },
-          { label: "Rejected",       value: applications.filter(a => a.status === "rejected").length,               filter: "rejected" },
+          { label: "Online",       value: applications.filter(a => a.is_direct_entry === false).length, filter: "admitted" },
+          { label: "Direct Entry",       value: applications.filter(a => a.is_direct_entry === true).length,               filter: "rejected" },
         ].map((stat, i) => (
           <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
             <Card
