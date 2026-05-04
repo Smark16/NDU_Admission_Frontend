@@ -43,6 +43,7 @@ interface FormData {
   academic_level: string
   oLevelYear: string
   oLevelIndexNumber: string
+  title: string
   oLevelSchool: string
   oLevelSubjects: SubjectResult[]
   aLevelYear: string

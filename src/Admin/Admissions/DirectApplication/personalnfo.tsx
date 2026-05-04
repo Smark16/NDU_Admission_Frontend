@@ -27,6 +27,7 @@ interface PersonalInfoProps {
     lastName: string
     middleName: string
     dateOfBirth: string
+    title: string
     gender: string
     nationality: string
     nin?: string
@@ -159,6 +160,24 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <FormControl fullWidth required error={!!formErrors.title}>
+              <InputLabel>Title</InputLabel>
+              <Select
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                label="Title"
+              >
+                <MenuItem value="Mr">Mr</MenuItem>
+                <MenuItem value="Mrs">Mrs</MenuItem>
+              </Select>
+              {formErrors.title && (
+                <FormHelperText>{formErrors.title}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.gender}>
               <InputLabel>Gender</InputLabel>
               <Select
@@ -190,16 +209,16 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                     height: 56,
                     minHeight: 56,
                   }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,           
-                }),
-                menu: (base) => ({
-                  ...base,
-                  zIndex: 9999,          
-                }),
-              }}
-            menuPortalTarget={document.body}  
+                  menuPortal: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                  }),
+                }}
+                menuPortalTarget={document.body}
               />
               {formErrors.nationality && (
                 <FormHelperText>{formErrors.nationality}</FormHelperText>
@@ -215,7 +234,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   label="NIN (National ID Number)"
                   name="nin"
                   value={formData.nin || ""}
-                  onChange={handleNinChange}         
+                  onChange={handleNinChange}
                 />
 
                 {/* Real-time validation message – separate component */}
@@ -245,7 +264,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               </Grid>
             )) : null}
 
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.disabled}>
               <InputLabel>Are you Disabled?</InputLabel>
               <Select

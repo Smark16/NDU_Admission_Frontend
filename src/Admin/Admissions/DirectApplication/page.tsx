@@ -77,6 +77,7 @@ interface FormData {
   dateOfBirth: string
   gender: string
   nationality: string
+  title: string
   nin?: string
   passportNumber?: string
   phone: number
@@ -132,6 +133,7 @@ export default function DirectApplicationForm() {
     middleName: "",
     application_fee_paid: false,
     school_pay_reference: "",
+    title: "",
     dateOfBirth: "",
     gender: "",
     nationality: "",
@@ -198,6 +200,7 @@ export default function DirectApplicationForm() {
         if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
         if (!formData.disabled) errors.disabled = "Please select if you are disabled or not";
         if (!formData.gender) errors.gender = "Please select gender";
+        if(!formData.title) errors.title = "Please select a title";
         if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
@@ -223,7 +226,6 @@ export default function DirectApplicationForm() {
         }
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
-        // if (!formData.study_mode) errors.study_mode = "Study mode is required";
         break;
 
       case 2: // Academic Results
@@ -234,9 +236,9 @@ export default function DirectApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          // if (formData.oLevelSubjects.length < 8) {
-          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
-          // }
+          if (formData.oLevelSubjects.length < 8) {
+            errors.oLevelSubjects = "Add at least 8 O-Level results";
+          }
         }
 
         if (hasALevel) {
@@ -244,31 +246,34 @@ export default function DirectApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          // if (formData.aLevelSubjects.length < 5) {
-          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
-          // }
+          if (formData.aLevelSubjects.length < 5) {
+            errors.aLevelSubjects = "Add at least 5 A-Level results";
+          }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
-        // const requiresAdditionalQuals = !hasOLevel && !hasALevel;
-        if(!formData.hasOLevel && !formData.hasALevel){
-              if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
-            errors.additionalQualifications = "Please add at least one Additional Qualification";
-          } else {
-            // Validate each additional qualification entry
-            const hasEmptyQual = formData.additionalQualifications.some((qual: any) => 
-              !qual.institution?.trim() || 
-              !qual.type?.trim() || 
-              !qual.year || 
-              !qual.class_of_award?.trim()
-            );
+         if (formData.additionalQualifications?.length > 0) {
+          const hasIncompleteQual = formData.additionalQualifications.some((qual: any) =>
+            !qual.institution?.trim() ||
+            !qual.type?.trim() ||
+            !qual.year ||
+            !qual.class_of_award?.trim()
+          );
 
-            if (hasEmptyQual) {
-              errors.additionalQualifications = "Please fill all fields (Institution, Type, Award Year, Class of Award) for each additional qualification";
-            }
+          if (hasIncompleteQual) {
+            errors.additionalQualifications =
+              "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.";
           }
         }
-          
+
+        // If user has NO O-Level and NO A-Level, they MUST provide at least one Additional Qualification
+        if (!hasOLevel && !hasALevel) {
+          if (!formData.additionalQualifications || formData.additionalQualifications.length === 0) {
+            errors.additionalQualifications =
+              "Since you have neither O-Level nor A-Level, you must add at least one additional qualification.";
+          }
+        }
+
         break;
 
       case 3: // Documents
@@ -494,6 +499,7 @@ export default function DirectApplicationForm() {
       formDataToSend.append("middle_name", formData.middleName || "");
       formDataToSend.append("date_of_birth", formData.dateOfBirth);
       formDataToSend.append("gender", formData.gender);
+      formDataToSend.append("title", formData.title);
       formDataToSend.append("nationality", formData.nationality);
       formDataToSend.append("phone", String(formData.phone));
       formDataToSend.append("email", formData.email);
