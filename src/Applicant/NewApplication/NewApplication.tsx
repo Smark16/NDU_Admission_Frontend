@@ -1193,25 +1193,42 @@ export default function NewApplicationForm() {
         <Grid container spacing={1}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
-              <strong>Passport Photo:</strong> {formData.passportPhoto ? formData.passportPhoto.name : "Not uploaded"}
+              <strong>Passport Photo:</strong>{" "} 
+              {formData.passportPhotoUrl 
+                ? "Uploaded ✅"
+                : formData.passportPhoto 
+                  ? formData.passportPhoto.name 
+                  : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>O-Level Documents:</strong>{" "}
-              {formData.oLevelDocuments ? formData.oLevelDocuments.name : "Not uploaded"}
+              {formData.oLevelDocumentsUrl 
+                ? "Uploaded ✅" 
+                : formData.oLevelDocuments 
+                  ? formData.oLevelDocuments.name 
+                  : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>A-Level Documents:</strong>{" "}
-              {formData.aLevelDocuments ? formData.aLevelDocuments.name : "Not uploaded"}
+              {formData.aLevelDocumentsUrl 
+                ? "Uploaded ✅"
+                : formData.aLevelDocuments 
+                  ? formData.aLevelDocuments.name 
+                  : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>Other Institution Documents:</strong>{" "}
-              {formData.otherInstitutionDocuments ? formData.otherInstitutionDocuments.name : "Not uploaded"}
+               {formData.otherInstitutionDocumentsUrl 
+                  ? "Uploaded ✅"
+                  : formData.otherInstitutionDocuments 
+                    ? formData.otherInstitutionDocuments.name 
+                    : "Not uploaded"}
             </Typography>
           </Grid>
         </Grid>
