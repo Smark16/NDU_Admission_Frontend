@@ -27,6 +27,7 @@ interface PersonalInfoProps {
     lastName: string
     middleName: string
     dateOfBirth: string
+    title:string;
     gender: string
     nationality: string
     nin?: string
@@ -161,6 +162,24 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                 }}
               />
             </LocalizationProvider>
+          </Grid>
+
+           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <FormControl fullWidth required error={!!formErrors.title}>
+              <InputLabel>Title</InputLabel>
+              <Select
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                label="Title"
+              >
+                <MenuItem value="Mr">Mr</MenuItem>
+                <MenuItem value="Mrs">Mrs</MenuItem>
+              </Select>
+              {formErrors.title && (
+                <FormHelperText>{formErrors.title}</FormHelperText>
+              )}
+            </FormControl>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>

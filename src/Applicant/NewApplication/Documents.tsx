@@ -29,6 +29,7 @@ interface FormData {
   lastName: string
   middleName: string
   dateOfBirth: string
+  title:string
   gender: string
   nationality: string
   phone: number

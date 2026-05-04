@@ -90,6 +90,7 @@ interface FormData {
   batch: number | undefined
   firstName: string
   lastName: string
+  title:string;
   application_fee_paid: boolean
   externalReference?: string;
   middleName: string
@@ -165,6 +166,7 @@ export default function NewApplicationForm() {
     middleName: "",
     application_fee_paid: false,
     dateOfBirth: "",
+    title:"",
     gender: "",
     nationality: "",
     disabled: "",
@@ -256,6 +258,7 @@ export default function NewApplicationForm() {
         if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
         if (!formData.disabled) errors.disabled = "Please select if you are disabled or not";
         if (!formData.gender) errors.gender = "Please select gender";
+        if(!formData.title) errors.title = "Please select a title";
         if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
@@ -602,6 +605,7 @@ export default function NewApplicationForm() {
         draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
         draftPayload.append("gender", formData.gender || "");
         draftPayload.append("nationality", formData.nationality || "");
+        draftPayload.append("title", formData.title || "")
         draftPayload.append("nin", formData.nin || "");
         draftPayload.append("passportNumber", formData.passportNumber || "");
         draftPayload.append("phone", String(formData.phone || ""));
@@ -764,6 +768,7 @@ export default function NewApplicationForm() {
       formDataToSend.append("date_of_birth", formData.dateOfBirth);
       formDataToSend.append("gender", formData.gender);
       formDataToSend.append("nationality", formData.nationality);
+      formDataToSend.append("title", formData.title)
       formDataToSend.append("phone", String(formData.phone));
       formDataToSend.append("email", formData.email);
       formDataToSend.append("disabled", formData?.disabled || "no");
@@ -924,6 +929,7 @@ export default function NewApplicationForm() {
         nationality: draft.nationality || "",
         nin: draft.nin || "",
         passportNumber: draft.passportNumber || "",
+        title: draft.title || "",
         phone: draft.phone || prev.phone,
         email: draft.email || prev.email,
         address: draft.address || "",
