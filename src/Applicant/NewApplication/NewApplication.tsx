@@ -274,6 +274,8 @@ export default function NewApplicationForm() {
       case 1: // Programs
         if (formData.programs.length === 0) {
           errors.programs = "Please select at least one program";
+        }else if(formData.programs.some(id => !id || id === 0)){
+          errors.programs = "Invalid program selection";
         }
 
         if (!formData.campus) errors.campus = "Please select a campus";
@@ -581,10 +583,6 @@ export default function NewApplicationForm() {
         setIsUploading(false)
         setDocType(null)
       }
-
-    // Save the correctly named file
-    // setFormErrors((prev) => ({ ...prev, [name]: "" }));
-    // setFormData((prev) => ({ ...prev, [name]: fileToSave }));
   };
 
   // HANDLE SAVE DRAFT - Now also saves documents
@@ -617,11 +615,18 @@ export default function NewApplicationForm() {
         draftPayload.append("academic_level", formData.academic_level || "");
 
         // Programs
-        if (Array.isArray(formData.programs)) {
-          formData.programs.forEach(id => {
-            draftPayload.append("programs", String(id));
-          });
-        }
+        // if (Array.isArray(formData.programs)) {
+        //   formData.programs.forEach(id => {
+        //     draftPayload.append("programs", String(id));
+        //   });
+        // }
+        const validPrograms = Array.isArray(formData.programs) 
+          ? formData.programs.filter(id => Number(id) > 0)   // Remove 0 and invalid IDs
+          : [];
+
+        validPrograms.forEach(id => {
+          draftPayload.append("programs", String(id));
+        });
 
         // JSON
         draftPayload.append("oLevelYear", formData.oLevelYear || "");
@@ -646,12 +651,6 @@ export default function NewApplicationForm() {
         draftPayload.append("status", "draft");
         draftPayload.append("applicant", String(loggeduser?.user_id || ""));
         draftPayload.append("batch", String(batch?.id || ""));
-
-        // FILES
-        // if (formData.passportPhoto) draftPayload.append("passportPhoto", formData.passportPhoto);
-        // if (formData.oLevelDocuments) draftPayload.append("oLevelDocuments", formData.oLevelDocuments);
-        // if (formData.aLevelDocuments) draftPayload.append("aLevelDocuments", formData.aLevelDocuments);
-        // if (formData.otherInstitutionDocuments) draftPayload.append("otherInstitutionDocuments", formData.otherInstitutionDocuments);
 
         const response = await AxiosInstance.post(
           "/api/drafts/save_draft/",
@@ -782,7 +781,9 @@ export default function NewApplicationForm() {
       if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
       // Programs
-      formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
+      // formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
+      const validPrograms = formData.programs.filter(id => Number(id) > 0);
+      validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
 
       // Academic Details
       formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
@@ -1402,26 +1403,6 @@ export default function NewApplicationForm() {
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
-        // onPaymentSuccess={(externalRef?: string) => {
-        //     setFormData((prev) => ({
-        //       ...prev,
-        //       application_fee_paid: true,
-        //       externalReference: externalRef || "",        
-        //     }));
-
-        //   saveDraft(false);   // Save draft with successful reference
-
-        //   showNotification("Payment successful! Submitting your application now...", "success");
-
-        //   // Close modal immediately
-        //   setTimeout(() => {
-        //     setPaymentModalOpen(false);
-        //   }, 3000)
-
-        //   setTimeout(() => {
-        //     handleSubmit({ externalReference: externalRef || "", forcePaid: true });
-        //   }, 3000);
-        // }}
         onPaymentSuccess={async(externalRef?: string) => {
           try {
             // 1. Update state

@@ -107,6 +107,7 @@ export default function AdmitStudentPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadApplication, setLoadApplication] = useState(false)
   const [isAdmitted, setIsAdmitted] = useState(false)
+  const [isGeneratingRegNo, setIsGeneratingRegNo] = useState(false) 
 
   // ← ONLY THESE 3 LINES ADDED FOR PROGRESS
   const [progress, setProgress] = useState(0)
@@ -201,7 +202,7 @@ export default function AdmitStudentPage() {
 
   const handleSubmitClick = () => {
 
-    if (!formData.reg_no || !formData.program) {
+    if (!formData.student_id || !formData.reg_no || !formData.program) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields: program, campus, study mode, and student number",
@@ -221,37 +222,59 @@ export default function AdmitStudentPage() {
   }
 
   // handle reg No generation
- const handleGenerateRegNo = () => {
-  if (!application) return
+//  const handleGenerateRegNo = () => {
+//   if (!application) return
 
-  const year = new Date().getFullYear().toString().slice(-2)
+//   const year = new Date().getFullYear().toString().slice(-2)
 
-  const selectedCampusId = Number(formData.campus)
-  const selectedCampus = campus.find(c => c.id === selectedCampusId)
+//   const selectedCampusId = Number(formData.campus)
+//   const selectedCampus = campus.find(c => c.id === selectedCampusId)
   
-  const campusName = selectedCampus?.name?.toLowerCase() || ""
-  const campusNumber = campusName.includes("kampala") ? "2" : "1"
+//   const campusName = selectedCampus?.name?.toLowerCase() || ""
+//   const campusNumber = campusName.includes("kampala") ? "2" : "1"
  
-  const program = application.programs.find(p => p.id === Number(formData.program))
-  // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
-  const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
+//   const program = application.programs.find(p => p.id === Number(formData.program))
+//   // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
+//   const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
 
-  const studyMode = formData?.study_mode
+//   const studyMode = formData?.study_mode
 
-  const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
+//   const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
 
-  const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
+//   const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
 
-  setFormData(prev => ({ ...prev, reg_no: regNo }))
-  return regNo
-}
+//   setFormData(prev => ({ ...prev, reg_no: regNo }))
+//   return regNo
+// }
+const handleGenerateRegNo = async () => {
+  if (!application) return;
+  
+  setIsGeneratingRegNo(true)
+  try {
+    const res = await AxiosInstance.post("api/admissions/generate-reg-no/", {
+      campus: formData.campus,
+      program: formData.program,
+      study_mode: formData.study_mode,
+    });
 
-  const handleGeneratePayCode = () => {
-    const prefix = Math.random() < 0.5 ? "1" : "2"  
-    const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
-    const payCode = prefix + random9Digits  
-    setFormData(prev => ({ ...prev, student_id: payCode }))
+    const regNo = res.data.reg_no;
+
+    setFormData(prev => ({ ...prev, reg_no: regNo }));
+
+    return regNo;
+  } catch (err) {
+    console.error("Failed to generate reg no", err);
+  }finally{
+    setIsGeneratingRegNo(false)
   }
+};
+
+// const handleGeneratePayCode = () => {
+//     const prefix = Math.random() < 0.5 ? "1" : "2"  
+//     const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
+//     const payCode = prefix + random9Digits  
+//     setFormData(prev => ({ ...prev, student_id: payCode }))
+//   }
 
   const handleConfirmAdmit = async () => {
     try {
@@ -519,7 +542,7 @@ export default function AdmitStudentPage() {
           </Box>
 
           <FormSection>
-            <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/>
+           {/* <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/> */}
             <TextField
               fullWidth
               label="Student Number"
@@ -535,7 +558,7 @@ export default function AdmitStudentPage() {
           </FormSection>
 
           <FormSection>
-            <CustomButton onClick={handleGenerateRegNo} text="Generate reg_no"/>
+            <CustomButton onClick={handleGenerateRegNo} text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}/>
             <TextField
               fullWidth
               label="Reg No"
