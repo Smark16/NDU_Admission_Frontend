@@ -175,7 +175,8 @@ const Programs: React.FC<ProgramProps> = ({
               if (newValue.length <= 3) {
                 setFormData((prev: any) => ({
                   ...prev,
-                  programs: newValue.map((p) => p.id),
+                  // programs: newValue.map((p) => p.id),
+                  programs: newValue.map((p) => p.id).filter(id => Number(id) > 0),
                 }));
               }
             }}

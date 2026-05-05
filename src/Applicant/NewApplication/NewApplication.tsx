@@ -624,8 +624,18 @@ export default function NewApplicationForm() {
         //     draftPayload.append("programs", String(id));
         //   });
         // }
+        // const validPrograms = Array.isArray(formData.programs) 
+        //   ? formData.programs.filter(id => Number(id) > 0)   // Remove 0 and invalid IDs
+        //   : [];
+
+        // validPrograms.forEach(id => {
+        //   draftPayload.append("programs", String(id));
+        // });
+
         const validPrograms = Array.isArray(formData.programs) 
-          ? formData.programs.filter(id => Number(id) > 0)   // Remove 0 and invalid IDs
+          ? formData.programs
+              .map(id => Number(id))                    // Convert everything to number
+              .filter(id => !isNaN(id) && id > 0)       // Remove 0, NaN, empty strings
           : [];
 
         validPrograms.forEach(id => {
@@ -787,7 +797,12 @@ export default function NewApplicationForm() {
 
       // Programs
       // formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
-      const validPrograms = formData.programs.filter(id => Number(id) > 0);
+      // const validPrograms = formData.programs.filter(id => Number(id) > 0);
+      // validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
+      const validPrograms = formData.programs
+        .map(id => Number(id))
+        .filter(id => !isNaN(id) && id > 0);
+
       validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
 
       // Academic Details
@@ -940,7 +955,17 @@ export default function NewApplicationForm() {
 
         campus: draft.campus ? String(draft.campus) : "",
         academic_level: draft.academic_level ? String(draft.academic_level) : "",
-        programs: Array.isArray(draft.programs) ? draft.programs : [],
+        // programs: Array.isArray(draft.programs) ? draft.programs : [],
+        programs: Array.isArray(draft.programs) 
+          ? draft.programs
+              .map((p: any) => {
+                if (typeof p === 'object' && p !== null && p.id !== undefined) {
+                  return Number(p.id);
+                }
+                return Number(p);
+              })
+              .filter((id: number) => !isNaN(id) && id > 0)
+          : [],
 
         hasOLevel: draft.hasOlevel || false,
         oLevelYear: draft.oLevelYear || "",
