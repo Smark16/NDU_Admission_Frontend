@@ -305,6 +305,7 @@ const handleGenerateRegNo = async () => {
       })
       setIsLoading(false)
       setOpenDialog(false)
+      navigate('/admin/admited_students')
 
     } catch (err: any) {
       if (err.response?.data.application) {
@@ -333,41 +334,41 @@ const handleGenerateRegNo = async () => {
     }, 1000)
   }
 
-  const handleSendLetter = async () => {
-    try {
-      setIsLoading(true)
-      setShowProgress(true)
-      setProgress(0)
-      setStatus("")
+  // const handleSendLetter = async () => {
+  //   try {
+  //     setIsLoading(true)
+  //     setShowProgress(true)
+  //     setProgress(0)
+  //     setStatus("")
 
-      const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`, { start_date: startDate })
-      console.log(response.data)
-      setIsLoading(false)
-       setSnackbar({
-        open: true,
-        message: `${response.data?.detail}`,
-        type: "success",
-      })
+  //     const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`, { start_date: startDate })
+  //     console.log(response.data)
+  //     setIsLoading(false)
+  //      setSnackbar({
+  //       open: true,
+  //       message: `${response.data?.detail}`,
+  //       type: "success",
+  //     })
 
-    } catch (err:any) {
-      setShowProgress(false)
-      console.log(err)
-      if(err.response?.data.detail){
-         setSnackbar({
-        open: true,
-        message: `${err.response?.data.detail}`,
-        type: "error",
-      })
-      }else{
-        setSnackbar({
-         open: true,
-         message: "Failed to send offer letter to student",
-         type: "error",
-       })
-      }
-      setIsLoading(false)
-    }
-  }
+  //   } catch (err:any) {
+  //     setShowProgress(false)
+  //     console.log(err)
+  //     if(err.response?.data.detail){
+  //        setSnackbar({
+  //       open: true,
+  //       message: `${err.response?.data.detail}`,
+  //       type: "error",
+  //     })
+  //     }else{
+  //       setSnackbar({
+  //        open: true,
+  //        message: "Failed to send offer letter to student",
+  //        type: "error",
+  //      })
+  //     }
+  //     setIsLoading(false)
+  //   }
+  // }
 
   if(loadApplication){
     return ( 
@@ -610,7 +611,7 @@ const handleGenerateRegNo = async () => {
           )}
 
           <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between", mt: 4 }}>
-            {isAdmitted && (
+            {/* {isAdmitted && (
               <CustomButton
               icon={
                   isLoading ? (
@@ -622,7 +623,7 @@ const handleGenerateRegNo = async () => {
                 onClick={handleSendLetter}
                 text={showProgress ? "Generating Letter..." : isLoading ? "Sending..." : "Send Offer Letter to Portal"}
                 />
-            )}
+            )} */}
 
             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 4 }}>
               <CustomButton variant="outlined" onClick={() => window.history.back()} sx={{borderColor:"#7c1519", color:"#7c1519"}} text="Cancel"/>
