@@ -90,7 +90,7 @@ interface FormData {
   batch: number | undefined
   firstName: string
   lastName: string
-  title:string;
+  title: string;
   application_fee_paid: boolean
   externalReference?: string;
   middleName: string
@@ -166,7 +166,7 @@ export default function NewApplicationForm() {
     middleName: "",
     application_fee_paid: false,
     dateOfBirth: "",
-    title:"",
+    title: "",
     gender: "",
     nationality: "",
     disabled: "",
@@ -258,7 +258,7 @@ export default function NewApplicationForm() {
         if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
         if (!formData.disabled) errors.disabled = "Please select if you are disabled or not";
         if (!formData.gender) errors.gender = "Please select gender";
-        if(!formData.title) errors.title = "Please select a title";
+        if (!formData.title) errors.title = "Please select a title";
         if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
@@ -277,7 +277,7 @@ export default function NewApplicationForm() {
       case 1: // Programs
         if (formData.programs.length === 0) {
           errors.programs = "Please select at least one program";
-        }else if(formData.programs.some(id => !id || id === 0)){
+        } else if (formData.programs.some(id => !id || id === 0)) {
           errors.programs = "Invalid program selection";
         }
 
@@ -337,30 +337,30 @@ export default function NewApplicationForm() {
 
         break;
       case 3: // Documents
-         if (!formData.passportPhoto && !formData.passportPhotoUrl) {
-            errors.passportPhoto = "Passport photo is required";
-          }
+        if (!formData.passportPhoto && !formData.passportPhotoUrl) {
+          errors.passportPhoto = "Passport photo is required";
+        }
 
-          // O-Level Documents
-          if (formData.hasOLevel) {
-            if (!formData.oLevelDocuments && !formData.oLevelDocumentsUrl) {
-              errors.oLevelDocuments = "O-Level certificate is required";
-            }
+        // O-Level Documents
+        if (formData.hasOLevel) {
+          if (!formData.oLevelDocuments && !formData.oLevelDocumentsUrl) {
+            errors.oLevelDocuments = "O-Level certificate is required";
           }
+        }
 
-          // A-Level Documents
-          if (formData.hasALevel) {
-            if (!formData.aLevelDocuments && !formData.aLevelDocumentsUrl) {
-              errors.aLevelDocuments = "A-Level certificate is required";
-            }
+        // A-Level Documents
+        if (formData.hasALevel) {
+          if (!formData.aLevelDocuments && !formData.aLevelDocumentsUrl) {
+            errors.aLevelDocuments = "A-Level certificate is required";
           }
+        }
 
-          // Other Documents (only if they have additional qualifications)
-          if (formData.additionalQualifications && formData.additionalQualifications.length > 0) {
-            if (!formData.otherInstitutionDocuments && !formData.otherInstitutionDocumentsUrl) {
-              errors.otherInstitutionDocuments = "Other institution documents are required";
-            }
+        // Other Documents (only if they have additional qualifications)
+        if (formData.additionalQualifications && formData.additionalQualifications.length > 0) {
+          if (!formData.otherInstitutionDocuments && !formData.otherInstitutionDocumentsUrl) {
+            errors.otherInstitutionDocuments = "Other institution documents are required";
           }
+        }
         break;
 
       case 4:
@@ -524,7 +524,7 @@ export default function NewApplicationForm() {
         `This file is large (${originalSize} MB). On mobile data this may fail - consider using Wi-Fi or uploading a smaller scan.`,
         "error"
       );
-    }else if (fileToSave.type === 'application/pdf') {
+    } else if (fileToSave.type === 'application/pdf') {
       showNotification(`PDF detected (${originalSize} MB). Large PDFs upload slower on mobile.`, "info");
     }
     else if (originalName.toLowerCase().endsWith('.zip')) {
@@ -541,61 +541,64 @@ export default function NewApplicationForm() {
       return;
     }
 
-     // ================= UPLOAD IMMEDIATELY =================
-      try {
-        setIsUploading(true)
-        setDocType(name)
-        const uploadData = new FormData();
-        uploadData.append("file", fileToSave);
-        uploadData.append("document_type", name); // IMPORTANT (matches backend)
-        uploadData.append("batch", String(batch?.id || ""));
+    // ================= UPLOAD IMMEDIATELY =================
+    try {
+      setIsUploading(true)
+      setDocType(name)
+      const uploadData = new FormData();
+      uploadData.append("file", fileToSave);
+      uploadData.append("document_type", name); // IMPORTANT (matches backend)
+      uploadData.append("batch", String(batch?.id || ""));
 
-        const res = await AxiosInstance.post(
-          "/api/drafts/upload_draft_document/",
-          uploadData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
-        );
-     
-        const { url, filename } = res.data;
-
-        // ================= UPDATE STATE =================
-        setFormErrors((prev) => ({ ...prev, [name]: "" }));
-        setFormData((prev) => ({
-          ...prev,
-
-          // Clear file object (optional)
-          [name]: null,
-
-          // Save URL
-          [`${name}Url`]: url,
-        }));
-
-        showNotification(`${filename} uploaded successfully`, "success");
-
-      } catch (error:any) {
-        console.error("Upload failed:", error);
-        if(error.response?.data?.detail){
-          showNotification(`${error.response.data.detail}`, "error");
-        }else{
-          showNotification("File upload failed, check your connection and try refresh", "error");
+      const res = await AxiosInstance.post(
+        "/api/drafts/upload_draft_document/",
+        uploadData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
         }
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }finally{
-        setIsUploading(false)
-        setDocType(null)
+      );
+
+      const { url, filename } = res.data;
+
+      // ================= UPDATE STATE =================
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+      setFormData((prev) => ({
+        ...prev,
+
+        // Clear file object (optional)
+        [name]: null,
+
+        // Save URL
+        [`${name}Url`]: url,
+      }));
+
+      showNotification(`${filename} uploaded successfully`, "success");
+
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      if (error.response?.data?.detail) {
+        showNotification(`${error.response.data.detail}`, "error");
+      } else {
+        showNotification("File upload failed, check your connection and try refresh", "error");
       }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setIsUploading(false)
+      setDocType(null)
+    }
   };
 
   // HANDLE SAVE DRAFT - Now also saves documents
-  const delay = (ms:any) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const saveDraft = async (showMessage = false, retries = 3) => {
+  const saveDraft = async (showMessage = false, retries = 3, override?: { externalReference?: string; forcePaid?: boolean }) => {
     let attempt = 0;
 
     while (attempt < retries) {
       try {
+        const finalPaid = override?.forcePaid ?? formData.application_fee_paid;
+        const finalRef = override?.externalReference ?? formData.externalReference;
+
         const draftPayload = new FormData();
 
         // ====================== TEXT FIELDS ======================
@@ -632,10 +635,10 @@ export default function NewApplicationForm() {
         //   draftPayload.append("programs", String(id));
         // });
 
-        const validPrograms = Array.isArray(formData.programs) 
+        const validPrograms = Array.isArray(formData.programs)
           ? formData.programs
-              .map(id => Number(id))                    // Convert everything to number
-              .filter(id => !isNaN(id) && id > 0)       // Remove 0, NaN, empty strings
+            .map(id => Number(id))                    // Convert everything to number
+            .filter(id => !isNaN(id) && id > 0)       // Remove 0, NaN, empty strings
           : [];
 
         validPrograms.forEach(id => {
@@ -659,9 +662,11 @@ export default function NewApplicationForm() {
         // Booleans
         draftPayload.append("hasOlevel", formData.hasOLevel ? "true" : "false");
         draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
-        draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
-
-        draftPayload.append("externalReference", formData.externalReference || "");
+        // draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
+        draftPayload.append("application_fee_paid", finalPaid ? "true" : "false");
+        
+        draftPayload.append("externalReference", finalRef || "");
+        // draftPayload.append("externalReference", formData.externalReference || "");
         draftPayload.append("status", "draft");
         draftPayload.append("applicant", String(loggeduser?.user_id || ""));
         draftPayload.append("batch", String(batch?.id || ""));
@@ -720,7 +725,7 @@ export default function NewApplicationForm() {
       setIsSavingDraft(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-};
+  };
 
   // selected application amount
   const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
@@ -740,16 +745,16 @@ export default function NewApplicationForm() {
     )
     : undefined;
 
-    // clear ref on payment failure
-    const clearPaymentState = () => {
-      setFormData((prev) => ({
-        ...prev,
-        externalReference: "",
-        application_fee_paid: false,
-      }));
-    };
+  // clear ref on payment failure
+  const clearPaymentState = () => {
+    setFormData((prev) => ({
+      ...prev,
+      externalReference: "",
+      application_fee_paid: false,
+    }));
+  };
 
-    console.log('formData', formData)
+  console.log('formData', formData)
 
   const handleSubmit = async (paymentOverride?: { externalReference?: string; forcePaid?: boolean }) => {
     if (isSubmitting || submitLoader) return;
@@ -927,37 +932,37 @@ export default function NewApplicationForm() {
   };
 
   const loadDraft = async () => {
-  try {
-    setIsLoadingDraft(true);
-    const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+    try {
+      setIsLoadingDraft(true);
+      const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
-    if (data?.draft_exists && data?.data) {
-      const draft = data.data;
+      if (data?.draft_exists && data?.data) {
+        const draft = data.data;
 
-      setFormData(prev => ({
-        ...prev,
-        firstName: draft.firstName || "",
-        lastName: draft.lastName || "",
-        middleName: draft.middleName || "",
-        dateOfBirth: draft.dateOfBirth || "",
-        gender: draft.gender || "",
-        nationality: draft.nationality || "",
-        nin: draft.nin || "",
-        passportNumber: draft.passportNumber || "",
-        title: draft.title || "",
-        phone: draft.phone || prev.phone,
-        email: draft.email || prev.email,
-        address: draft.address || "",
-        disabled: draft.disabled || "",
-        nextOfKinName: draft.nextOfKinName || "",
-        nextOfKinContact: draft.nextOfKinContact || "",
-        nextOfKinRelationship: draft.nextOfKinRelationship || "",
+        setFormData(prev => ({
+          ...prev,
+          firstName: draft.firstName || "",
+          lastName: draft.lastName || "",
+          middleName: draft.middleName || "",
+          dateOfBirth: draft.dateOfBirth || "",
+          gender: draft.gender || "",
+          nationality: draft.nationality || "",
+          nin: draft.nin || "",
+          passportNumber: draft.passportNumber || "",
+          title: draft.title || "",
+          phone: draft.phone || prev.phone,
+          email: draft.email || prev.email,
+          address: draft.address || "",
+          disabled: draft.disabled || "",
+          nextOfKinName: draft.nextOfKinName || "",
+          nextOfKinContact: draft.nextOfKinContact || "",
+          nextOfKinRelationship: draft.nextOfKinRelationship || "",
 
-        campus: draft.campus ? String(draft.campus) : "",
-        academic_level: draft.academic_level ? String(draft.academic_level) : "",
-        // programs: Array.isArray(draft.programs) ? draft.programs : [],
-        programs: Array.isArray(draft.programs) 
-          ? draft.programs
+          campus: draft.campus ? String(draft.campus) : "",
+          academic_level: draft.academic_level ? String(draft.academic_level) : "",
+          // programs: Array.isArray(draft.programs) ? draft.programs : [],
+          programs: Array.isArray(draft.programs)
+            ? draft.programs
               .map((p: any) => {
                 if (typeof p === 'object' && p !== null && p.id !== undefined) {
                   return Number(p.id);
@@ -965,47 +970,47 @@ export default function NewApplicationForm() {
                 return Number(p);
               })
               .filter((id: number) => !isNaN(id) && id > 0)
-          : [],
+            : [],
 
-        hasOLevel: draft.hasOlevel || false,
-        oLevelYear: draft.oLevelYear || "",
-        oLevelIndexNumber: draft.oLevelIndexNumber || "",
-        oLevelSchool: draft.oLevelSchool || "",
-        oLevelSubjects: Array.isArray(draft.oLevelSubjects) ? draft.oLevelSubjects : prev.oLevelSubjects,
+          hasOLevel: draft.hasOlevel || false,
+          oLevelYear: draft.oLevelYear || "",
+          oLevelIndexNumber: draft.oLevelIndexNumber || "",
+          oLevelSchool: draft.oLevelSchool || "",
+          oLevelSubjects: Array.isArray(draft.oLevelSubjects) ? draft.oLevelSubjects : prev.oLevelSubjects,
 
-        hasALevel: draft.hasAlevel || false,
-        aLevelYear: draft.aLevelYear || "",
-        aLevelIndexNumber: draft.aLevelIndexNumber || "",
-        aLevelSchool: draft.aLevelSchool || "",
-        alevel_combination: draft.alevel_combination || "",
-        aLevelSubjects: Array.isArray(draft.aLevelSubjects) ? draft.aLevelSubjects : prev.aLevelSubjects,
+          hasALevel: draft.hasAlevel || false,
+          aLevelYear: draft.aLevelYear || "",
+          aLevelIndexNumber: draft.aLevelIndexNumber || "",
+          aLevelSchool: draft.aLevelSchool || "",
+          alevel_combination: draft.alevel_combination || "",
+          aLevelSubjects: Array.isArray(draft.aLevelSubjects) ? draft.aLevelSubjects : prev.aLevelSubjects,
 
-        additionalQualifications: Array.isArray(draft.additionalQualifications) 
-          ? draft.additionalQualifications 
-          : [],
+          additionalQualifications: Array.isArray(draft.additionalQualifications)
+            ? draft.additionalQualifications
+            : [],
 
-        application_fee_paid: draft.application_fee_paid || false,
-        externalReference: draft.externalReference || "",
+          application_fee_paid: draft.application_fee_paid || false,
+          externalReference: draft.externalReference || "",
 
-        // Document URLs
-        passportPhotoUrl: draft.passportPhotoUrl || null,
-        oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
-        aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
-        otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
+          // Document URLs
+          passportPhotoUrl: draft.passportPhotoUrl || null,
+          oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
+          aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
+          otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
 
-        // Reset File objects
-        passportPhoto: null,
-        oLevelDocuments: null,
-        aLevelDocuments: null,
-        otherInstitutionDocuments: null,
-      }));
+          // Reset File objects
+          passportPhoto: null,
+          oLevelDocuments: null,
+          aLevelDocuments: null,
+          otherInstitutionDocuments: null,
+        }));
+      }
+    } catch (err) {
+      console.log("No previous draft found");
+    } finally {
+      setIsLoadingDraft(false);
     }
-  } catch (err) {
-    console.log("No previous draft found");
-  } finally {
-    setIsLoadingDraft(false);
-  }
-};
+  };
 
   useEffect(() => {
     loadDraft();
@@ -1071,8 +1076,8 @@ export default function NewApplicationForm() {
               {uploadProgress}% uploaded
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 300, mb: 1, color: '#1a3a52' }}>
-            Note: Upload times may vary based on your connection and file sizes.
-          </Typography>
+              Note: Upload times may vary based on your connection and file sizes.
+            </Typography>
           </Box>
         </Box>
       </Container>
@@ -1135,7 +1140,7 @@ export default function NewApplicationForm() {
   // documents
   const renderDocuments = () => (
     <>
-    {notification && (
+      {notification && (
         <Alert
           severity={notification.type}
           onClose={() => setNotification(null)}
@@ -1224,58 +1229,58 @@ export default function NewApplicationForm() {
         <Grid container spacing={1}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
-              <strong>Passport Photo:</strong>{" "} 
-              {formData.passportPhotoUrl 
+              <strong>Passport Photo:</strong>{" "}
+              {formData.passportPhotoUrl
                 ? "Uploaded ✅"
-                : formData.passportPhoto 
-                  ? formData.passportPhoto.name 
+                : formData.passportPhoto
+                  ? formData.passportPhoto.name
                   : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>O-Level Documents:</strong>{" "}
-              {formData.oLevelDocumentsUrl 
-                ? "Uploaded ✅" 
-                : formData.oLevelDocuments 
-                  ? formData.oLevelDocuments.name 
+              {formData.oLevelDocumentsUrl
+                ? "Uploaded ✅"
+                : formData.oLevelDocuments
+                  ? formData.oLevelDocuments.name
                   : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>A-Level Documents:</strong>{" "}
-              {formData.aLevelDocumentsUrl 
+              {formData.aLevelDocumentsUrl
                 ? "Uploaded ✅"
-                : formData.aLevelDocuments 
-                  ? formData.aLevelDocuments.name 
+                : formData.aLevelDocuments
+                  ? formData.aLevelDocuments.name
                   : "Not uploaded"}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>Other Institution Documents:</strong>{" "}
-               {formData.otherInstitutionDocumentsUrl 
-                  ? "Uploaded ✅"
-                  : formData.otherInstitutionDocuments 
-                    ? formData.otherInstitutionDocuments.name 
-                    : "Not uploaded"}
+              {formData.otherInstitutionDocumentsUrl
+                ? "Uploaded ✅"
+                : formData.otherInstitutionDocuments
+                  ? formData.otherInstitutionDocuments.name
+                  : "Not uploaded"}
             </Typography>
           </Grid>
         </Grid>
       </Paper>
 
       <Alert>
-      {formData.application_fee_paid ? (
-        <Typography>
-          <strong>Payment of UGX {selectedFee?.amount} was sucessfull, Please continue with Submission</strong>
-        </Typography>
-      ) : (
-        <Typography>
-          Note: Your Required to pay a nonrefundable application fee of {" "}
-          <strong>UGX {selectedFee?.amount}</strong> before application submission
-        </Typography>
-      )}
+        {formData.application_fee_paid ? (
+          <Typography>
+            <strong>Payment of UGX {selectedFee?.amount} was sucessfull, Please continue with Submission</strong>
+          </Typography>
+        ) : (
+          <Typography>
+            Note: Your Required to pay a nonrefundable application fee of {" "}
+            <strong>UGX {selectedFee?.amount}</strong> before application submission
+          </Typography>
+        )}
       </Alert>
     </Box>
   )
@@ -1414,81 +1419,95 @@ export default function NewApplicationForm() {
         </DialogActions>
       </Dialog>
 
-      {/* <PaymentModal
-        open={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
-        amountPaid={selectedFee?.amount ?? 0}
-        onPaymentSuccess={(externalRef?: string) => {
-          // 1. Update form state
-          setFormData((prev) => ({
-            ...prev,
-            application_fee_paid: true,
-            externalReference: externalRef || "",
-          }));
-
-          // 2. Save draft again (now with paid = true)
-          saveDraft(false);
-
-          showNotification(
-            "Payment successful! Submitting your application now...",
-            "success"
-          );
-
-          // Close modal immediately
-          setTimeout(() => {
-            setPaymentModalOpen(false);
-          }, 1000)
-
-          // 3. Auto-submit after a tiny delay
-          setTimeout(() => {
-            handleSubmit({ externalReference: externalRef || "", forcePaid: true });
-          }, 1800);
-
-        }}
-      /> */}
-
       <PaymentModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
-        onPaymentSuccess={async(externalRef?: string) => {
+        // onPaymentSuccess={async(externalRef?: string) => {
+        //   try {
+        //     // 1. Update state
+        //     setFormData((prev) => ({
+        //       ...prev,
+        //       application_fee_paid: true,
+        //       externalReference: externalRef || "",
+        //     }));
+
+        //     // 2. FORCE save draft and WAIT
+        //     await saveDraft(false);
+
+        //     showNotification("Payment successful! Submitting your application now...", "success");
+
+        //     // 4. Close modal AFTER everything
+        //     setTimeout(() => {
+        //       setPaymentModalOpen(false);
+        //     }, 1500)  
+
+
+        //     // 3. Submit ONLY after draft is saved
+        //     setTimeout(()=>{
+        //       handleSubmit({ 
+        //         externalReference: externalRef || "", 
+        //         forcePaid: true 
+        //       });
+        //     }, 1500)
+
+        //   } catch (error) {
+        //     console.error("Critical flow failed:", error);
+
+        //     showNotification(
+        //       "Payment received but failed to save your application. Please try again.",
+        //       "error"
+        //     );
+        //   }
+        // }}
+        onPaymentSuccess={async (externalRef?: string) => {
           try {
-            // 1. Update state
+            // 1. Immediately update UI state
             setFormData((prev) => ({
               ...prev,
               application_fee_paid: true,
               externalReference: externalRef || "",
             }));
 
-            // 2. FORCE save draft and WAIT
-            await saveDraft(false);
+            showNotification("Payment successful! Saving your progress...", "success");
 
-            showNotification("Payment successful! Submitting your application now...", "success");
+            // 2. FORCE save draft with payment info (CRITICAL)
+            await saveDraft(false);   // This must complete before proceeding
 
-            // 4. Close modal AFTER everything
+            // 3. Close modal
             setTimeout(() => {
               setPaymentModalOpen(false);
-            }, 1500)  
+            }, 1200);
 
-
-            // 3. Submit ONLY after draft is saved
-            setTimeout(()=>{
-              handleSubmit({ 
-                externalReference: externalRef || "", 
-                forcePaid: true 
+            // 4. Submit application AFTER draft is saved
+            setTimeout(() => {
+              handleSubmit({
+                externalReference: externalRef || "",
+                forcePaid: true
               });
-            }, 1500)
+            }, 800);
 
           } catch (error) {
-            console.error("Critical flow failed:", error);
+            console.error("Failed to save draft after payment:", error);
 
-            showNotification(
-              "Payment received but failed to save your application. Please try again.",
-              "error"
-            );
+            // Still try to submit even if draft save fails
+            setFormData((prev) => ({
+              ...prev,
+              application_fee_paid: true,
+              externalReference: externalRef || "",
+            }));
+
+            showNotification("Payment received. Submitting application...", "success");
+
+            setTimeout(() => {
+              handleSubmit({
+                externalReference: externalRef || "",
+                forcePaid: true
+              });
+            }, 1000);
           }
         }}
-        onPaymentFailed={clearPaymentState}    
+        onPaymentFailed={clearPaymentState}
       />
     </Container>
   )
