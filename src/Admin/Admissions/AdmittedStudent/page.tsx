@@ -50,7 +50,7 @@ import {
   Campaign as CampaignIcon,
   PictureAsPdf as PdfIcon,
   AutoAwesome as GenerateIcon,
-  Send as SendIcon,
+  // Send as SendIcon,
 } from "@mui/icons-material"
 import { Checkbox } from "@mui/material"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
@@ -297,26 +297,26 @@ export default function AdmittedStudents() {
     }
   }
 
-  const handleSendOfferLetter = async (student: Admitted) => {
-    setStudentActionLoading(student.id, true)
-    try {
-      if (student.admission_letter_pdf) {
-        const { data } = await AxiosInstance.post(`/api/offer_letter/resend_letter/${student.application}`)
-        showToast(data?.detail || "Offer letter email sent.", "success")
-      } else {
-        const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${student.application}`)
-        const updatedPdf = data?.pdf_url ? toAbsoluteUrl(data.pdf_url) : student.admission_letter_pdf
-        setAdmittedStudents((prev) =>
-          prev.map((s) => (s.id === student.id ? { ...s, admission_letter_pdf: updatedPdf } : s))
-        )
-        showToast(data?.detail || "Offer letter generated and sent.", "success")
-      }
-    } catch (err: any) {
-      showToast(err?.response?.data?.detail || "Failed to send offer letter.", "error")
-    } finally {
-      setStudentActionLoading(student.id, false)
-    }
-  }
+  // const handleSendOfferLetter = async (student: Admitted) => {
+  //   setStudentActionLoading(student.id, true)
+  //   try {
+  //     if (student.admission_letter_pdf) {
+  //       const { data } = await AxiosInstance.post(`/api/offer_letter/resend_letter/${student.application}`)
+  //       showToast(data?.detail || "Offer letter email sent.", "success")
+  //     } else {
+  //       const { data } = await AxiosInstance.post(`/api/offer_letter/send_letter/${student.application}`)
+  //       const updatedPdf = data?.pdf_url ? toAbsoluteUrl(data.pdf_url) : student.admission_letter_pdf
+  //       setAdmittedStudents((prev) =>
+  //         prev.map((s) => (s.id === student.id ? { ...s, admission_letter_pdf: updatedPdf } : s))
+  //       )
+  //       showToast(data?.detail || "Offer letter generated and sent.", "success")
+  //     }
+  //   } catch (err: any) {
+  //     showToast(err?.response?.data?.detail || "Failed to send offer letter.", "error")
+  //   } finally {
+  //     setStudentActionLoading(student.id, false)
+  //   }
+  // }
 
   const handlePrintOfferLetter = (student: Admitted) => {
     if (!student.admission_letter_pdf) {
@@ -575,7 +575,7 @@ export default function AdmittedStudents() {
                               title="Generate Offer Letter"
                             >
                               <GenerateIcon fontSize="small" />
-                            </IconButton>
+                            </IconButton> 
 
                             <IconButton
                               size="small"
@@ -587,7 +587,7 @@ export default function AdmittedStudents() {
                               <PdfIcon fontSize="small" />
                             </IconButton>
 
-                            <IconButton
+                            {/* <IconButton
                               size="small"
                               color="primary"
                               onClick={() => handleSendOfferLetter(student)}
@@ -595,7 +595,7 @@ export default function AdmittedStudents() {
                               title="Send Offer Letter"
                             >
                               <SendIcon fontSize="small" />
-                            </IconButton>
+                            </IconButton> */}
                         
                             <IconButton
                               size="small"
