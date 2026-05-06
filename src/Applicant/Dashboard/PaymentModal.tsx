@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useRef } from 'react';
+import { useContext, useEffect, useState, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -42,7 +42,7 @@ interface PaymentModalProps {
 
 type PaymentStatus = 'idle' | 'processing' | 'success' | 'error';
 
-const PaymentModal: React.FC<PaymentModalProps> = ({
+export default function PaymentModal({
   open,
   onClose,
   onPaymentSuccess,
@@ -50,7 +50,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   amountPaid,
   currency = 'UGX',
   reason = 'Application Fee',
-}) => {
+}: PaymentModalProps) {
   const AxiosInstance = useAxios()
   const {loggeduser} = useContext(AuthContext) || {}
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -82,23 +82,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const phoneRegex = /^(\+?256|0)?[7][0-9]{8,9}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
-
-  const hasCalledSuccess = useRef(false);
-
-useEffect(() => {
-  if (status === 'success' && onPaymentSuccess && !hasCalledSuccess.current) {
-    hasCalledSuccess.current = true;        // Prevent running again
-
-    onPaymentSuccess(extRef || undefined);
-
-    // Optional: Auto-close modal after showing success for a short time
-    // const timer = setTimeout(() => {
-    //   handleClose();
-    // }, 1800);
-
-    // return () => clearTimeout(timer);
-  }
-}, [status, onPaymentSuccess, extRef]); 
 
 // Clean up polling on unmount/close
 useEffect(() => {
@@ -187,10 +170,10 @@ const handlePayment = async () => {
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
           
-          // success callback
+          // Single callback — use API value (React state extRef is often stale inside the interval closure).
           if (!hasNotifiedSuccessRef.current) {
             hasNotifiedSuccessRef.current = true;
-            onPaymentSuccess?.(extRef || data.external_reference);
+            onPaymentSuccess?.(data.external_reference ?? undefined);
           }
 
           return;
@@ -686,7 +669,4 @@ const handlePayment = async () => {
       `}</style>
     </Dialog>
   );
-};
-
-export default PaymentModal;
- 
+}

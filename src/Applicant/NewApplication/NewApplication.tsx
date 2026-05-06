@@ -216,6 +216,10 @@ export default function NewApplicationForm() {
   // payment modal handlers
   const handleOpenPaymentModal = () => {
     if (!selectedFee?.amount) {
+      showNotification(
+        "No application fee is configured for your intake, nationality, and academic level. Please contact admissions or try again later.",
+        "error"
+      );
       return;
     }
     setPaymentModalOpen(true);
@@ -701,16 +705,17 @@ export default function NewApplicationForm() {
   const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
     ? "Local" : "International";
 
+  const normNat = (s: string | undefined) => String(s || "").trim().toLowerCase();
   const selectedFee = batch
     ? fees.find(
-      fee =>
-        fee.admission_id === batch.id &&
-        fee.academic_year === batch.academic_year &&
-        fee.nationality_type === applicantType &&
-        fee.academic_level.some(
-          (level) => level.id === Number(formData.academic_level)
+      (fee) =>
+        fee.is_active !== false &&
+        Number(fee.admission_id) === Number(batch.id) &&
+        String(fee.academic_year || "").trim() === String(batch.academic_year || "").trim() &&
+        normNat(fee.nationality_type) === normNat(applicantType) &&
+        fee.academic_level?.some(
+          (level: { id: number }) => Number(level.id) === Number(formData.academic_level)
         )
-
     )
     : undefined;
 
@@ -869,8 +874,14 @@ export default function NewApplicationForm() {
       }, 2000);
 
     } catch (err: any) {
-      if (err.response?.data?.detail) {
-        showNotification(`${err.response.data.detail}`, "error");
+      const d = err.response?.data?.detail;
+      const msg = Array.isArray(d)
+        ? d.map((x: unknown) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")
+        : typeof d === "object" && d !== null
+          ? JSON.stringify(d)
+          : d;
+      if (msg) {
+        showNotification(String(msg), "error");
       } else {
         showNotification(
           "Submission failed. Please check your connection and try again or Refresh and submit again.",

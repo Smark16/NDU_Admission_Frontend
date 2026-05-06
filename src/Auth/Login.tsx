@@ -16,7 +16,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import SchoolIcon from "@mui/icons-material/School";
 import { AuthContext } from '../Context/AuthContext';
-import logo from '../Images/Ndejje_University_Logo.jpg';
+import logo from '../Images/Ndejje_University_Logo.png';
 import cover_image from '../Images/cover_page.jpg';
 import EmailDialog from './send_email';
 import { api } from '../../lib/api';
@@ -121,23 +121,19 @@ export default function Login() {
 
         {/* Content */}
         <Box sx={{ position: "relative", zIndex: 1, p: 5, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {/* Logo + Name */}
-          <Stack direction="row" alignItems="center" spacing={2} mb={5}>
-            <Box
-              component="img"
-              src={logo}
-              alt="Ndejje University"
-              sx={{ height: 60, objectFit: "contain", borderRadius: 1 }}
-            />
-            <Box>
-              <Typography variant="h6" fontWeight={800} color="#fff" lineHeight={1.1}>
-                NDEJJE
-              </Typography>
-              <Typography variant="h6" fontWeight={800} color="#fff" lineHeight={1.1}>
-                UNIVERSITY
-              </Typography>
-            </Box>
-          </Stack>
+          {/* Logo (already includes the university name) */}
+          <Box
+            component="img"
+            src={logo}
+            alt="Ndejje University"
+            sx={{
+              height: 64,
+              width: "min(360px, 100%)",
+              objectFit: "contain",
+              borderRadius: 1,
+              mb: 5,
+            }}
+          />
 
           {/* Motto */}
           <Typography
@@ -209,9 +205,15 @@ export default function Login() {
       >
         {/* Mobile logo (shown only on small screens) */}
         <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", alignItems: "center", mb: 4 }}>
-          <Box component="img" src={logo} alt="Ndejje University" sx={{ height: 60, objectFit: "contain", mb: 1 }} />
-          <Typography variant="h6" fontWeight={800} color={NAVY}>NDEJJE UNIVERSITY</Typography>
-          <Typography variant="caption" color="text.secondary">Online Applications Portal</Typography>
+          <Box
+            component="img"
+            src={logo}
+            alt="Ndejje University"
+            sx={{ height: 64, width: "min(320px, 100%)", objectFit: "contain", mb: 1 }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            Online Applications Portal
+          </Typography>
         </Box>
 
         <Box sx={{ width: "100%", maxWidth: 400 }}>

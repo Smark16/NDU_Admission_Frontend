@@ -14,7 +14,7 @@ const API_BASE_URL =
 
 // Types
 type AuthTokens = { access: string; refresh: string };
-type DecodedUser = {
+export type DecodedUser = {
   user_id: number | string;
   exp: number;
   iat: number;

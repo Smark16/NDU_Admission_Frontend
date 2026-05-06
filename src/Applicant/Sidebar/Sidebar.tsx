@@ -34,7 +34,7 @@ import useHook from "../../Hooks/useHook"
 import { AuthContext } from "../../Context/AuthContext"
 import useAxios from "../../AxiosInstance/UseAxios"
 import moment from "moment"
-import logo from '../../Images/Ndejje_University_Logo.jpg'
+import logo from '../../Images/Ndejje_University_Logo.png'
 
 const NAVY = "#0D0060"
 const NAVY_DARK = "#07003A"

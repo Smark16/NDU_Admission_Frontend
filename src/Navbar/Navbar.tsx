@@ -19,7 +19,7 @@ import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import LoginIcon from "@mui/icons-material/Login"
 import PersonAddIcon from "@mui/icons-material/PersonAdd"
-import logo from '../Images/Ndejje_University_Logo.jpg'
+import logo from '../Images/Ndejje_University_Logo.png'
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)

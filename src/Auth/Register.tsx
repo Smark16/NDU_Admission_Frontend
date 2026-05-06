@@ -22,7 +22,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp"
 import SchoolIcon from "@mui/icons-material/School"
 import { api } from "../../lib/api"
 import { useNavigate } from "react-router-dom"
-import logo from '../Images/Ndejje_University_Logo.jpg'
+import logo from '../Images/Ndejje_University_Logo.png'
 import cover_image from '../Images/cover_page.jpg'
 
 interface FormData {

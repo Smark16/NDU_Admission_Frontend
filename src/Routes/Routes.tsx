@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Outlet, Navigate } from 'react-router-dom'
 import { CircularProgress, Box } from '@mui/material'
 
 import Sidebar from '../Applicant/Sidebar/Sidebar'
@@ -15,10 +15,32 @@ const Login = lazy(() => import('../Auth/Login'))
 const Register = lazy(() => import('../Auth/Register'))
 const ResetPasswordForm = lazy(() => import('../Auth/ResetPassword'))
 
-function AppRoutes() {
-  const location = useLocation()
-  const drawerWidth = 0
+const drawerWidth = 0
 
+/** Applicant area: auth + sidebar + nested routes via <Outlet /> (fixes blank pages with RR v6/v7). */
+function ApplicantLayout() {
+  return (
+    <PrivateRoute>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar />
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
+            ml: { xs: 0, md: `${drawerWidth}px` },
+            mt: { xs: '64px', md: 0 },
+            transition: 'margin 0.3s ease-in-out',
+          }}
+        >
+          <Outlet />
+        </Box>
+      </Box>
+    </PrivateRoute>
+  )
+}
+
+function AppRoutes() {
   const LoadingSpinner = () => (
     <Box
       sx={{
@@ -36,18 +58,6 @@ function AppRoutes() {
     </Box>
   )
 
-  const sidebarRoutes = [
-    '/applicant/dashboard',
-    '/applicant/new_application',
-    '/applicant/detail/:id',
-    '/applicant/profile',
-    '/applicant/logout',
-  ]
-
-  const isSidebarRoute = sidebarRoutes.some((path) =>
-    location.pathname.startsWith(path.replace(':id', '')),
-  )
-
   return (
     <>
       <Routes>
@@ -56,35 +66,13 @@ function AppRoutes() {
         <Route path="logout" element={<Logout />} />
         <Route path="/reset-password" element={<Suspense fallback={<LoadingSpinner />}><ResetPasswordForm /></Suspense>} />
 
-        {isSidebarRoute && (
-          <Route
-            path="/applicant/*"
-            element={
-              <PrivateRoute>
-                <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-                  <Sidebar />
-                  <Box
-                    component="main"
-                    sx={{
-                      flexGrow: 1,
-                      width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
-                      ml: { xs: 0, md: `${drawerWidth}px` },
-                      mt: { xs: '64px', md: 0 },
-                      transition: 'margin 0.3s ease-in-out',
-                    }}
-                  >
-                    <Routes>
-                      <Route path="dashboard" element={<Suspense fallback={<LoadingSpinner />}><ApplicantDashboard /></Suspense>} />
-                      <Route path="new_application" element={<Suspense fallback={<LoadingSpinner />}><NewApplication /></Suspense>} />
-                      <Route path="detail/:id" element={<Suspense fallback={<LoadingSpinner />}><Home /></Suspense>} />
-                      <Route path="profile" element={<Suspense fallback={<LoadingSpinner />}><ApplicantProfile /></Suspense>} />
-                    </Routes>
-                  </Box>
-                </Box>
-              </PrivateRoute>
-            }
-          />
-        )}
+        <Route path="/applicant" element={<ApplicantLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Suspense fallback={<LoadingSpinner />}><ApplicantDashboard /></Suspense>} />
+          <Route path="new_application" element={<Suspense fallback={<LoadingSpinner />}><NewApplication /></Suspense>} />
+          <Route path="detail/:id" element={<Suspense fallback={<LoadingSpinner />}><Home /></Suspense>} />
+          <Route path="profile" element={<Suspense fallback={<LoadingSpinner />}><ApplicantProfile /></Suspense>} />
+        </Route>
       </Routes>
     </>
   )
