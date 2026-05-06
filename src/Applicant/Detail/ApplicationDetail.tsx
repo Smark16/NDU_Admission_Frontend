@@ -92,7 +92,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
           <Grid size={{xs:12, md:4}}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
               <StatusSection application={application} />
-              <ActionsSection application={application} />
+              <ActionsSection />
             </Box>
           </Grid>
         </Grid>

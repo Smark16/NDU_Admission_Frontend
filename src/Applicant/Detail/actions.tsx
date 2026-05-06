@@ -1,14 +1,14 @@
 "use client"
 import { Card, CardContent, CardHeader, Typography, Stack, Button } from "@mui/material"
 import MoreVertIcon from "@mui/icons-material/MoreVert"
-import FileDownloadIcon from "@mui/icons-material/FileDownload"
+// import FileDownloadIcon from "@mui/icons-material/FileDownload"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 
-interface ActionsSectionProps {
-  application: any
-}
+// interface ActionsSectionProps {
+//   application: any
+// }
 
-export default function ActionsSection({ application }: ActionsSectionProps) {
+export default function ActionsSection() {
 //   const theme = useTheme()
 //   const isMobile = useMediaQuery(theme.breakpoints.down("md"))
 
@@ -24,11 +24,11 @@ export default function ActionsSection({ application }: ActionsSectionProps) {
       />
       <CardContent>
         <Stack spacing={2}>
-          {(application?.status === "accepted" || application?.status === "admitted" || application?.status === "Admitted") && (
+          {/* {(application?.status === "accepted" || application?.status === "admitted" || application?.status === "Admitted") && (
             <Button fullWidth variant="contained" color="success" startIcon={<FileDownloadIcon />}>
               Download Offer Letter
             </Button>
-          )}
+          )} */}
 
           <Button fullWidth variant="outlined" startIcon={<ArrowBackIcon />}>
             Back to Dashboard
