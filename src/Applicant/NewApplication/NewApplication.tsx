@@ -263,7 +263,13 @@ export default function NewApplicationForm() {
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
-        if (!formData.nextOfKinContact.trim()) errors.nextOfKinContact = "next of kin contact is required"
+
+        if (!formData.nextOfKinContact.trim()) {
+            errors.nextOfKinContact = "next of kin contact is required";
+          } else if (formData.nextOfKinContact.length > 25) {
+            errors.nextOfKinContact = "Contact cannot exceed 25 characters";
+        }
+
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
 
         // Validate Uganda NIN format if applicable
@@ -290,7 +296,12 @@ export default function NewApplicationForm() {
         const hasALevel = !!formData.hasALevel;
 
         if (hasOLevel) {
-          if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
+          if (!formData.oLevelYear){
+            errors.oLevelYear = "O-Level year is required";
+          } else if(isNaN(Number(formData.oLevelYear)) || Number(formData.oLevelYear) < 0) {
+            errors.oLevelYear = "O-Level year must be a valid positive number";
+          }
+            
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
           // if (formData.oLevelSubjects.length < 8) {
@@ -299,7 +310,12 @@ export default function NewApplicationForm() {
         }
 
         if (hasALevel) {
-          if (!formData.aLevelYear) errors.aLevelYear = "A-Level year required";
+          if (!formData.aLevelYear){
+            errors.aLevelYear = "A-Level year required";
+          }else if(isNaN(Number(formData.aLevelYear)) || Number(formData.aLevelYear) < 0) {
+            errors.aLevelYear = "A-Level year must be a valid positive number";
+          }
+
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) {
@@ -317,13 +333,13 @@ export default function NewApplicationForm() {
           const hasIncompleteQual = formData.additionalQualifications.some((qual: any) =>
             !qual.institution?.trim() ||
             !qual.type?.trim() ||
-            !qual.year ||
+            (!qual.year || isNaN(Number(qual.year)) || Number(qual.year) < 0) ||
             !qual.class_of_award?.trim()
           );
 
           if (hasIncompleteQual) {
             errors.additionalQualifications =
-              "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.";
+              "Please completely fill all fields (Institution, Type, Year, and Class of Award) for every additional qualification you added.\n Also Ensure year is not negative.";
           }
         }
 

@@ -27,7 +27,7 @@ interface PersonalInfoProps {
     lastName: string
     middleName: string
     dateOfBirth: string
-    title:string;
+    title: string;
     gender: string
     nationality: string
     nin?: string
@@ -164,7 +164,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
             </LocalizationProvider>
           </Grid>
 
-           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.title}>
               <InputLabel>Title</InputLabel>
               <Select
@@ -215,16 +215,16 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                     height: 56,
                     minHeight: 56,
                   }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,           
-                }),
-                menu: (base) => ({
-                  ...base,
-                  zIndex: 9999,          
-                }),
-              }}
-            menuPortalTarget={document.body}  
+                  menuPortal: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                  }),
+                }}
+                menuPortalTarget={document.body}
               />
               {formErrors.nationality && (
                 <FormHelperText>{formErrors.nationality}</FormHelperText>
@@ -242,7 +242,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
                   value={formData.nin || ""}
                   onChange={handleNinChange}
                   error={!!formErrors.nin || ninValidation.color === 'error'}
-                  helperText={formErrors.nin}          
+                  helperText={formErrors.nin}
                 />
 
                 {/* Real-time validation message – separate component */}
@@ -274,7 +274,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               </Grid>
             )) : null}
 
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.disabled}>
               <InputLabel>Are you Disabled?</InputLabel>
               <Select
@@ -360,7 +360,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               helperText={formErrors.nextOfKinName}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          {/* <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Next of Kin Contact"
@@ -370,6 +370,29 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               error={!!formErrors.nextOfKinContact}
               helperText={formErrors.nextOfKinContact}
             />
+          </Grid> */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              fullWidth
+              label="Next of Kin Contact"
+              name="nextOfKinContact"
+              value={formData.nextOfKinContact}
+              onChange={handleInputChange}
+              error={!!formErrors.nextOfKinContact}
+              helperText={formErrors.nextOfKinContact}
+              inputProps={{ maxLength: 25 }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                textAlign: 'right',
+                mt: 0.5,
+                color: formData.nextOfKinContact.length >= 25 ? 'error.main' : 'text.secondary'
+              }}
+            >
+              {formData.nextOfKinContact.length}/25 characters
+            </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControl fullWidth required error={!!formErrors.nextOfKinRelationship}>
