@@ -27,7 +27,7 @@ import CustomButton from "../../ReUsables/custombutton";
 interface Application {
   id: number;
   program: string;
-  status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
+  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
   batch: string | null;
   campus: string | null;
   admission_letter_pdf?: string;
@@ -85,7 +85,7 @@ const ApplicantDashboard: React.FC = () => {
         setApplication({
           id: appRes.data.id,
           program: appRes.data.program || "Not assigned",
-          status: appRes.data.status,
+          application_status: appRes.data.application_status,
           batch: appRes.data.batch,
           campus: appRes.data.campus,
           admission_letter_pdf: appRes.data.admission_letter_pdf,
@@ -129,14 +129,14 @@ const ApplicantDashboard: React.FC = () => {
       </Box>
 
       {/* ==================== HAS SUBMITTED APPLICATION ==================== */}
-      {application && application.status === "submitted" ? (
+      {application && application.application_status === "submitted" ? (
         <Card sx={{ maxWidth: 850, mx: "auto", borderRadius: 3, boxShadow: 3 }}>
           <CardHeader
             title={application.program}
             action={
               <Chip
-                label={getStatusLabel(application.status)}
-                color={getStatusColor(application.status)}
+                label={getStatusLabel(application.application_status)}
+                color={getStatusColor(application.application_status)}
               />
             }
           />
