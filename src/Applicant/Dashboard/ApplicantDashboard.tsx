@@ -27,7 +27,7 @@ import CustomButton from "../../ReUsables/custombutton";
 interface Application {
   id: number;
   program: string;
-  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
+  status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
   batch: string | null;
   campus: string | null;
   admission_letter_pdf?: string;
