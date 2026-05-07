@@ -16,7 +16,7 @@ import {
 import {
   Add as AddIcon,
   Visibility as ViewIcon,
-  // GetApp as DownloadIcon,
+  GetApp as DownloadIcon,
   Edit as EditIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
@@ -170,7 +170,7 @@ const ApplicantDashboard: React.FC = () => {
               <CustomButton icon={<ViewIcon />} text="View Details" />
             </Link>
 
-            {/* {application.has_admission && application.admission_letter_pdf && (
+            {application.has_admission && application.admission_letter_pdf && (
               <a
                 href={`${import.meta.env.VITE_API_BASE_URL}${application.admission_letter_pdf}`}
                 target="_blank"
@@ -178,7 +178,7 @@ const ApplicantDashboard: React.FC = () => {
               >
                 <CustomButton icon={<DownloadIcon />} text="Download Offer Letter" variant="contained" />
               </a>
-            )} */}
+            )}
           </Box>
         </Card>
       ) : (

@@ -352,8 +352,8 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
                         bgcolor: selectedGrade
                           ? "rgba(62, 57, 123, 0.05)"
                           : idx % 2 === 0
-                          ? "#fff"
-                          : "#fafbff",
+                            ? "#fff"
+                            : "#fafbff",
                         borderBottom: "1px solid #f0f4ff",
                         transition: "background 0.15s",
                         "&:hover": { bgcolor: "rgba(91,163,245,0.07)" },
@@ -458,33 +458,30 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
               <TextField fullWidth label="School Name" name="aLevelSchool" value={formData.aLevelSchool} onChange={handleInputChange} error={!!formErrors.aLevelSchool} helperText={formErrors.aLevelSchool} />
             </Grid>
 
-                        <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <TextField 
-                fullWidth 
-                label="Combination" 
-                name="alevel_combination" 
-                placeholder="e.g PCM" 
-                value={formData.alevel_combination} 
-                onChange={handleInputChange} 
-                error={!!formErrors.alevel_combination} 
+            <Grid size={{ xs: 12, sm: 12, md: 2 }}>
+              <TextField
+                fullWidth
+                label="Combination"
+                name="alevel_combination"
+                placeholder="e.g PCM"
+                value={formData.alevel_combination}
+                onChange={handleInputChange}
+                error={!!formErrors.alevel_combination}
                 helperText={formErrors.alevel_combination}
                 inputProps={{ maxLength: 10 }}
               />
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  display: 'block', 
-                  textAlign: 'right', 
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  textAlign: 'right',
                   mt: 0.5,
-                  color: formData.alevel_combination.length >= 10 ? 'error.main' : 'text.secondary' 
+                  color: formData.alevel_combination.length >= 10 ? 'error.main' : 'text.secondary'
                 }}
               >
                 {formData.alevel_combination.length}/10 characters
               </Typography>
             </Grid>
-            {/* <Grid size={{ xs: 12, sm: 12, md: 2 }}>
-              <TextField fullWidth label="Combination" name="alevel_combination" placeholder="e.g PCM" value={formData.alevel_combination} onChange={handleInputChange} error={!!formErrors.alevel_combination} helperText={formErrors.alevel_combination} />
-            </Grid> */}
           </Grid>
 
           {/* Exam type selector */}
@@ -538,8 +535,8 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
                       bgcolor: selectedGrade
                         ? "rgba(62, 57, 123, 0.05)"
                         : idx % 2 === 0
-                        ? "#fff"
-                        : "#fafbff",
+                          ? "#fff"
+                          : "#fafbff",
                       borderBottom: "1px solid #f0f4ff",
                       transition: "background 0.15s",
                       "&:hover": { bgcolor: "rgba(91,163,245,0.07)" },
@@ -621,52 +618,52 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
         )}
 
         <Box sx={{ mb: 3 }}>
-        {/* Header Section - Responsive Layout */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "flex-start", sm: "center" },
-          justifyContent: "space-between",
-          gap: { xs: 2, sm: 0 },
-          mb: 2,
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            color: "#1a3a52",
-            fontSize: { xs: "1.1rem", sm: "1.25rem" },
-          }}
-        >
-          Additional Qualifications
-        </Typography>
+          {/* Header Section - Responsive Layout */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "flex-start", sm: "center" },
+              justifyContent: "space-between",
+              gap: { xs: 2, sm: 0 },
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: "#1a3a52",
+                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+              }}
+            >
+              Additional Qualifications
+            </Typography>
 
-        <Button
-          startIcon={<AddIcon />}
-          onClick={addAdditionalQualification}
-          variant="outlined"
-          size="small"
-          sx={{
-            textTransform: "none",
-            fontWeight: 600,
-            px: 3,
-            py: 1,
-            borderRadius: 2,
-            whiteSpace: "nowrap",
-            minWidth: { xs: "100%", sm: "auto" },
-            "&:hover": {
-              backgroundColor: "#3e397b",
-              color: "white",
-              borderColor: "#3e397b",
-            },
-          }}
-        >
-          Add Qualification
-        </Button>
-      </Box>
-      </Box>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={addAdditionalQualification}
+              variant="outlined"
+              size="small"
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                whiteSpace: "nowrap",
+                minWidth: { xs: "100%", sm: "auto" },
+                "&:hover": {
+                  backgroundColor: "#3e397b",
+                  color: "white",
+                  borderColor: "#3e397b",
+                },
+              }}
+            >
+              Add Qualification
+            </Button>
+          </Box>
+        </Box>
 
         {formData.additionalQualifications.map((qual: AdditionalQualification, index: number) => (
           <Paper key={index} sx={{ p: 3, mb: 3, border: '1px solid #e0e0e0' }}>
