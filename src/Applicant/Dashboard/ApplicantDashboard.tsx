@@ -129,7 +129,7 @@ const ApplicantDashboard: React.FC = () => {
       </Box>
 
       {/* ==================== HAS SUBMITTED APPLICATION ==================== */}
-      {application ? (
+      {application && application.status === "submitted" ? (
         <Card sx={{ maxWidth: 850, mx: "auto", borderRadius: 3, boxShadow: 3 }}>
           <CardHeader
             title={application.program}
