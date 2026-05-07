@@ -85,7 +85,7 @@ const ApplicantDashboard: React.FC = () => {
         setApplication({
           id: appRes.data.id,
           program: appRes.data.program || "Not assigned",
-          application_status: appRes.data.application_status,
+          status: appRes.data.status,
           batch: appRes.data.batch,
           campus: appRes.data.campus,
           admission_letter_pdf: appRes.data.admission_letter_pdf,
@@ -135,8 +135,8 @@ const ApplicantDashboard: React.FC = () => {
             title={application.program}
             action={
               <Chip
-                label={getStatusLabel(application.application_status)}
-                color={getStatusColor(application.application_status)}
+                label={getStatusLabel(application.status)}
+                color={getStatusColor(application.status)}
               />
             }
           />
