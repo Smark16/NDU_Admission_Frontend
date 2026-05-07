@@ -91,6 +91,7 @@ export default function AdmittedStudents() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Column visibility navigation per row
   const [columnViewIndex, setColumnViewIndex] = useState<{ [key: number]: number }>({})
@@ -253,13 +254,17 @@ export default function AdmittedStudents() {
   const confirmDelete = async () => {
     if (!selectedStudent) return
 
+    setIsDeleting(true)
+
     try {
-      await AxiosInstance.delete(`/api/admissions/admitted_students/${selectedStudent.id}/`)
+      await AxiosInstance.delete(`/api/admissions/delete_admission/${selectedStudent.id}/`)
       setAdmittedStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id))
       setDeleteDialogOpen(false)
       setSelectedStudent(null)
     } catch (err) {
       console.error("Delete failed:", err)
+    }finally{
+      setIsDeleting(false)
     }
   }
 
@@ -613,7 +618,11 @@ export default function AdmittedStudents() {
                               onClick={() => handleDeleteClick(student)}
                               title="Delete Student"
                             >
-                              <DeleteIcon fontSize="small" />
+                              {isDeleting && selectedStudent?.id === student.id ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                <DeleteIcon fontSize="small" />
+                              )}
                             </IconButton>
                           </Stack>
                         </TableCell>
