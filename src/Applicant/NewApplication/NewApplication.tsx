@@ -304,9 +304,9 @@ export default function NewApplicationForm() {
             
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          if (formData.oLevelSubjects.length < 8) {
-            errors.oLevelSubjects = "Add at least 8 O-Level results";
-          }
+          // if (formData.oLevelSubjects.length < 8) {
+          //   errors.oLevelSubjects = "Add at least 8 O-Level results";
+          // }
         }
 
         if (hasALevel) {
@@ -323,9 +323,9 @@ export default function NewApplicationForm() {
           } else if (formData.alevel_combination.length > 10) {
             errors.alevel_combination = "Combination cannot exceed 10 characters";
           }
-          if (formData.aLevelSubjects.length < 5) {
-            errors.aLevelSubjects = "Add at least 5 A-Level results";
-          }
+          // if (formData.aLevelSubjects.length < 5) {
+          //   errors.aLevelSubjects = "Add at least 5 A-Level results";
+          // }
         }
 
         // Allow proceeding if they have either O/A Level OR Additional Qualifications
@@ -661,6 +661,16 @@ export default function NewApplicationForm() {
           draftPayload.append("programs", String(id));
         });
 
+        // ====================== PROGRAMS - PRESERVE ORDER ======================
+        // const validPrograms = Array.isArray(formData.programs) 
+        //   ? formData.programs
+        //       .map(id => Number(id))
+        //       .filter(id => !isNaN(id) && id > 0)
+        //   : [];
+
+        // // Send as JSON string to preserve exact order
+        // draftPayload.append("programs", JSON.stringify(validPrograms));
+
         // JSON
         draftPayload.append("oLevelYear", formData.oLevelYear || "");
         draftPayload.append("oLevelIndexNumber", formData.oLevelIndexNumber || "");
@@ -825,6 +835,12 @@ export default function NewApplicationForm() {
         .filter(id => !isNaN(id) && id > 0);
 
       validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
+
+      // const validPrograms = formData.programs
+      //   .map(id => Number(id))
+      //   .filter(id => !isNaN(id) && id > 0);
+
+      // formDataToSend.append("programs", JSON.stringify(validPrograms));
 
       // Academic Details
       formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
