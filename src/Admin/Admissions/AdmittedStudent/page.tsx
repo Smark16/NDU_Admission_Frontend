@@ -79,17 +79,50 @@ interface Admitted {
   admission_letter_pdf: string | null;
 }
 
+type PersistedAdmittedFilters = {
+  searchTerm: string;
+  registrationFilter: "all" | "registered" | "not-registered";
+  approvalFilter: "all" | "pending" | "approved";
+  dateFrom: string;
+  dateTo: string;
+};
+
+const ADMITTED_FILTERS_STORAGE_KEY = "ndu-admissions-admitted-filters-v1";
+
+const readPersistedAdmittedFilters = (): PersistedAdmittedFilters | null => {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(ADMITTED_FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      searchTerm: String(parsed.searchTerm ?? ""),
+      registrationFilter: (parsed.registrationFilter as PersistedAdmittedFilters["registrationFilter"]) ?? "all",
+      approvalFilter: (parsed.approvalFilter as PersistedAdmittedFilters["approvalFilter"]) ?? "all",
+      dateFrom: String(parsed.dateFrom ?? ""),
+      dateTo: String(parsed.dateTo ?? ""),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export default function AdmittedStudents() {
   const theme = useTheme();
   const AxiosInstance = useAxios();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { loggeduser } = useContext(AuthContext) || {};
   const isRegistrar = loggeduser?.role === "Academic Registrar";
+  const initialFilters = readPersistedAdmittedFilters();
 
   // States
-  const [searchTerm, setSearchTerm] = useState("");
-  const [registrationFilter, setRegistrationFilter] = useState<"all" | "registered" | "not-registered">("all");
-  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved">("all");
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "");
+  const [registrationFilter, setRegistrationFilter] = useState<"all" | "registered" | "not-registered">(
+    initialFilters?.registrationFilter ?? "all"
+  );
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved">(initialFilters?.approvalFilter ?? "all");
+  const [dateFrom, setDateFrom] = useState(initialFilters?.dateFrom ?? "");
+  const [dateTo, setDateTo] = useState(initialFilters?.dateTo ?? "");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([]);
@@ -136,6 +169,18 @@ export default function AdmittedStudents() {
 
     fetchAdmissions();
   }, [AxiosInstance]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const payload: PersistedAdmittedFilters = {
+      searchTerm,
+      registrationFilter,
+      approvalFilter,
+      dateFrom,
+      dateTo,
+    };
+    window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+  }, [searchTerm, registrationFilter, approvalFilter, dateFrom, dateTo]);
 
   const showToast = (message: string, severity: "success" | "error" | "info" = "info") => {
     setSnackbar({ open: true, message, severity });
@@ -224,9 +269,23 @@ export default function AdmittedStudents() {
         (approvalFilter === "pending" && !student.is_approved) ||
         (approvalFilter === "approved" && student.is_approved);
 
-      return matchesSearch && matchesRegistration && matchesApproval;
+      const admittedDate = student.admission_date ? new Date(student.admission_date) : null;
+      const matchesDateFrom = !dateFrom || (admittedDate ? admittedDate >= new Date(`${dateFrom}T00:00:00`) : false);
+      const matchesDateTo = !dateTo || (admittedDate ? admittedDate <= new Date(`${dateTo}T23:59:59.999`) : false);
+
+      return matchesSearch && matchesRegistration && matchesApproval && matchesDateFrom && matchesDateTo;
     });
-  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter]);
+  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter, dateFrom, dateTo]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setRegistrationFilter("all");
+    setApprovalFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setPage(0);
+    if (typeof window !== "undefined") window.localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
+  };
 
   const paginatedStudents = filteredStudents.slice(
     page * rowsPerPage,
@@ -391,6 +450,45 @@ export default function AdmittedStudents() {
                 <MenuItem value="approved">Approved</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date From"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(0);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date To"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(0);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              onClick={clearFilters}
+              sx={{ textTransform: "none", height: 40 }}
+            >
+              Clear Filters
+            </Button>
           </Grid>
         </Grid>
       </Box>
