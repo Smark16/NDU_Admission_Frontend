@@ -47,6 +47,44 @@ interface Campus {
   name: string
 }
 
+type PersistedFilters = {
+  searchTerm: string
+  statusFilter: string
+  academicLevelFilter: string
+  batchFilter: string
+  campusFilter: string
+  programFilter: string
+  facultyFilter: string
+  genderFilter: string
+  dateFrom: string
+  dateTo: string
+}
+
+const FILTERS_STORAGE_KEY = "ndu-admissions-applications-filters-v1"
+
+const readPersistedFilters = (): PersistedFilters | null => {
+  try {
+    if (typeof window === "undefined") return null
+    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return {
+      searchTerm: String(parsed.searchTerm ?? ""),
+      statusFilter: String(parsed.statusFilter ?? "all"),
+      academicLevelFilter: String(parsed.academicLevelFilter ?? "all"),
+      batchFilter: String(parsed.batchFilter ?? "all"),
+      campusFilter: String(parsed.campusFilter ?? "all"),
+      programFilter: String(parsed.programFilter ?? "all"),
+      facultyFilter: String(parsed.facultyFilter ?? "all"),
+      genderFilter: String(parsed.genderFilter ?? "all"),
+      dateFrom: String(parsed.dateFrom ?? ""),
+      dateTo: String(parsed.dateTo ?? ""),
+    }
+  } catch {
+    return null
+  }
+}
+
 const statusConfig: Record<
   AppStatus,
   { color: "default" | "info" | "warning" | "success" | "error"; icon: React.ReactElement }
@@ -117,6 +155,7 @@ export default function ApplicationList() {
   const AxiosInstance = useAxios()
   const location = useLocation()
   const navigate = useNavigate()
+  const initialFilters = readPersistedFilters()
 
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
@@ -124,14 +163,16 @@ export default function ApplicationList() {
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [academicLevelFilter, setAcademicLevelFilter] = useState<string>("all")
-  const [batchFilter, setBatchFilter] = useState<string>("all")
-  const [campusFilter, setCampusFilter] = useState<string>("all")
-  const [programFilter, setProgramFilter] = useState<string>("all")
-  const [facultyFilter, setFacultyFilter] = useState<string>("all")
-  const [genderFilter, setGenderFilter] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "")
+  const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.statusFilter ?? "all")
+  const [academicLevelFilter, setAcademicLevelFilter] = useState<string>(initialFilters?.academicLevelFilter ?? "all")
+  const [batchFilter, setBatchFilter] = useState<string>(initialFilters?.batchFilter ?? "all")
+  const [campusFilter, setCampusFilter] = useState<string>(initialFilters?.campusFilter ?? "all")
+  const [programFilter, setProgramFilter] = useState<string>(initialFilters?.programFilter ?? "all")
+  const [facultyFilter, setFacultyFilter] = useState<string>(initialFilters?.facultyFilter ?? "all")
+  const [genderFilter, setGenderFilter] = useState<string>(initialFilters?.genderFilter ?? "all")
+  const [dateFrom, setDateFrom] = useState<string>(initialFilters?.dateFrom ?? "")
+  const [dateTo, setDateTo] = useState<string>(initialFilters?.dateTo ?? "")
   const [campuses, setCampuses] = useState<Campus[]>([])
 
   const [selected, setSelected] = useState<number[]>([])
@@ -184,6 +225,34 @@ export default function ApplicationList() {
       .then(res => setCampuses(res.data))
       .catch(() => {})
   }, [AxiosInstance])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const payload: PersistedFilters = {
+      searchTerm,
+      statusFilter,
+      academicLevelFilter,
+      batchFilter,
+      campusFilter,
+      programFilter,
+      facultyFilter,
+      genderFilter,
+      dateFrom,
+      dateTo,
+    }
+    window.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(payload))
+  }, [
+    searchTerm,
+    statusFilter,
+    academicLevelFilter,
+    batchFilter,
+    campusFilter,
+    programFilter,
+    facultyFilter,
+    genderFilter,
+    dateFrom,
+    dateTo,
+  ])
 
   const allAcademicLevels = useMemo(() => [...new Set(applications.map(a => a.academic_level).filter(Boolean))], [applications])
   const allBatches = useMemo(() => [...new Set(applications.map(a => a.batch).filter(Boolean))], [applications])
@@ -248,6 +317,9 @@ export default function ApplicationList() {
           .map(s => s.trim())
           .includes(facultyFilter)
       const matchesGender = genderFilter === "all" || app.gender === genderFilter
+      const appDate = new Date(app.created_at)
+      const matchesDateFrom = !dateFrom || appDate >= new Date(`${dateFrom}T00:00:00`)
+      const matchesDateTo = !dateTo || appDate <= new Date(`${dateTo}T23:59:59.999`)
       return (
         matchesSearch &&
         matchesStatus &&
@@ -256,7 +328,9 @@ export default function ApplicationList() {
         matchesCampus &&
         matchesProgram &&
         matchesFaculty &&
-        matchesGender
+        matchesGender &&
+        matchesDateFrom &&
+        matchesDateTo
       )
     })
   }, [
@@ -269,7 +343,24 @@ export default function ApplicationList() {
     programFilter,
     facultyFilter,
     genderFilter,
+    dateFrom,
+    dateTo,
   ])
+
+  const clearFilters = () => {
+    setSearchTerm("")
+    setStatusFilter("all")
+    setAcademicLevelFilter("all")
+    setBatchFilter("all")
+    setCampusFilter("all")
+    setProgramFilter("all")
+    setFacultyFilter("all")
+    setGenderFilter("all")
+    setDateFrom("")
+    setDateTo("")
+    setPage(0)
+    if (typeof window !== "undefined") window.localStorage.removeItem(FILTERS_STORAGE_KEY)
+  }
 
   const paginatedApplications = filteredApplications.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -542,6 +633,39 @@ export default function ApplicationList() {
                 {allGenders.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
               </Select>
             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date From"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(0) }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date To"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(0) }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              onClick={clearFilters}
+              sx={{ textTransform: "none", height: 40 }}
+            >
+              Clear Filters
+            </Button>
           </Grid>
           {selected.length > 0 && (
             <Grid size={{ xs: 12, sm: 12 }}>
