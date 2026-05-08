@@ -144,7 +144,7 @@ export default function AllApplicantsReport() {
   const stats = useMemo(() => ({
     total: filtered.length,
     submitted: filtered.filter(a => a.status === "submitted" || a.status === "under_review").length,
-    accepted: filtered.filter(a => a.status === "accepted").length,
+    admitted: filtered.filter(a => a.status === "admitted" || a.status === "Admitted").length,
     rejected: filtered.filter(a => a.status === "rejected").length,
     direct: filtered.filter(a => a.is_direct_entry).length,
   }), [filtered])
@@ -224,7 +224,7 @@ export default function AllApplicantsReport() {
           <StatCard label="Pending / In Review" value={stats.submitted} icon={PendingIcon} color="#f57c00" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <StatCard label="Admitted" value={stats.accepted} icon={CheckCircleIcon} color="#388e3c" />
+          <StatCard label="Admitted" value={stats.admitted} icon={CheckCircleIcon} color="#388e3c" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <StatCard label="Rejected" value={stats.rejected} icon={CancelIcon} color="#c62828" />

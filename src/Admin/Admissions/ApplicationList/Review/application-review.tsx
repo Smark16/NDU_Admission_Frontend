@@ -393,22 +393,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.disabled}
                   </Typography>
                 </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
-          {/* Academic Information Section */}
-          <Card sx={{ mb: 3 }}>
-            <CardHeader avatar={<SchoolIcon />} title="Academic Information" titleTypographyProps={{ variant: "h6" }} />
-            <Divider />
-            <CardContent>
-              <Grid container spacing={2}>
-                {/* Program Choices */}
-                {application?.programs?.length > 0 && (
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="caption" color="textSecondary">
-                      Program Choice(s)
-                    </Typography>
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    Program Choice(s)
+                  </Typography>
+                  {application?.programs?.length > 0 ? (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 0.5 }}>
                       {application.programs.map((p: any, i: number) => (
                         <Chip
@@ -419,8 +408,22 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                         />
                       ))}
                     </Box>
-                  </Grid>
-                )}
+                  ) : (
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      No program selected
+                    </Typography>
+                  )}
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Academic Information Section */}
+          <Card sx={{ mb: 3 }}>
+            <CardHeader avatar={<SchoolIcon />} title="Academic Information" titleTypographyProps={{ variant: "h6" }} />
+            <Divider />
+            <CardContent>
+              <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="textSecondary">
                     Batch

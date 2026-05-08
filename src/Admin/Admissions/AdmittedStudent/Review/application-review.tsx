@@ -26,6 +26,8 @@ import {
   Person as PersonIcon,
   School as SchoolIcon,
   Description as DescriptionIcon,
+  Block as RevokeIcon,
+  Restore as RestoreIcon,
 } from "@mui/icons-material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
@@ -106,6 +108,38 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     } catch (err) {
       console.log(err)
       setIsLoading(false)
+    }
+  }
+
+  const handleWithdrawAdmission = async () => {
+    if (!application?.admission_id) return
+    try {
+      setIsLoading(true)
+      await AxiosInstance.post(`/api/admissions/admitted_students/${application.admission_id}/revoke/`, {
+        reason: "Withdrawn from review page",
+      })
+      setIsLoading(false)
+      showNotification("Admission withdrawn successfully", "success")
+      window.location.reload()
+    } catch (err: any) {
+      setIsLoading(false)
+      const msg = err?.response?.data?.detail
+      showNotification(typeof msg === "string" ? msg : "Failed to withdraw admission", "error")
+    }
+  }
+
+  const handleRestoreAdmission = async () => {
+    if (!application?.admission_id) return
+    try {
+      setIsLoading(true)
+      await AxiosInstance.post(`/api/admissions/admitted_students/${application.admission_id}/restore/`)
+      setIsLoading(false)
+      showNotification("Admission restored successfully", "success")
+      window.location.reload()
+    } catch (err: any) {
+      setIsLoading(false)
+      const msg = err?.response?.data?.detail
+      showNotification(typeof msg === "string" ? msg : "Failed to restore admission", "error")
     }
   }
 
@@ -530,6 +564,28 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
                       {application.admitted_by}
                     </Typography>
+                  </Box>
+                </>
+              )}
+              {application.admission_id && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Admission Actions
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <CustomButton
+                        disabled={isLoading}
+                        onClick={application.is_revoked ? handleRestoreAdmission : handleWithdrawAdmission}
+                        icon={application.is_revoked ? <RestoreIcon /> : <RevokeIcon />}
+                        text={
+                          isLoading
+                            ? <CircularProgress size={15} />
+                            : (application.is_revoked ? "Restore Admission" : "Withdraw Admission")
+                        }
+                      />
+                    </Box>
                   </Box>
                 </>
               )}
