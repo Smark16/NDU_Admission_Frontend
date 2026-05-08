@@ -648,6 +648,30 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 </>
               )}
 
+              {application.is_revoked && (
+                <>
+                <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Revoked By
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {application.revoked_by}
+                    </Typography>
+                  </Box>
+                   
+                    <Divider />
+
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      Revocation Reason
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {application.revocation_reason}
+                    </Typography>
+                  </Box>
+                  </>
+              )}
+
               <Divider />
 
               <Button

@@ -24,7 +24,7 @@ import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "./Review/RejectionForm"
 
-type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected'
+type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected' | "revoked"
 
 interface Application {
   id: number
@@ -58,6 +58,7 @@ const statusConfig: Record<
   direct_entry:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
   online:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
   rejected:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
+  revoked:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
 }
 
 const getStatusLabel = (status: AppStatus) => {
@@ -67,6 +68,7 @@ const getStatusLabel = (status: AppStatus) => {
     case "pending_approval": return "Awaiting Registrar"
     case "online":  return "Online"
     case "rejected":  return "Rejected"
+    case "revoked":  return "Revoked"
     default: return status.replace("_", " ")
   }
 }
@@ -79,6 +81,7 @@ const normalizeStatus = (status: string): AppStatus => {
   if (s === "under_review") return "under_review"
   if (s === "pending_approval" || s === "pending") return "pending_approval"
   if (s === "rejected") return "rejected"
+  if (s === "revoked") return "revoked"
   return "submitted"
 }
 
@@ -482,7 +485,7 @@ export default function ApplicationList() {
                 <MenuItem value="pending_approval">Awaiting Registrar</MenuItem>
                 <MenuItem value="accepted">Approved</MenuItem>
                 <MenuItem value="admitted">Admitted</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
+                <MenuItem value="revoked">Revoked</MenuItem>
               </Select>
             </FormControl>
           </Grid>

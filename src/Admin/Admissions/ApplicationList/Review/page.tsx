@@ -40,6 +40,11 @@ interface Application {
   created_at: string;
   reviewed_by: string;
   reviewed_at: string | null;
+
+  // revoke
+  revoked_by: string, 
+  is_revoked: boolean,
+  revocation_reason: string,
   passport_photo: File | null;
   entered_by?: string | null;
 }
