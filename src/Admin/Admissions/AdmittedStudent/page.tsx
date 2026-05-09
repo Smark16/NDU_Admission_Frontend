@@ -79,17 +79,62 @@ interface Admitted {
   admission_letter_pdf: string | null;
 }
 
+type PersistedAdmittedFilters = {
+  searchTerm: string;
+  registrationFilter: "all" | "registered" | "not-registered";
+  approvalFilter: "all" | "pending" | "approved";
+  campusFilter: string;
+  facultyFilter: string;
+  programFilter: string;
+  batchFilter: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+const ADMITTED_FILTERS_STORAGE_KEY = "ndu-admissions-admitted-filters-v1";
+
+const readPersistedAdmittedFilters = (): PersistedAdmittedFilters | null => {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(ADMITTED_FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      searchTerm: String(parsed.searchTerm ?? ""),
+      registrationFilter: (parsed.registrationFilter as PersistedAdmittedFilters["registrationFilter"]) ?? "all",
+      approvalFilter: (parsed.approvalFilter as PersistedAdmittedFilters["approvalFilter"]) ?? "all",
+      campusFilter: String(parsed.campusFilter ?? "all"),
+      facultyFilter: String(parsed.facultyFilter ?? "all"),
+      programFilter: String(parsed.programFilter ?? "all"),
+      batchFilter: String(parsed.batchFilter ?? "all"),
+      dateFrom: String(parsed.dateFrom ?? ""),
+      dateTo: String(parsed.dateTo ?? ""),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export default function AdmittedStudents() {
   const theme = useTheme();
   const AxiosInstance = useAxios();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { loggeduser } = useContext(AuthContext) || {};
   const isRegistrar = loggeduser?.role === "Academic Registrar";
+  const initialFilters = readPersistedAdmittedFilters();
 
   // States
-  const [searchTerm, setSearchTerm] = useState("");
-  const [registrationFilter, setRegistrationFilter] = useState<"all" | "registered" | "not-registered">("all");
-  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved">("all");
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "");
+  const [registrationFilter, setRegistrationFilter] = useState<"all" | "registered" | "not-registered">(
+    initialFilters?.registrationFilter ?? "all"
+  );
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved">(initialFilters?.approvalFilter ?? "all");
+  const [campusFilter, setCampusFilter] = useState(initialFilters?.campusFilter ?? "all");
+  const [facultyFilter, setFacultyFilter] = useState(initialFilters?.facultyFilter ?? "all");
+  const [programFilter, setProgramFilter] = useState(initialFilters?.programFilter ?? "all");
+  const [batchFilter, setBatchFilter] = useState(initialFilters?.batchFilter ?? "all");
+  const [dateFrom, setDateFrom] = useState(initialFilters?.dateFrom ?? "");
+  const [dateTo, setDateTo] = useState(initialFilters?.dateTo ?? "");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([]);
@@ -136,6 +181,39 @@ export default function AdmittedStudents() {
 
     fetchAdmissions();
   }, [AxiosInstance]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const payload: PersistedAdmittedFilters = {
+      searchTerm,
+      registrationFilter,
+      approvalFilter,
+      campusFilter,
+      facultyFilter,
+      programFilter,
+      batchFilter,
+      dateFrom,
+      dateTo,
+    };
+    window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+  }, [searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+
+  const allCampuses = useMemo(
+    () => [...new Set(admittedStudents.map((s) => (s.campus || "").trim()).filter(Boolean))],
+    [admittedStudents]
+  );
+  const allFaculties = useMemo(
+    () => [...new Set(admittedStudents.map((s) => (s.faculty || "").trim()).filter(Boolean))],
+    [admittedStudents]
+  );
+  const allPrograms = useMemo(
+    () => [...new Set(admittedStudents.map((s) => (s.program || "").trim()).filter(Boolean))],
+    [admittedStudents]
+  );
+  const allBatches = useMemo(
+    () => [...new Set(admittedStudents.map((s) => (s.batch || "").trim()).filter(Boolean))],
+    [admittedStudents]
+  );
 
   const showToast = (message: string, severity: "success" | "error" | "info" = "info") => {
     setSnackbar({ open: true, message, severity });
@@ -223,10 +301,42 @@ export default function AdmittedStudents() {
         approvalFilter === "all" ||
         (approvalFilter === "pending" && !student.is_approved) ||
         (approvalFilter === "approved" && student.is_approved);
+      const matchesCampus = campusFilter === "all" || student.campus === campusFilter;
+      const matchesFaculty = facultyFilter === "all" || student.faculty === facultyFilter;
+      const matchesProgram = programFilter === "all" || student.program === programFilter;
+      const matchesBatch = batchFilter === "all" || student.batch === batchFilter;
 
-      return matchesSearch && matchesRegistration && matchesApproval;
+      const admittedDate = student.admission_date ? new Date(student.admission_date) : null;
+      const matchesDateFrom = !dateFrom || (admittedDate ? admittedDate >= new Date(`${dateFrom}T00:00:00`) : false);
+      const matchesDateTo = !dateTo || (admittedDate ? admittedDate <= new Date(`${dateTo}T23:59:59.999`) : false);
+
+      return (
+        matchesSearch &&
+        matchesRegistration &&
+        matchesApproval &&
+        matchesCampus &&
+        matchesFaculty &&
+        matchesProgram &&
+        matchesBatch &&
+        matchesDateFrom &&
+        matchesDateTo
+      );
     });
-  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter]);
+  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setRegistrationFilter("all");
+    setApprovalFilter("all");
+    setCampusFilter("all");
+    setFacultyFilter("all");
+    setProgramFilter("all");
+    setBatchFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setPage(0);
+    if (typeof window !== "undefined") window.localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
+  };
 
   const paginatedStudents = filteredStudents.slice(
     page * rowsPerPage,
@@ -374,6 +484,86 @@ export default function AdmittedStudents() {
               </Select>
             </FormControl>
           </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Campus</InputLabel>
+              <Select
+                value={campusFilter}
+                label="Campus"
+                onChange={(e) => {
+                  setCampusFilter(e.target.value as string);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="all">All campuses</MenuItem>
+                {allCampuses.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Faculty</InputLabel>
+              <Select
+                value={facultyFilter}
+                label="Faculty"
+                onChange={(e) => {
+                  setFacultyFilter(e.target.value as string);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="all">All faculties</MenuItem>
+                {allFaculties.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Program</InputLabel>
+              <Select
+                value={programFilter}
+                label="Program"
+                onChange={(e) => {
+                  setProgramFilter(e.target.value as string);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="all">All programs</MenuItem>
+                {allPrograms.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Batch</InputLabel>
+              <Select
+                value={batchFilter}
+                label="Batch"
+                onChange={(e) => {
+                  setBatchFilter(e.target.value as string);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="all">All batches</MenuItem>
+                {allBatches.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControl fullWidth size="small">
@@ -391,6 +581,45 @@ export default function AdmittedStudents() {
                 <MenuItem value="approved">Approved</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date From"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(0);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date To"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(0);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              onClick={clearFilters}
+              sx={{ textTransform: "none", height: 40 }}
+            >
+              Clear Filters
+            </Button>
           </Grid>
         </Grid>
       </Box>

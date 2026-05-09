@@ -61,6 +61,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [openChangeProgramme, setOpenChangeProgramme] = useState(false)
   const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
   const [selectedCampus, setSelectedCampus] = useState<number | "">("")
+  const [campusOptions, setCampusOptions] = useState<Array<{ id: number; name: string }>>([])
+  const [programOptions, setProgramOptions] = useState<Array<{ id: number; name: string; code?: string; campus_ids: number[] }>>([])
   const [changeNote, setChangeNote] = useState("")
   const [changingProgramme, setChangingProgramme] = useState(false)
   const navigate = useNavigate()
@@ -274,6 +276,32 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setChangingProgramme(false)
     }
   }
+
+  useEffect(() => {
+    if (!openChangeProgramme) return
+    const loadOptions = async () => {
+      try {
+        const [campusRes, programRes] = await Promise.all([
+          AxiosInstance.get("/api/accounts/list_campus"),
+          AxiosInstance.get("/api/program/list_programs"),
+        ])
+        setCampusOptions(Array.isArray(campusRes.data) ? campusRes.data : [])
+
+        const normalizedPrograms = (Array.isArray(programRes.data) ? programRes.data : []).map((p: any) => ({
+          id: Number(p.id),
+          name: p.name,
+          code: p.code,
+          campus_ids: Array.isArray(p.campuses)
+            ? p.campuses.map((c: any) => Number(typeof c === "object" ? c.id : c)).filter((x: number) => Number.isFinite(x))
+            : [],
+        }))
+        setProgramOptions(normalizedPrograms)
+      } catch {
+        showNotification("Failed to load campus/program options.", "error")
+      }
+    }
+    loadOptions()
+  }, [openChangeProgramme])
 
   const formatCurrency = (value: number): string => {
     if (!value) return '0';
@@ -715,7 +743,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 startIcon={<SwapHorizIcon />}
                 onClick={() => {
                   setSelectedPrograms(application.programs?.map((p: any) => p.id) || [])
-                  setSelectedCampus(application.campus_id || "")
+                  setSelectedCampus(application.campus_id || application?.campus?.id || "")
                   setChangeNote("")
                   setOpenChangeProgramme(true)
                 }}
@@ -916,7 +944,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 setSelectedPrograms([])
               }}
             >
-              {application.batch_campuses?.map((c: any) => (
+              {campusOptions.map((c: any) => (
                 <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
               ))}
             </Select>
@@ -927,7 +955,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             Programmes at selected campus:
           </Typography>
           <FormGroup sx={{ maxHeight: 250, overflowY: "auto", border: "1px solid #e0e0e0", borderRadius: 1, p: 1 }}>
-            {application.batch_programs
+            {programOptions
               ?.filter((p: any) => !selectedCampus || p.campus_ids.includes(selectedCampus))
               .map((p: any) => (
                 <FormControlLabel
@@ -943,7 +971,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                       sx={{ color: "#0D0060", "&.Mui-checked": { color: "#0D0060" } }}
                     />
                   }
-                  label={p.name}
+                  label={p.code ? `${p.name} (${p.code})` : p.name}
                 />
               ))}
           </FormGroup>

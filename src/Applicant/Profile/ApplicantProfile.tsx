@@ -45,6 +45,11 @@ interface UserData {
   date_joined: string
 }
 
+interface ApplicantApplicationSummary {
+  campus?: string | null
+  programs?: string[]
+}
+
 function ProfileSkeleton() {
   return (
     <Container maxWidth="lg">
@@ -83,6 +88,7 @@ export default function ApplicantProfile() {
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [applicationSummary, setApplicationSummary] = useState<ApplicantApplicationSummary | null>(null)
   // const [profileImage, setProfileImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
@@ -138,9 +144,22 @@ export default function ApplicantProfile() {
     }
   }
 
+  const fetchApplicantSummary = async () => {
+    try {
+      const response = await AxiosInstance.get('/api/admissions/dashboard')
+      setApplicationSummary({
+        campus: response.data?.campus || null,
+        programs: Array.isArray(response.data?.programs) ? response.data.programs : [],
+      })
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
   useEffect(() => {
     fetchUserProfile()
     fetchUserData()
+    fetchApplicantSummary()
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,6 +458,36 @@ export default function ApplicantProfile() {
                     <Typography variant="body2" fontWeight={600}>
                       {formData.email}
                     </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 0.5 }}>
+                      Preferred Campus
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {applicationSummary?.campus || "Not set"}
+                    </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 0.75 }}>
+                      Preferred Program(s)
+                    </Typography>
+                    {applicationSummary?.programs && applicationSummary.programs.length > 0 ? (
+                      <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.75 }}>
+                        {applicationSummary.programs.map((name) => (
+                          <Chip key={name} label={name} size="small" variant="outlined" />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" fontWeight={600}>
+                        Not set
+                      </Typography>
+                    )}
                   </Box>
 
                   <Divider />

@@ -16,6 +16,7 @@ const Home = lazy(() => import('../Applicant/Detail/page'))
 const Login = lazy(() => import('../Auth/Login'))
 const Register = lazy(() => import('../Auth/Register'))
 const ResetPasswordForm = lazy(()=>import('../Auth/ResetPassword'))
+const VerifyOfferLetter = lazy(() => import('../Public/VerifyOfferLetter'))
 
 // admin routes
 const UserManagement = lazy(() => import('../Admin/UserManagement/page'))
@@ -93,6 +94,7 @@ function AppRoutes() {
         <Route path='/register' element={<Suspense fallback={<LoadingSpinner />}><Register /></Suspense>} />
         <Route path='logout' element={<Logout />} />
         <Route path='/reset-password' element={<Suspense fallback={<LoadingSpinner />}><ResetPasswordForm/></Suspense>}/>
+        <Route path='/verify-offer/:token' element={<Suspense fallback={<LoadingSpinner />}><VerifyOfferLetter /></Suspense>} />
 
         {/* Applicant */}
         {isSidebarRoute && (
