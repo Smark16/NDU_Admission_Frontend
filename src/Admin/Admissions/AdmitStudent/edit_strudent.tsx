@@ -98,6 +98,7 @@ export default function EditAdmittedStudentPage() {
   const [campuses, setCampuses] = useState<Campus[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadApplication, setLoadApplication] = useState(false)
+  const [isGeneratingRegNo, setIsGeneratingRegNo] = useState(false) 
 
   const [formData, setFormData] = useState({
     student_id: "",
@@ -226,37 +227,35 @@ export default function EditAdmittedStudentPage() {
   }
 
    // handle reg No generation
- const handleGenerateRegNo = () => {
-  if (!application) return
-
-  const year = new Date().getFullYear().toString().slice(-2)
-
-  const selectedCampusId = Number(formData.campus)
-  const selectedCampus = campuses.find(c => c.id === selectedCampusId)
+ const handleGenerateRegNo = async () => {
+  if (!application) return;
   
-  const campusName = selectedCampus?.name?.toLowerCase() || ""
-  const campusNumber = campusName.includes("kampala") ? "2" : "1"
- 
-  const program = application.programs.find(p => p.id === Number(formData.program))
-  // const selectedProgramCode = program?.code?.match(/^\d+/)?.[0] || "no code"
-  const selectedProgramCode = program?.code?.match(/\d+/)?.[0] || "NO CODE"
+  setIsGeneratingRegNo(true)
+  try {
+    const res = await AxiosInstance.post("api/admissions/generate-reg-no/", {
+      campus: formData.campus,
+      program: formData.program,
+      study_mode: formData.study_mode,
+    });
 
-  const studyMode = formData?.study_mode
+    const regNo = res.data.reg_no;
 
-  const randomNumber = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0")
+    setFormData(prev => ({ ...prev, reg_no: regNo }));
 
-  const regNo = `${year}/${campusNumber}/${selectedProgramCode}/${studyMode}/${randomNumber}`
-
-  setFormData(prev => ({ ...prev, reg_no: regNo }))
-  return regNo
-}
-
-  const handleGeneratePayCode = () => {
-    const prefix = Math.random() < 0.5 ? "1" : "2"
-    const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000)
-    const payCode = prefix + random9Digits
-    setFormData(prev => ({ ...prev, student_id: payCode }))
+    return regNo;
+  } catch (err) {
+    console.error("Failed to generate reg no", err);
+  }finally{
+    setIsGeneratingRegNo(false)
   }
+};
+
+  // const handleGeneratePayCode = () => {
+  //   const prefix = Math.random() < 0.5 ? "1" : "2"
+  //   const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000)
+  //   const payCode = prefix + random9Digits
+  //   setFormData(prev => ({ ...prev, student_id: payCode }))
+  // }
 
   const handleConfirmAdmit = async () => {
     try {
@@ -280,7 +279,7 @@ export default function EditAdmittedStudentPage() {
       })
 
       setTimeout(() => {
-        navigate(-1)
+        navigate('/admin/admited_students')
       }, 1500)
     } catch (err: any) {
       let errorMessage = "Update failed!"
@@ -436,7 +435,7 @@ export default function EditAdmittedStudentPage() {
           </Box>
 
           <Box sx={{ mb: 3 }}>
-            <CustomButton onClick={handleGeneratePayCode} text="Generate pay_code" />
+            {/* <CustomButton onClick={handleGeneratePayCode} text="Generate pay_code" /> */}
             <TextField
               fullWidth
               label="Student Number"
@@ -452,7 +451,7 @@ export default function EditAdmittedStudentPage() {
           </Box>
 
           <Box sx={{ mb: 3 }}>
-            <CustomButton onClick={handleGenerateRegNo} text="Generate reg_no" />
+             <CustomButton onClick={handleGenerateRegNo} text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}/>
             <TextField
               fullWidth
               label="Reg No"
