@@ -16,7 +16,7 @@ import {
 import {
   Add as AddIcon,
   Visibility as ViewIcon,
-  // GetApp as DownloadIcon,
+  GetApp as DownloadIcon,
   Edit as EditIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
@@ -27,7 +27,7 @@ import CustomButton from "../../ReUsables/custombutton";
 interface Application {
   id: number;
   program: string;
-  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
+  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "Admitted" | "draft";
   batch: string | null;
   campus: string | null;
   admission_letter_pdf?: string;
@@ -129,7 +129,7 @@ const ApplicantDashboard: React.FC = () => {
       </Box>
 
       {/* ==================== HAS SUBMITTED APPLICATION ==================== */}
-      {application && application.application_status === "submitted" ? (
+      {application && application.application_status !== "draft" ? (
         <Card sx={{ maxWidth: 850, mx: "auto", borderRadius: 3, boxShadow: 3 }}>
           <CardHeader
             title={application.program}
@@ -170,7 +170,7 @@ const ApplicantDashboard: React.FC = () => {
               <CustomButton icon={<ViewIcon />} text="View Details" />
             </Link>
 
-            {/* {application.has_admission && application.admission_letter_pdf && (
+            {application.has_admission && application.admission_letter_pdf && (
               <a
                 href={`${import.meta.env.VITE_API_BASE_URL}${application.admission_letter_pdf}`}
                 target="_blank"
@@ -178,7 +178,7 @@ const ApplicantDashboard: React.FC = () => {
               >
                 <CustomButton icon={<DownloadIcon />} text="Download Offer Letter" variant="contained" />
               </a>
-            )} */}
+            )}
           </Box>
         </Card>
       ) : (
