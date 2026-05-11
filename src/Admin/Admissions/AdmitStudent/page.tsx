@@ -90,7 +90,7 @@ export default function AdmitStudentPage() {
   const [application, setApplication] = useState<Application | null>(null)
   const [campus, setCampus] = useState<Campus[]>([])
   const [formData, setFormData] = useState({
-    student_id: "",
+    // student_id: "",
     program: "",
     campus: "",
     study_mode: "",
@@ -202,7 +202,7 @@ export default function AdmitStudentPage() {
 
   const handleSubmitClick = () => {
 
-    if (!formData.student_id || !formData.reg_no || !formData.program) {
+    if (!formData.reg_no || !formData.program) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields: program, campus, study mode, and student number",
@@ -245,20 +245,13 @@ const handleGenerateRegNo = async () => {
   }
 };
 
-// const handleGeneratePayCode = () => {
-//     const prefix = Math.random() < 0.5 ? "1" : "2"  
-//     const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
-//     const payCode = prefix + random9Digits  
-//     setFormData(prev => ({ ...prev, student_id: payCode }))
-//   }
-
   const handleConfirmAdmit = async () => {
     try {
       setOpenDialog(true)
       setIsLoading(true)
 
       const payload = {
-        student_id: formData.student_id,
+        // student_id: formData.student_id,
         admitted_campus: formData.campus,
         admitted_program: formData.program,
         admission_notes: formData.notes,
@@ -306,7 +299,7 @@ const handleGenerateRegNo = async () => {
       setIsLoading(false)
     }
     setTimeout(() => {
-      setFormData({ student_id: "", program: "", notes: "", reg_no: "", study_mode: "", campus: "" })
+      setFormData({ program: "", notes: "", reg_no: "", study_mode: "", campus: "" })
     }, 1000)
   }
 
@@ -518,9 +511,9 @@ const handleGenerateRegNo = async () => {
             </Typography>
           </Box>
 
-          <FormSection>
+          {/* <FormSection>
            {/* <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/> */}
-            <TextField
+            {/* <TextField
               fullWidth
               label="Student Number"
               name="student_id"
@@ -531,8 +524,8 @@ const handleGenerateRegNo = async () => {
               inputProps={{ maxLength: 50 }}
               helperText="This will be the student's unique identification number"
               sx={{ mb: 2 }}
-            />
-          </FormSection>
+            /> */}
+          {/* </FormSection> */} 
 
           <FormSection>
             <CustomButton onClick={handleGenerateRegNo} text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}/>

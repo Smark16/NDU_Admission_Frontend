@@ -70,6 +70,7 @@ interface Admitted {
   reg_no: string;
   faculty: string;
   admission_date: string;
+  is_registered_with_schoolpay:boolean;
   status: string;
   is_admitted: boolean;
   is_registered: boolean;
@@ -143,6 +144,7 @@ export default function AdmittedStudents() {
   const [revokeReason, setRevokeReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [letterActionLoading, setLetterActionLoading] = useState<Record<number, boolean>>({});
+  const [schoolPayLoading, setSchoolPayLoading] = useState<Record<number, boolean>>({});
 
   const [selectedStudent, setSelectedStudent] = useState<Admitted | null>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -223,6 +225,10 @@ export default function AdmittedStudents() {
     setLetterActionLoading((prev) => ({ ...prev, [studentId]: isLoading }));
   };
 
+  const setSchoolPayActionLoading = (studentId: number, isLoading: boolean) => {
+  setSchoolPayLoading((prev) => ({ ...prev, [studentId]: isLoading }));
+  };
+
   // Handlers
   const handleApproveClick = (student: Admitted) => {
     setSelectedStudent(student);
@@ -288,7 +294,7 @@ export default function AdmittedStudents() {
   const filteredStudents = useMemo(() => {
     return admittedStudents.filter((student) => {
       const matchesSearch =
-        student.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (student.student_id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.program.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -422,6 +428,43 @@ export default function AdmittedStudents() {
     const url = toAbsoluteUrl(student.admission_letter_pdf);
     if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  const handleGenerateSchoolPayCode = async (student: Admitted) => {
+  setSchoolPayActionLoading(student.id, true);
+
+  try {
+    const { data } = await AxiosInstance.post(
+      `/api/payments/register_with_schoolpay/${student.id}/`
+    );
+
+    setAdmittedStudents((prev) =>
+      prev.map((s) =>
+        s.id === student.id
+          ? {
+              ...s,
+              is_registered_with_schoolpay: true,
+              schoolpay_code: data.schoolpay_code,
+              student_id: data.schoolpay_code || s.student_id,
+            }
+          : s
+      )
+    );
+
+    showToast(
+      data.detail || "SchoolPay code generated successfully.",
+      "success"
+    );
+  } catch (err: any) {
+    const errorMessage =
+      err?.response?.data?.details ||
+      err?.response?.data?.error ||
+      "Failed to generate SchoolPay code.";
+
+    showToast(errorMessage, "error");
+  } finally {
+    setSchoolPayActionLoading(student.id, false);
+  }
+};
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -783,6 +826,27 @@ export default function AdmittedStudents() {
                               title="Generate Offer Letter"
                             >
                               <GenerateIcon fontSize="small" />
+                            </IconButton>
+
+                            {/* pay code retry */}
+                            <IconButton
+                              size="small"
+                              color={
+                                student.is_registered_with_schoolpay ? "success" : "warning"
+                              }
+                              onClick={() => handleGenerateSchoolPayCode(student)}
+                              disabled={schoolPayLoading[student.id]}
+                              title={
+                                student.is_registered_with_schoolpay
+                                  ? "Retry SchoolPay Registration"
+                                  : "Generate SchoolPay Code"
+                              }
+                            >
+                              {schoolPayLoading[student.id] ? (
+                                <CircularProgress size={18} />
+                              ) : (
+                                <SchoolIcon fontSize="small" />
+                              )}
                             </IconButton>
 
                             <IconButton

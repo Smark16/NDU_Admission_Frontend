@@ -250,13 +250,6 @@ export default function EditAdmittedStudentPage() {
   }
 };
 
-  // const handleGeneratePayCode = () => {
-  //   const prefix = Math.random() < 0.5 ? "1" : "2"
-  //   const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000)
-  //   const payCode = prefix + random9Digits
-  //   setFormData(prev => ({ ...prev, student_id: payCode }))
-  // }
-
   const handleConfirmAdmit = async () => {
     try {
       setIsLoading(true)
