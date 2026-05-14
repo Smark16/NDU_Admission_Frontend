@@ -44,12 +44,13 @@ import RejectionForm from "./RejectionForm"
 interface ApplicationReviewProps {
   application: any
   olevelresults: any[]
+  program_choices: any[]
   alevelresults: any[]
   documents: any[]
   additionalQualifications: any[]
 }
 
-const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications }) => {
+const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications, program_choices }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
@@ -75,9 +76,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     message: string
     type: "success" | "error" | "info"
   } | null>(
-    // Only show the "must be approved" warning if the application is genuinely
-    // not yet approved. If we got the warning but the app is already accepted,
-    // it's stale (e.g. user approved elsewhere) and would just confuse them.
     locationWarning && (application?.status || "").toLowerCase() !== "accepted"
       ? { message: locationWarning, type: "error" }
       : null
@@ -425,12 +423,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                   <Typography variant="caption" color="textSecondary">
                     Program Choice(s)
                   </Typography>
-                  {application?.programs?.length > 0 ? (
+                  {program_choices?.length > 0 ? (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 0.5 }}>
-                      {application.programs.map((p: any, i: number) => (
+                      {program_choices.map((p: any) => (
                         <Chip
                           key={p.id}
-                          label={`${i + 1}. ${p.name}`}
+                          label={`${p.choice_order}. ${p.program_name}`}
                           size="small"
                           sx={{ backgroundColor: "#0D0060", color: "#fff", fontWeight: 600 }}
                         />

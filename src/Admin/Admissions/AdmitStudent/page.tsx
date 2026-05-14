@@ -51,18 +51,6 @@ interface Campus {
   name: string
 }
 
-interface Faculty {
-  id: number;
-  name: string;
-  code: string | number
-}
-interface Programs {
-  id: number;
-  name: string
-  code: string
-  faculty: Faculty | string
-}
-
 interface Application {
   id: number;
   first_name: string;
@@ -72,9 +60,16 @@ interface Application {
   gender: string;
   email: string;
   campus: Campus
-  programs: Programs[]
   date_of_birth: string
   school_pay_reference?: string;
+}
+
+interface ProgramChoice {
+  id: number;
+  program_name: string;
+  choice_order: number;
+  code: string;
+  program_id: number;
 }
 
 const FormSection = styled(Box)(({ theme }) => ({
@@ -89,6 +84,8 @@ export default function AdmitStudentPage() {
   const AxiosInstance = useAxios()
   const [application, setApplication] = useState<Application | null>(null)
   const [campus, setCampus] = useState<Campus[]>([])
+  const [loadSelectedProgram, setLoadSelectedProgram] = useState(false)
+  const [selectedPrograms, setSelectedPrograms] = useState<ProgramChoice[]>([])
   const [formData, setFormData] = useState({
     // student_id: "",
     program: "",
@@ -147,11 +144,26 @@ export default function AdmitStudentPage() {
       setLoadApplication(false)
     }
   }
+  // fetch selected programs
+  const fetchSelectedPrograms = async () => {
+    try {
+      setLoadSelectedProgram(true)
+      const response = await AxiosInstance.get(`/api/admissions/list_selected_programs/${id}`)
+      setSelectedPrograms(response.data)
+      // Handle the response as needed
+    } catch (err) {
+      console.log(err)
+    } finally {
+      setLoadSelectedProgram(false)
+    }
+  }
 
   useEffect(() => {
     getApplication()
     fetchCampus()
+    fetchSelectedPrograms()
   }, [])
+
 
   // ← UPDATED: Now with auto-navigate on success
   useEffect(() => {
@@ -452,12 +464,16 @@ const handleGenerateRegNo = async () => {
               <MenuItem value="" disabled>
                 Select Program
               </MenuItem>
-              {application?.programs.map((program, index) => (
-                <MenuItem key={program.id} value={program.id}>
-                  {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
-                  {program.name} ({program.code})
-                </MenuItem>
-              ))}
+              {loadSelectedProgram ? (
+                <Typography>Loading...</Typography>
+              ) : (
+                selectedPrograms.map((program) => (
+                  <MenuItem key={program.id} value={program.program_id}>
+                    {program.choice_order === 1 ? "Primary Choice: " : `Choice ${program.choice_order}: `}
+                    {program.program_name} ({program.code})
+                  </MenuItem>
+                ))
+              )}
             </Select>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
               Select which program to admit the student into. Batch will be automatically assigned based on the program
@@ -608,7 +624,7 @@ const handleGenerateRegNo = async () => {
         <DialogContent>
           <DialogContentText sx={{ mt: 2 }}>
             Are you sure you want to admit <strong>{application?.first_name} {application?.last_name}</strong> to{" "}
-            <strong>{application?.programs.find((p) => p.id === Number.parseInt(formData.program))?.name}</strong>? This action
+            <strong>{selectedPrograms.find((p) => p.id === Number.parseInt(formData.program))?.program_name}</strong>? This action
             cannot be reversed.
           </DialogContentText>
         </DialogContent>

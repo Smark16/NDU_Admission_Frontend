@@ -830,11 +830,16 @@ export default function NewApplicationForm() {
       // formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
       // const validPrograms = formData.programs.filter(id => Number(id) > 0);
       // validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
-      const validPrograms = formData.programs
+      // const validPrograms = formData.programs
+      //   .map(id => Number(id))
+      //   .filter(id => !isNaN(id) && id > 0);
+
+      // validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
+      const orderedPrograms = formData.programs
         .map(id => Number(id))
         .filter(id => !isNaN(id) && id > 0);
 
-      validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
+      formDataToSend.append("programs", JSON.stringify(orderedPrograms));
 
       // const validPrograms = formData.programs
       //   .map(id => Number(id))

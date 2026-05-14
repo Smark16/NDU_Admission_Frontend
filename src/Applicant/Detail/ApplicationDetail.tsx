@@ -13,10 +13,11 @@ interface ApplicationDetailProps {
   olevelresults: any[]
   alevelresults: any[]
   documents: any[]
+  program_choices: any[]
   additionalQualifications:any[]
 }
 
-export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents, additionalQualifications }: ApplicationDetailProps) {
+export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents, program_choices, additionalQualifications }: ApplicationDetailProps) {
  
   const statusColors: Record<string, "success" | "error" | "info" | "warning"> = {
     accepted: "success",
@@ -81,7 +82,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
           <Grid size={{xs:12, md:8}}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
               <PersonalInfoSection application={application} />
-              <AcademicInfoSection application={application} />
+              <AcademicInfoSection application={application} program_choices={program_choices} />
               <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />
               <DocumentsSection documents={documents} />
               <PassportPhotoSection application={application} />

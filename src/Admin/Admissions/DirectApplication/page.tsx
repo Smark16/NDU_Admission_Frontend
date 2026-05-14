@@ -522,7 +522,11 @@ export default function DirectApplicationForm() {
       if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
       // Programs
-      formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
+      const orderedPrograms = formData.programs
+        .map(id => Number(id))
+        .filter(id => !isNaN(id) && id > 0);
+
+      formDataToSend.append("programs", JSON.stringify(orderedPrograms));
 
       // Academic Details
     formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");

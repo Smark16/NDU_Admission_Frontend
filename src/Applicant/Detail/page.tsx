@@ -71,6 +71,12 @@ interface AdditionalQualififcations {
   additional_qualification_year: string
   class_of_award: string
 }
+
+interface ProgramChoice {
+  id: number;
+  choice_order: number;
+  program_name: string;
+}
 // --- End Interface Definitions ---
 
 export default function Home() {
@@ -82,6 +88,7 @@ export default function Home() {
   const [alevelresults, setAlevelResults] = useState<Result[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [qualifications, setQualifications] = useState<AdditionalQualififcations[]>([])
+  const [program_choices, setProgramChoices] = useState<ProgramChoice[]>([])
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDetail = async () => {
@@ -106,6 +113,7 @@ export default function Home() {
       setAlevelResults((response.data.alevel_results ?? []).map(norm));
       setDocuments(response.data.documents);
       setQualifications(response.data.qualifications)
+      setProgramChoices(response.data.program_choices)
       setIsLoading(false)
     } catch (err) {
       console.error("Failed to fetch application details:", err);
@@ -137,6 +145,7 @@ export default function Home() {
         alevelresults={alevelresults}
         documents={documents}
         additionalQualifications={qualifications} 
+        program_choices={program_choices}
       />
     </main>
   );
