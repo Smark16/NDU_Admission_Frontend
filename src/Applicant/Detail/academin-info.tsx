@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Alert, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, FormGroup, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
+import ProgramChoiceAutocomplete from "../../ReUsables/ProgramChoiceAutocomplete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { Card, CardContent, CardHeader, Grid, Box, Chip } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
@@ -261,31 +262,17 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
             </Select>
           </FormControl>
 
-          {/* Programmes filtered by selected campus */}
           <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-            Programmes at selected campus:
+            Search and select up to 3 programmes at the selected campus:
           </Typography>
-          <FormGroup sx={{ maxHeight: 250, overflowY: "auto", border: "1px solid #e0e0e0", borderRadius: 1, p: 1 }}>
-            {programOptions
-              ?.filter((p: any) => !selectedCampus || p.campus_ids.includes(selectedCampus))
-              .map((p: any) => (
-                <FormControlLabel
-                  key={p.id}
-                  control={
-                    <Checkbox
-                      checked={selectedPrograms.includes(p.id)}
-                      onChange={(e) => {
-                        setSelectedPrograms(prev =>
-                          e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
-                        )
-                      }}
-                      sx={{ color: "#0D0060", "&.Mui-checked": { color: "#0D0060" } }}
-                    />
-                  }
-                  label={p.code ? `${p.name} (${p.code})` : p.name}
-                />
-              ))}
-          </FormGroup>
+          <ProgramChoiceAutocomplete
+            options={programOptions}
+            selectedCampus={selectedCampus}
+            valueIds={selectedPrograms}
+            onChange={setSelectedPrograms}
+            maxSelections={3}
+            disabled={changingProgramme}
+          />
 
           <TextField
             fullWidth
