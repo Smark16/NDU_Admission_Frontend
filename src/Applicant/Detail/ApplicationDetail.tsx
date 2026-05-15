@@ -82,7 +82,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
           {/* Main Content Area */}
           <Grid size={{xs:12, md:8}}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
-              <ProgramChoiceConfirmation applicationId={application.id} />
+              <ProgramChoiceConfirmation applicationId={application} />
               <PersonalInfoSection application={application} />
               <AcademicInfoSection application={application} program_choices={program_choices} />
               <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />
