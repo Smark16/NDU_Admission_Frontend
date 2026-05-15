@@ -49,7 +49,13 @@ export default function RejectedList() {
       try {
         setLoading(true); setError(null)
         const res = await AxiosInstance.get("/api/admissions/rejected_applications")
-        setApplications(res.data)
+        const raw = res.data
+        const list: Application[] = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.results)
+            ? raw.results
+            : []
+        setApplications(list)
       } catch (err: any) {
         setError(err.response?.data?.detail || "Failed to load applications")
       } finally {
