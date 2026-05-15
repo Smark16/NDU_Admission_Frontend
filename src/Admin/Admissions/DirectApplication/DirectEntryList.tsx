@@ -27,7 +27,7 @@ import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "../ApplicationList/Review/RejectionForm"
 
-type AppStatus = "submitted" | "accepted" | "rejected" | "under_review" | "pending_approval" | "admitted"
+type AppStatus = "submitted" | "accepted" | "rejected" | "under_review" | "pending_approval" | "Admitted" | "revoked"  
 
 interface Application {
   id: number
@@ -53,7 +53,8 @@ const statusConfig: Record<
   pending_approval: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
   accepted:         { color: "success", icon: <ThumbUpIcon fontSize="small" /> },
   rejected:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
-  admitted:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+  Admitted:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+  revoked:          { color: "error",   icon: <CancelIcon fontSize="small" /> },
 }
 
 const getStatusLabel = (status: AppStatus) => {
@@ -61,17 +62,19 @@ const getStatusLabel = (status: AppStatus) => {
     case "accepted":  return "Approved"
     case "under_review": return "Under Review"
     case "pending_approval": return "Awaiting Registrar"
-    case "admitted":  return "Admitted"
+    case "Admitted":  return "Admitted"
+    case "revoked":  return "Revoked"
     default: return status.replace("_", " ")
   }
 }
 
 const normalizeStatus = (status: string): AppStatus => {
   const s = (status || "").trim().toLowerCase()
-  if (s === "admitted") return "admitted"
+  if (s === "admitted") return "Admitted"
   if (s === "accepted") return "accepted"
   if (s === "rejected") return "rejected"
   if (s === "under_review") return "under_review"
+  if (s === "revoked") return "revoked"
   if (s === "pending_approval" || s === "pending") return "pending_approval"
   return "submitted"
 }
@@ -584,8 +587,8 @@ export default function DirectEntryList() {
           { label: "Submitted",   value: applications.filter(a => a.status === "submitted").length,        filter: "submitted" },
           { label: "Under Review",value: applications.filter(a => a.status === "under_review").length,     filter: "under_review" },
           { label: "Approved",    value: applications.filter(a => a.status === "accepted").length,         filter: "accepted" },
-          { label: "Admitted",    value: applications.filter(a => a.status === "admitted").length,         filter: "admitted" },
-          { label: "Rejected",    value: applications.filter(a => a.status === "rejected").length,         filter: "rejected" },
+          // { label: "Admitted",    value: applications.filter(a => a.status === "Admitted").length,         filter: "Admitted" },
+          { label: "Revoked",    value: applications.filter(a => a.status === "revoked").length,         filter: "revoked" },
         ].map((stat, i) => (
           <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
             <Card

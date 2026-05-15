@@ -28,7 +28,7 @@ import ProgramChoiceConfirmation from "../Detail/ProgramChoiceConfirmation";
 interface Application {
   id: number;
   program: string;
-  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "admitted";
+  application_status: "accepted" | "rejected" | "submitted" | "pending" | "under_review" | "Admitted" | "draft";
   batch: string | null;
   campus: string | null;
   admission_letter_pdf?: string;
@@ -132,11 +132,12 @@ const ApplicantDashboard: React.FC = () => {
       </Box>
 
       {/* ==================== HAS SUBMITTED APPLICATION ==================== */}
-      {application &&
-      (application.application_status === "submitted" ||
-        application.application_status === "under_review") ? (
+      {application && application.application_status !== "draft" ? (
         <>
-        {!application.program_choices_confirmed_at && application.id && (
+        {(application.application_status === "submitted" ||
+          application.application_status === "under_review") &&
+          !application.program_choices_confirmed_at &&
+          application.id && (
           <Box sx={{ maxWidth: 850, mx: "auto", mb: 3 }}>
             <ProgramChoiceConfirmation applicationId={application.id} onConfirmed={fetchData} />
           </Box>

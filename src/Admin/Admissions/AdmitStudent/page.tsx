@@ -54,18 +54,6 @@ interface Campus {
   name: string
 }
 
-interface Faculty {
-  id: number;
-  name: string;
-  code: string | number
-}
-interface Programs {
-  id: number;
-  name: string
-  code: string
-  faculty: Faculty | string
-}
-
 interface Application {
   id: number;
   first_name: string;
@@ -75,9 +63,16 @@ interface Application {
   gender: string;
   email: string;
   campus: Campus
-  programs: Programs[]
   date_of_birth: string
   school_pay_reference?: string;
+}
+
+interface ProgramChoice {
+  id: number;
+  program_name: string;
+  choice_order: number;
+  code: string;
+  program_id: number;
 }
 
 interface ProgramBatchOption {
@@ -105,8 +100,10 @@ export default function AdmitStudentPage() {
   const AxiosInstance = useAxios()
   const [application, setApplication] = useState<Application | null>(null)
   const [campus, setCampus] = useState<Campus[]>([])
+  const [loadSelectedProgram, setLoadSelectedProgram] = useState(false)
+  const [selectedPrograms, setSelectedPrograms] = useState<ProgramChoice[]>([])
   const [formData, setFormData] = useState({
-    student_id: "",
+    // student_id: "",
     program: "",
     campus: "",
     study_mode: "",
@@ -166,20 +163,33 @@ export default function AdmitStudentPage() {
       setLoadApplication(false)
     }
   }
+  // fetch selected programs
+  const fetchSelectedPrograms = async () => {
+    try {
+      setLoadSelectedProgram(true)
+      const response = await AxiosInstance.get(`/api/admissions/list_selected_programs/${id}`)
+      setSelectedPrograms(response.data)
+      // Handle the response as needed
+    } catch (err) {
+      console.log(err)
+    } finally {
+      setLoadSelectedProgram(false)
+    }
+  }
 
   useEffect(() => {
     getApplication()
     fetchCampus()
+    fetchSelectedPrograms()
   }, [])
 
-  // Default programme to primary choice so academic-batch options load immediately
   useEffect(() => {
-    if (!application?.programs?.length) return
+    if (!selectedPrograms.length) return
     setFormData((prev) => {
       if (prev.program) return prev
-      return { ...prev, program: String(application.programs[0].id) }
+      return { ...prev, program: String(selectedPrograms[0].program_id) }
     })
-  }, [application])
+  }, [selectedPrograms])
 
   useEffect(() => {
     if (!application?.campus?.id) return
@@ -281,7 +291,7 @@ export default function AdmitStudentPage() {
 
   const handleSubmitClick = () => {
 
-    if (!formData.student_id || !formData.reg_no || !formData.program) {
+    if (!formData.reg_no || !formData.program) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields: program, campus, study mode, and student number",
@@ -324,20 +334,12 @@ const handleGenerateRegNo = async () => {
   }
 };
 
-// const handleGeneratePayCode = () => {
-//     const prefix = Math.random() < 0.5 ? "1" : "2"  
-//     const random9Digits = String(Math.floor(Math.random() * 900000000) + 100000000) 
-//     const payCode = prefix + random9Digits  
-//     setFormData(prev => ({ ...prev, student_id: payCode }))
-//   }
-
   const handleConfirmAdmit = async () => {
     try {
       setOpenDialog(true)
       setIsLoading(true)
 
       const payload: Record<string, unknown> = {
-        student_id: formData.student_id,
         admitted_campus: Number(formData.campus),
         admitted_program: Number(formData.program),
         admission_notes: formData.notes,
@@ -391,7 +393,6 @@ const handleGenerateRegNo = async () => {
     }
     setTimeout(() => {
       setFormData({
-        student_id: "",
         program: "",
         notes: "",
         reg_no: "",
@@ -564,12 +565,16 @@ const handleGenerateRegNo = async () => {
               <MenuItem value="" disabled>
                 Select Program
               </MenuItem>
-              {(application?.programs ?? []).map((program, index) => (
-                <MenuItem key={program.id} value={String(program.id)}>
-                  {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
-                  {program.name} ({program.code})
-                </MenuItem>
-              ))}
+              {loadSelectedProgram ? (
+                <MenuItem value="" disabled>Loading programmes…</MenuItem>
+              ) : (
+                selectedPrograms.map((program) => (
+                  <MenuItem key={program.id} value={String(program.program_id)}>
+                    {program.choice_order === 1 ? "Primary Choice: " : `Choice ${program.choice_order}: `}
+                    {program.program_name} ({program.code})
+                  </MenuItem>
+                ))
+              )}
             </Select>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
               Select which programme to admit the student into. (Admissions intake is separate — see intake batch on the application.)
@@ -691,9 +696,9 @@ const handleGenerateRegNo = async () => {
             </Typography>
           </Box>
 
-          <FormSection>
+          {/* <FormSection>
            {/* <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/> */}
-            <TextField
+            {/* <TextField
               fullWidth
               label="Student Number"
               name="student_id"
@@ -704,8 +709,8 @@ const handleGenerateRegNo = async () => {
               inputProps={{ maxLength: 50 }}
               helperText="This will be the student's unique identification number"
               sx={{ mb: 2 }}
-            />
-          </FormSection>
+            /> */}
+          {/* </FormSection> */} 
 
           <FormSection>
             <CustomButton onClick={handleGenerateRegNo} text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}/>
@@ -788,7 +793,7 @@ const handleGenerateRegNo = async () => {
         <DialogContent>
           <DialogContentText sx={{ mt: 2 }}>
             Are you sure you want to admit <strong>{application?.first_name} {application?.last_name}</strong> to{" "}
-            <strong>{application?.programs.find((p) => p.id === Number.parseInt(formData.program))?.name}</strong>? This action
+            <strong>{selectedPrograms.find((p) => p.id === Number.parseInt(formData.program))?.program_name}</strong>? This action
             cannot be reversed.
           </DialogContentText>
         </DialogContent>

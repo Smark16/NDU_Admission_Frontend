@@ -109,7 +109,6 @@ useEffect(() => {
   };
 }, [pollInterval]);
 
-// cancel payment
 // Cancel pending payment
   const handleCancelPayment = async () => {
     if (!currentPaymentRef) return;
