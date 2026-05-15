@@ -39,7 +39,8 @@ interface Application {
   academic_level: string
   batch: string
   campus: string
-  is_direct_entry: boolean;
+  is_direct_entry: boolean
+  program_choices_confirmed_at: string | null
 }
 
 interface Campus {
@@ -47,9 +48,12 @@ interface Campus {
   name: string
 }
 
+type ChoiceConfirmationFilter = "all" | "awaiting" | "confirmed"
+
 type PersistedFilters = {
   searchTerm: string
   statusFilter: string
+  choiceConfirmationFilter: ChoiceConfirmationFilter
   academicLevelFilter: string
   batchFilter: string
   campusFilter: string
@@ -71,6 +75,9 @@ const readPersistedFilters = (): PersistedFilters | null => {
     return {
       searchTerm: String(parsed.searchTerm ?? ""),
       statusFilter: String(parsed.statusFilter ?? "all"),
+      choiceConfirmationFilter: (["all", "awaiting", "confirmed"].includes(parsed.choiceConfirmationFilter)
+        ? parsed.choiceConfirmationFilter
+        : "all") as ChoiceConfirmationFilter,
       academicLevelFilter: String(parsed.academicLevelFilter ?? "all"),
       batchFilter: String(parsed.batchFilter ?? "all"),
       campusFilter: String(parsed.campusFilter ?? "all"),
@@ -111,6 +118,43 @@ const getStatusLabel = (status: AppStatus) => {
   }
 }
 
+const mayConfirmProgramChoices = (app: Application) =>
+  app.status === "submitted" || app.status === "under_review"
+
+const isProgramChoicesConfirmed = (app: Application) =>
+  mayConfirmProgramChoices(app) && Boolean(app.program_choices_confirmed_at)
+
+const isProgramChoicesAwaiting = (app: Application) =>
+  mayConfirmProgramChoices(app) && !app.program_choices_confirmed_at
+
+const renderStatusChip = (app: Application) => {
+  if (isProgramChoicesConfirmed(app)) {
+    return (
+      <Chip
+        label={getStatusLabel(app.status)}
+        size="small"
+        icon={<CheckCircleIcon fontSize="small" />}
+        sx={{
+          minWidth: 100,
+          bgcolor: "#7B1FA2",
+          color: "#fff",
+          fontWeight: 600,
+          "& .MuiChip-icon": { color: "#fff" },
+        }}
+      />
+    )
+  }
+  return (
+    <Chip
+      label={getStatusLabel(app.status)}
+      color={statusConfig[app.status]?.color ?? "default"}
+      icon={statusConfig[app.status]?.icon}
+      size="small"
+      sx={{ minWidth: 100 }}
+    />
+  )
+}
+
 const normalizeStatus = (status: string): AppStatus => {
   const s = (status || "").trim().toLowerCase()
   if (s === "online") return "online"
@@ -148,6 +192,9 @@ const normalizeApplication = (raw: any): Application => {
     batch: String(raw?.batch ?? ""),
     campus: String(raw?.campus ?? ""),
     is_direct_entry: Boolean(raw?.is_direct_entry),
+    program_choices_confirmed_at: raw?.program_choices_confirmed_at
+      ? String(raw.program_choices_confirmed_at)
+      : null,
   }
 }
 
@@ -165,6 +212,9 @@ export default function ApplicationList() {
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "")
   const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.statusFilter ?? "all")
+  const [choiceConfirmationFilter, setChoiceConfirmationFilter] = useState<ChoiceConfirmationFilter>(
+    initialFilters?.choiceConfirmationFilter ?? "all"
+  )
   const [academicLevelFilter, setAcademicLevelFilter] = useState<string>(initialFilters?.academicLevelFilter ?? "all")
   const [batchFilter, setBatchFilter] = useState<string>(initialFilters?.batchFilter ?? "all")
   const [campusFilter, setCampusFilter] = useState<string>(initialFilters?.campusFilter ?? "all")
@@ -231,6 +281,7 @@ export default function ApplicationList() {
     const payload: PersistedFilters = {
       searchTerm,
       statusFilter,
+      choiceConfirmationFilter,
       academicLevelFilter,
       batchFilter,
       campusFilter,
@@ -244,6 +295,7 @@ export default function ApplicationList() {
   }, [
     searchTerm,
     statusFilter,
+    choiceConfirmationFilter,
     academicLevelFilter,
     batchFilter,
     campusFilter,
@@ -320,9 +372,14 @@ export default function ApplicationList() {
       const appDate = new Date(app.created_at)
       const matchesDateFrom = !dateFrom || appDate >= new Date(`${dateFrom}T00:00:00`)
       const matchesDateTo = !dateTo || appDate <= new Date(`${dateTo}T23:59:59.999`)
+      const matchesChoiceConfirmation =
+        choiceConfirmationFilter === "all" ||
+        (choiceConfirmationFilter === "awaiting" && isProgramChoicesAwaiting(app)) ||
+        (choiceConfirmationFilter === "confirmed" && isProgramChoicesConfirmed(app))
       return (
         matchesSearch &&
         matchesStatus &&
+        matchesChoiceConfirmation &&
         matchesLevel &&
         matchesBatch &&
         matchesCampus &&
@@ -337,6 +394,7 @@ export default function ApplicationList() {
     applications,
     searchTerm,
     statusFilter,
+    choiceConfirmationFilter,
     academicLevelFilter,
     batchFilter,
     campusFilter,
@@ -347,9 +405,18 @@ export default function ApplicationList() {
     dateTo,
   ])
 
+  const choiceStats = useMemo(
+    () => ({
+      awaiting: applications.filter(isProgramChoicesAwaiting).length,
+      confirmed: applications.filter(isProgramChoicesConfirmed).length,
+    }),
+    [applications]
+  )
+
   const clearFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
+    setChoiceConfirmationFilter("all")
     setAcademicLevelFilter("all")
     setBatchFilter("all")
     setCampusFilter("all")
@@ -527,22 +594,40 @@ export default function ApplicationList() {
       {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Total",          value: applications.length,                                                      filter: "all" },
-          { label: "Submitted",      value: applications.filter(a => a.status === "submitted").length,               filter: "submitted" },
-          { label: "Under Review",   value: applications.filter(a => a.status === "under_review").length,            filter: "under_review" },
-          { label: "Approved",       value: applications.filter(a => a.status === "accepted").length,                filter: "accepted" },
-          { label: "Online",       value: applications.filter(a => a.is_direct_entry === false).length, filter: "admitted" },
-          { label: "Direct Entry",       value: applications.filter(a => a.is_direct_entry === true).length,               filter: "rejected" },
-        ].map((stat, i) => (
+          { label: "Total",          value: applications.length,                                                      filter: "all", kind: "status" as const },
+          { label: "Submitted",      value: applications.filter(a => a.status === "submitted").length,               filter: "submitted", kind: "status" as const },
+          { label: "Under Review",   value: applications.filter(a => a.status === "under_review").length,            filter: "under_review", kind: "status" as const },
+          { label: "Awaiting choices", value: choiceStats.awaiting, filter: "awaiting", kind: "choice" as const },
+          { label: "Choices confirmed", value: choiceStats.confirmed, filter: "confirmed", kind: "choice" as const },
+          { label: "Approved",       value: applications.filter(a => a.status === "accepted").length,                filter: "accepted", kind: "status" as const },
+          { label: "Online",       value: applications.filter(a => a.is_direct_entry === false).length, filter: "admitted", kind: "status" as const },
+          { label: "Direct Entry",       value: applications.filter(a => a.is_direct_entry === true).length,               filter: "rejected", kind: "status" as const },
+        ].map((stat, i) => {
+          const isActive =
+            stat.kind === "choice"
+              ? choiceConfirmationFilter === stat.filter
+              : statusFilter === stat.filter && choiceConfirmationFilter === "all"
+          return (
           <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
             <Card
-              onClick={() => { setStatusFilter(stat.filter); setPage(0) }}
+              onClick={() => {
+                if (stat.kind === "choice") {
+                  setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
+                  setStatusFilter("all")
+                } else {
+                  setStatusFilter(stat.filter)
+                  setChoiceConfirmationFilter("all")
+                }
+                setPage(0)
+              }}
               sx={{
-                background: statusFilter === stat.filter
+                background: isActive
                   ? "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
-                  : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
+                  : stat.kind === "choice" && stat.filter === "confirmed"
+                    ? "linear-gradient(135deg, #6A1B9A 0%, #7B1FA2 100%)"
+                    : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
                 cursor: "pointer",
-                outline: statusFilter === stat.filter ? "2px solid #5ba3f5" : "none",
+                outline: isActive ? "2px solid #5ba3f5" : "none",
                 transition: "all 0.15s",
               }}
             >
@@ -552,7 +637,7 @@ export default function ApplicationList() {
               </CardContent>
             </Card>
           </Grid>
-        ))}
+        )})}
       </Grid>
 
       {/* Filters */}
@@ -577,6 +662,23 @@ export default function ApplicationList() {
                 <MenuItem value="accepted">Approved</MenuItem>
                 <MenuItem value="admitted">Admitted</MenuItem>
                 <MenuItem value="revoked">Revoked</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Programme choices</InputLabel>
+              <Select
+                value={choiceConfirmationFilter}
+                label="Programme choices"
+                onChange={(e) => {
+                  setChoiceConfirmationFilter(e.target.value as ChoiceConfirmationFilter)
+                  setPage(0)
+                }}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="awaiting">Awaiting confirmation</MenuItem>
+                <MenuItem value="confirmed">Choices confirmed</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -734,12 +836,7 @@ export default function ApplicationList() {
                       <TableCell sx={{ fontSize: "0.875rem" }}>{(app.programs ?? []).map(p => p.name).join(", ") || "—"}</TableCell>
                       <TableCell sx={{ fontSize: "0.875rem" }}>{app.faculty || "—"}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={getStatusLabel(app.status)}
-                          color={statusConfig[app.status]?.color ?? "default"}
-                          icon={statusConfig[app.status]?.icon}
-                          size="small" sx={{ minWidth: 100 }}
-                        />
+                        {renderStatusChip(app)}
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center">

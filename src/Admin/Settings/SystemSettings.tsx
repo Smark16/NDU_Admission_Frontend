@@ -18,6 +18,13 @@ import useAxios from "../../AxiosInstance/UseAxios"
 interface SystemSettingsData {
   student_session_timeout: number
   admin_session_timeout: number
+  id_card_templates?: Array<{
+    key: string
+    name: string
+    front_title?: string
+    back_text?: string
+  }>
+  active_id_card_template?: string
   updated_by_name: string | null
   updated_at: string | null
 }
@@ -29,9 +36,12 @@ export default function SystemSettings() {
   const [settings, setSettings] = useState<SystemSettingsData>({
     student_session_timeout: 30,
     admin_session_timeout: 60,
+    id_card_templates: [],
+    active_id_card_template: "",
     updated_by_name: null,
     updated_at: null,
   })
+  const [templatesJson, setTemplatesJson] = useState<string>("[]")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +71,7 @@ export default function SystemSettings() {
       try {
         const { data } = await AxiosInstance!.get("/api/accounts/system_settings")
         setSettings(data)
+        setTemplatesJson(JSON.stringify(Array.isArray(data.id_card_templates) ? data.id_card_templates : [], null, 2))
       } catch {
         setError("Failed to load system settings.")
       } finally {
@@ -86,11 +97,26 @@ export default function SystemSettings() {
     }
     try {
       setSaving(true)
+      let parsedTemplates: SystemSettingsData["id_card_templates"] = []
+      try {
+        const parsed = JSON.parse(templatesJson || "[]")
+        if (!Array.isArray(parsed)) throw new Error("ID templates JSON must be an array.")
+        parsedTemplates = parsed
+      } catch (e: any) {
+        const msg = e?.message || "Invalid ID templates JSON."
+        setError(msg)
+        showErrorAlert?.(msg)
+        setSaving(false)
+        return
+      }
       const { data } = await AxiosInstance!.put("/api/accounts/update_system_settings", {
         student_session_timeout: settings.student_session_timeout,
         admin_session_timeout: settings.admin_session_timeout,
+        id_card_templates: parsedTemplates,
+        active_id_card_template: (settings.active_id_card_template || "").trim(),
       })
       setSettings(data)
+      setTemplatesJson(JSON.stringify(Array.isArray(data.id_card_templates) ? data.id_card_templates : [], null, 2))
       setSuccess("Settings saved successfully.")
       showSuccessAlert?.("System settings updated.")
     } catch (err: any) {
@@ -190,6 +216,33 @@ export default function SystemSettings() {
                   size="small"
                 />
               </Box>
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Active ID template key"
+                value={settings.active_id_card_template || ""}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    active_id_card_template: e.target.value,
+                  }))
+                }
+                helperText="This key must exist in the templates JSON list."
+                size="small"
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="ID Card Templates (JSON array)"
+                multiline
+                minRows={8}
+                value={templatesJson}
+                onChange={(e) => setTemplatesJson(e.target.value)}
+                helperText='Each item should include at least: {"key":"...", "name":"..."}'
+                size="small"
+              />
             </Grid>
           </Grid>
 

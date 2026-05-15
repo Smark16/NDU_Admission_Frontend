@@ -45,6 +45,8 @@ const AllApplicantsReport = lazy(() => import('../Admin/Reports/AllApplicants'))
 const ProspectiveStudents = lazy(() => import('../Admin/ProspectiveStudents/page'))
 const SystemUsageReport = lazy(() => import('../Admin/Reports/SystemUsage'))
 const SystemSettingsPage = lazy(() => import('../Admin/Settings/SystemSettings'))
+const IDCardsPage = lazy(() => import('../Admin/IDCards/page'))
+const IdCardTemplatesSetupPage = lazy(() => import('../Admin/IDCards/TemplatesSetupPage'))
 
 function AppRoutes() {
   const location = useLocation()
@@ -292,6 +294,18 @@ function AppRoutes() {
                   <Route path='/system-settings' element={
                     <AdminRoute permission='accounts.view_user'>
                       <Suspense fallback={<LoadingSpinner />}><SystemSettingsPage /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/id-cards' element={
+                    <AdminRoute permission={['admissions.manage_id_cards', 'admissions.change_admittedstudent']}>
+                      <Suspense fallback={<LoadingSpinner />}><IDCardsPage /></Suspense>
+                    </AdminRoute>
+                    } />
+
+                  <Route path='/id-card-templates' element={
+                    <AdminRoute permission={['admissions.manage_id_cards', 'admissions.change_admittedstudent']}>
+                      <Suspense fallback={<LoadingSpinner />}><IdCardTemplatesSetupPage /></Suspense>
                     </AdminRoute>
                     } />
                 </Routes>

@@ -7,6 +7,7 @@ import DocumentsSection from "./documents"
 import PassportPhotoSection from "./passport-photo"
 import StatusSection from "./status"
 import ActionsSection from "./actions"
+import ProgramChoiceConfirmation from "./ProgramChoiceConfirmation"
 
 interface ApplicationDetailProps {
   application: any
@@ -80,6 +81,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
           {/* Main Content Area */}
           <Grid size={{xs:12, md:8}}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
+              <ProgramChoiceConfirmation applicationId={application.id} />
               <PersonalInfoSection application={application} />
               <AcademicInfoSection application={application} />
               <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />

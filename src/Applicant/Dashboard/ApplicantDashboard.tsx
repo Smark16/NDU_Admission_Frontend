@@ -23,6 +23,7 @@ import { Link } from "react-router-dom";
 import useHook from "../../Hooks/useHook";
 import useAxios from "../../AxiosInstance/UseAxios";
 import CustomButton from "../../ReUsables/custombutton";
+import ProgramChoiceConfirmation from "../Detail/ProgramChoiceConfirmation";
 
 interface Application {
   id: number;
@@ -34,6 +35,7 @@ interface Application {
   applied_date: string;
   has_admission: boolean;
   student_id?: string | null;
+  program_choices_confirmed_at?: string | null;
 }
 
 interface DraftInfo {
@@ -92,6 +94,7 @@ const ApplicantDashboard: React.FC = () => {
           applied_date: appRes.data.applied_date,
           has_admission: appRes.data.has_admission || false,
           student_id: appRes.data.student_id,
+          program_choices_confirmed_at: appRes.data.program_choices_confirmed_at,
         });
       }
 
@@ -129,7 +132,15 @@ const ApplicantDashboard: React.FC = () => {
       </Box>
 
       {/* ==================== HAS SUBMITTED APPLICATION ==================== */}
-      {application && application.application_status === "submitted" ? (
+      {application &&
+      (application.application_status === "submitted" ||
+        application.application_status === "under_review") ? (
+        <>
+        {!application.program_choices_confirmed_at && application.id && (
+          <Box sx={{ maxWidth: 850, mx: "auto", mb: 3 }}>
+            <ProgramChoiceConfirmation applicationId={application.id} onConfirmed={fetchData} />
+          </Box>
+        )}
         <Card sx={{ maxWidth: 850, mx: "auto", borderRadius: 3, boxShadow: 3 }}>
           <CardHeader
             title={application.program}
@@ -181,6 +192,7 @@ const ApplicantDashboard: React.FC = () => {
             )} */}
           </Box>
         </Card>
+        </>
       ) : (
         /* ==================== NO SUBMITTED APPLICATION ==================== */
         <>

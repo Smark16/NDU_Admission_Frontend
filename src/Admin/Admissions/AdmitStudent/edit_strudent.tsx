@@ -62,6 +62,19 @@ interface Program {
   faculty: Faculty | string
 }
 
+interface ProgramBatchOption {
+  id: number
+  name: string
+  start_date: string | null
+  academic_year: string
+  is_active: boolean
+}
+
+interface ProgramBatchesOptionsResponse {
+  batches: ProgramBatchOption[]
+  default_program_batch_id: number | null
+}
+
 interface Application {
   id: number
   first_name: string
@@ -84,7 +97,13 @@ interface AdmittedData {
   admission_notes: string
   admitted_program: Program
   admitted_campus: Campus
-  application: number  
+  application: number
+  intended_program_batch?: {
+    id: number
+    name: string
+    academic_year?: string
+    start_date?: string | null
+  } | null
 }
 
 export default function EditAdmittedStudentPage() {
@@ -106,7 +125,11 @@ export default function EditAdmittedStudentPage() {
     campus: "",
     study_mode: "",
     notes: "",
+    intended_program_batch: "",
   })
+
+  const [programBatchOptions, setProgramBatchOptions] = useState<ProgramBatchOption[]>([])
+  const [loadingProgramBatches, setLoadingProgramBatches] = useState(false)
 
   const [openDialog, setOpenDialog] = useState(false)
   const [snackbar, setSnackbar] = useState({
@@ -139,6 +162,9 @@ export default function EditAdmittedStudentPage() {
         campus: data.admitted_campus?.id?.toString() || "",
         study_mode: data.study_mode || "",
         notes: data.admission_notes || "",
+        intended_program_batch: data.intended_program_batch?.id
+          ? String(data.intended_program_batch.id)
+          : "",
       })
     } catch (err) {
       console.log(err)
@@ -173,6 +199,48 @@ export default function EditAdmittedStudentPage() {
     getApplication()
   }, [admittedData?.application])
 
+  const programIdForBatches = formData.program
+
+  useEffect(() => {
+    if (!programIdForBatches) {
+      setProgramBatchOptions([])
+      return
+    }
+    let cancelled = false
+    setLoadingProgramBatches(true)
+    AxiosInstance.get<ProgramBatchesOptionsResponse | ProgramBatchOption[]>(
+      `/api/admissions/program_batches_options/${programIdForBatches}/`
+    )
+      .then((res) => {
+        if (cancelled) return
+        const raw = res.data
+        const batches = Array.isArray(raw)
+          ? raw
+          : Array.isArray((raw as ProgramBatchesOptionsResponse)?.batches)
+            ? (raw as ProgramBatchesOptionsResponse).batches
+            : []
+        const defaultId = Array.isArray(raw)
+          ? null
+          : (raw as ProgramBatchesOptionsResponse)?.default_program_batch_id ?? null
+        setProgramBatchOptions(batches)
+        setFormData((prev) => {
+          if (prev.program !== programIdForBatches) return prev
+          if (prev.intended_program_batch) return prev
+          if (defaultId != null) return { ...prev, intended_program_batch: String(defaultId) }
+          return prev
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setProgramBatchOptions([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProgramBatches(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [programIdForBatches, AxiosInstance])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -184,9 +252,10 @@ export default function EditAdmittedStudentPage() {
   const handleSelectChange = (event: SelectChangeEvent<string | number>) => {
     const { name, value } = event.target
     if (!name) return
+    const strVal = value === "" || value === undefined ? "" : String(value)
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "campus" || name === "study_mode" || name === "intended_program_batch" ? strVal : value,
     }))
   }
 
@@ -195,6 +264,7 @@ export default function EditAdmittedStudentPage() {
     setFormData((prev) => ({
       ...prev,
       program: value ? String(value.id) : "",
+      intended_program_batch: "",
     }))
   }
 
@@ -269,6 +339,9 @@ export default function EditAdmittedStudentPage() {
         admitted_program: formData.program,
         admission_notes: formData.notes.trim(),
         study_mode: formData.study_mode,
+        intended_program_batch: formData.intended_program_batch
+          ? Number(formData.intended_program_batch)
+          : null,
       }
 
       await AxiosInstance.patch(`/api/admissions/update_admission/${id}/`, payload)
@@ -388,6 +461,33 @@ export default function EditAdmittedStudentPage() {
             />
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
               Search for any program available in the current active batch/intake
+            </Typography>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth variant="outlined" disabled={!formData.program || loadingProgramBatches}>
+              <InputLabel id="edit-intended-batch-label">Academic programme batch</InputLabel>
+              <Select
+                labelId="edit-intended-batch-label"
+                label="Academic programme batch"
+                name="intended_program_batch"
+                value={formData.intended_program_batch}
+                onChange={handleSelectChange}
+              >
+                <MenuItem value="">
+                  <em>Use system default (auto cohort)</em>
+                </MenuItem>
+                {programBatchOptions.map((b) => (
+                  <MenuItem key={b.id} value={String(b.id)}>
+                    {b.name}
+                    {b.academic_year ? ` (${b.academic_year})` : ""}
+                    {b.start_date ? ` — starts ${b.start_date}` : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+              Cohort for curriculum and fees. Changing this updates placement when an academic enrollment record exists.
             </Typography>
           </Box>
 

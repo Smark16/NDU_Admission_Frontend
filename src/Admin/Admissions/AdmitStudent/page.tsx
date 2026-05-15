@@ -26,7 +26,10 @@ import {
   LinearProgress,
   Backdrop,
   FormControl,
-  InputLabel, 
+  InputLabel,
+  Paper,
+  Divider,
+  Chip,
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
@@ -77,6 +80,19 @@ interface Application {
   school_pay_reference?: string;
 }
 
+interface ProgramBatchOption {
+  id: number
+  name: string
+  start_date: string | null
+  academic_year: string
+  is_active: boolean
+}
+
+interface ProgramBatchesOptionsResponse {
+  batches: ProgramBatchOption[]
+  default_program_batch_id: number | null
+}
+
 const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }))
@@ -96,7 +112,10 @@ export default function AdmitStudentPage() {
     study_mode: "",
     reg_no: "",
     notes: "",
+    intended_program_batch: "",
   })
+  const [programBatchOptions, setProgramBatchOptions] = useState<ProgramBatchOption[]>([])
+  const [loadingProgramBatches, setLoadingProgramBatches] = useState(false)
 
   const [openDialog, setOpenDialog] = useState(false)
   const [snackbar, setSnackbar] = useState({
@@ -153,6 +172,64 @@ export default function AdmitStudentPage() {
     fetchCampus()
   }, [])
 
+  // Default programme to primary choice so academic-batch options load immediately
+  useEffect(() => {
+    if (!application?.programs?.length) return
+    setFormData((prev) => {
+      if (prev.program) return prev
+      return { ...prev, program: String(application.programs[0].id) }
+    })
+  }, [application])
+
+  useEffect(() => {
+    if (!application?.campus?.id) return
+    setFormData((prev) => {
+      if (prev.campus) return prev
+      return { ...prev, campus: String(application.campus.id) }
+    })
+  }, [application])
+
+  useEffect(() => {
+    const programId = formData.program
+    if (!programId) {
+      setProgramBatchOptions([])
+      return
+    }
+    let cancelled = false
+    setLoadingProgramBatches(true)
+    AxiosInstance.get<ProgramBatchesOptionsResponse | ProgramBatchOption[]>(
+      `/api/admissions/program_batches_options/${programId}/`
+    )
+      .then((res) => {
+        if (cancelled) return
+        const raw = res.data
+        const batches = Array.isArray(raw)
+          ? raw
+          : Array.isArray((raw as ProgramBatchesOptionsResponse)?.batches)
+            ? (raw as ProgramBatchesOptionsResponse).batches
+            : []
+        const defaultId = Array.isArray(raw)
+          ? null
+          : (raw as ProgramBatchesOptionsResponse)?.default_program_batch_id ?? null
+        setProgramBatchOptions(batches)
+        setFormData((prev) => {
+          if (prev.program !== programId) return prev
+          if (prev.intended_program_batch) return prev
+          if (defaultId != null) return { ...prev, intended_program_batch: String(defaultId) }
+          return prev
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setProgramBatchOptions([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProgramBatches(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [formData.program, AxiosInstance])
+
   // ← UPDATED: Now with auto-navigate on success
   useEffect(() => {
     if (!showProgress || !id) return
@@ -192,13 +269,15 @@ export default function AdmitStudentPage() {
   }
 
   const handleChange = (event: SelectChangeEvent<string | number>) => {
-    const { name, value } = event.target;
-    if (!name) return;
+    const { name, value } = event.target
+    if (!name) return
+    const strVal = value === "" || value === undefined ? "" : String(value)
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }));
-  };
+      [name]: name === "program" || name === "campus" || name === "intended_program_batch" ? strVal : value,
+      ...(name === "program" ? { intended_program_batch: "" } : {}),
+    }))
+  }
 
   const handleSubmitClick = () => {
 
@@ -227,9 +306,9 @@ const handleGenerateRegNo = async () => {
   
   setIsGeneratingRegNo(true)
   try {
-    const res = await AxiosInstance.post("api/admissions/generate-reg-no/", {
-      campus: formData.campus,
-      program: formData.program,
+    const res = await AxiosInstance.post("/api/admissions/generate-reg-no/", {
+      campus: formData.campus ? Number(formData.campus) : formData.campus,
+      program: formData.program ? Number(formData.program) : formData.program,
       study_mode: formData.study_mode,
     });
 
@@ -257,17 +336,22 @@ const handleGenerateRegNo = async () => {
       setOpenDialog(true)
       setIsLoading(true)
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         student_id: formData.student_id,
-        admitted_campus: formData.campus,
-        admitted_program: formData.program,
+        admitted_campus: Number(formData.campus),
+        admitted_program: Number(formData.program),
         admission_notes: formData.notes,
         admitted_batch: admissionBatch?.id,
         reg_no: formData.reg_no,
         study_mode: formData.study_mode,
         application: application?.id || 0,
         is_admitted: true,
-        admitted_by: loggeduser?.user_id
+        admitted_by: loggeduser?.user_id,
+      }
+      if (formData.intended_program_batch) {
+        payload.intended_program_batch = Number(formData.intended_program_batch)
+      } else {
+        payload.intended_program_batch = null
       }
 
       const response = await AxiosInstance.post('/api/admissions/create_admissions', payload)
@@ -306,7 +390,15 @@ const handleGenerateRegNo = async () => {
       setIsLoading(false)
     }
     setTimeout(() => {
-      setFormData({ student_id: "", program: "", notes: "", reg_no: "", study_mode: "", campus: "" })
+      setFormData({
+        student_id: "",
+        program: "",
+        notes: "",
+        reg_no: "",
+        study_mode: "",
+        campus: "",
+        intended_program_batch: "",
+      })
     }, 1000)
   }
 
@@ -447,7 +539,20 @@ const handleGenerateRegNo = async () => {
           }}
         />
         <CardContent sx={{ pt: 3 }}>
+          <Alert severity="info" sx={{ mb: 3 }} id="programme-batch-selector-hint">
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              Programme batch (academic cohort)
+            </Typography>
+            <Typography variant="body2">
+              Scroll to the <strong>highlighted box</strong> right under &quot;Programme to admit into&quot; — label{" "}
+              <strong>Programme batch</strong>. That is where you choose the <strong>ProgramBatch</strong> (not the
+              admissions intake).
+            </Typography>
+          </Alert>
           <FormSection>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Programme to admit into
+            </Typography>
             <Select
               fullWidth
               name="program"
@@ -459,18 +564,86 @@ const handleGenerateRegNo = async () => {
               <MenuItem value="" disabled>
                 Select Program
               </MenuItem>
-              {application?.programs.map((program, index) => (
-                <MenuItem key={program.id} value={program.id}>
+              {(application?.programs ?? []).map((program, index) => (
+                <MenuItem key={program.id} value={String(program.id)}>
                   {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
                   {program.name} ({program.code})
                 </MenuItem>
               ))}
             </Select>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              Select which program to admit the student into. Batch will be automatically assigned based on the program
-              selected.
+              Select which programme to admit the student into. (Admissions intake is separate — see intake batch on the application.)
             </Typography>
           </FormSection>
+
+          <Divider sx={{ my: 2 }} />
+          <Paper
+            data-testid="programme-batch-panel"
+            variant="outlined"
+            sx={{
+              p: 2,
+              mb: 3,
+              border: 2,
+              borderColor: "primary.main",
+              borderLeft: 6,
+              borderLeftColor: "primary.main",
+              bgcolor: "rgba(13, 0, 96, 0.06)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+              <Chip label="Academic cohort" color="primary" size="small" />
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
+                Programme batch (curriculum / fees)
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              The recommended cohort is pre-selected when available. Change it if needed, or choose &quot;Use system
+              default&quot; so the server applies the same default rule.
+            </Typography>
+            {!formData.program ? (
+              <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                Select a programme above first to load batch options.
+              </Typography>
+            ) : loadingProgramBatches ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2">Loading programme batches…</Typography>
+              </Box>
+            ) : null}
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="intended-program-batch-select-label">Programme batch</InputLabel>
+              <Select
+                labelId="intended-program-batch-select-label"
+                id="intended-program-batch-select"
+                label="Programme batch"
+                name="intended_program_batch"
+                value={formData.intended_program_batch}
+                onChange={handleChange}
+                disabled={!formData.program || loadingProgramBatches}
+              >
+                <MenuItem value="">
+                  <em>Use system default (auto cohort)</em>
+                </MenuItem>
+                {programBatchOptions.map((b) => (
+                  <MenuItem key={b.id} value={String(b.id)}>
+                    {b.name}
+                    {b.academic_year ? ` (${b.academic_year})` : ""}
+                    {b.start_date ? ` — starts ${b.start_date}` : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {!formData.intended_program_batch && formData.program && !loadingProgramBatches ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No cohort selected in the form; on save the server assigns the default active batch when one exists.
+              </Alert>
+            ) : null}
+            {formData.program && !loadingProgramBatches && programBatchOptions.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No active programme batches found for this programme. Create one under Program structure, or leave as None for fallback logic.
+              </Alert>
+            ) : null}
+          </Paper>
 
           <FormSection>
             <Select
@@ -485,7 +658,7 @@ const handleGenerateRegNo = async () => {
                 Select Campus
               </MenuItem>
               {campus.map((c, index) => (
-                <MenuItem key={c.id} value={c.id}>
+                <MenuItem key={c.id} value={String(c.id)}>
                   {application?.campus.id === c.id ? `Primary Choice: ${c.name}` : `${index + 1}: ${c.name}`}
                 </MenuItem>
               ))}

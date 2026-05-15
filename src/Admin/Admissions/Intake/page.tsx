@@ -21,6 +21,7 @@ import {
   Chip,
   IconButton,
   Alert,
+  Divider,
   Stack,
   Typography,
   InputAdornment,
@@ -228,6 +229,8 @@ export default function BatchManagement() {
     try {
       const payload = {
         ...formData,
+        offer_start_date: null,
+        offer_end_date: null,
         created_by: Number(loggeduser?.user_id),
       }
 
@@ -518,9 +521,12 @@ export default function BatchManagement() {
       )}
 
       {/* === ADD / EDIT DIALOG === */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth scroll="paper">
         <DialogTitle>{editingId ? "Edit Intake" : "Create New Intake"}</DialogTitle>
-        <DialogContent dividers>
+        <DialogContent
+          dividers
+          sx={{ maxHeight: { xs: "85vh", sm: "80vh" }, overflowY: "auto" }}
+        >
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               label="Intake Name"
@@ -578,47 +584,66 @@ export default function BatchManagement() {
               <CustomButton variant="outlined" startIcon={<Upload />} onClick={() => setUploadDialogOpen(true)} text='Upload'/>
             </Stack>
 
-            {/* Date fields */}
-            <TextField
-              label="Application Start"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.application_start_date}
-              onChange={(e) => handleFormChange("application_start_date", e.target.value)}
-              fullWidth
-              error={!!formErrors.application_start_date}
-              helperText={formErrors.application_start_date}
-            />
-            <TextField
-              label="Application End"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.application_end_date}
-              onChange={(e) => handleFormChange("application_end_date", e.target.value)}
-              fullWidth
-              error={!!formErrors.application_end_date}
-              helperText={formErrors.application_end_date}
-            />
-            <TextField
-              label="Admission Start"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.admission_start_date}
-              onChange={(e) => handleFormChange("admission_start_date", e.target.value)}
-              fullWidth
-              error={!!formErrors.admission_start_date}
-              helperText={formErrors.admission_start_date}
-            />
-            <TextField
-              label="Admission End"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.admission_end_date}
-              onChange={(e) => handleFormChange("admission_end_date", e.target.value)}
-              fullWidth
-              error={!!formErrors.admission_end_date}
-              helperText={formErrors.admission_end_date}
-            />
+            <Alert severity="info" sx={{ py: 1 }}>
+              <Typography variant="body2">
+                Which academic cohort is on offer is set per programme batch (Batch Management under each programme),
+                not on this intake.
+              </Typography>
+            </Alert>
+
+            <Divider />
+
+            <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
+              Application period
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
+              <TextField
+                label="Application start"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.application_start_date}
+                onChange={(e) => handleFormChange("application_start_date", e.target.value)}
+                fullWidth
+                error={!!formErrors.application_start_date}
+                helperText={formErrors.application_start_date}
+              />
+              <TextField
+                label="Application end"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.application_end_date}
+                onChange={(e) => handleFormChange("application_end_date", e.target.value)}
+                fullWidth
+                error={!!formErrors.application_end_date}
+                helperText={formErrors.application_end_date}
+              />
+            </Box>
+
+            <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
+              Admission period
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
+              <TextField
+                label="Admission start"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.admission_start_date}
+                onChange={(e) => handleFormChange("admission_start_date", e.target.value)}
+                fullWidth
+                error={!!formErrors.admission_start_date}
+                helperText={formErrors.admission_start_date}
+              />
+              <TextField
+                label="Admission end"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.admission_end_date}
+                onChange={(e) => handleFormChange("admission_end_date", e.target.value)}
+                fullWidth
+                error={!!formErrors.admission_end_date}
+                helperText={formErrors.admission_end_date}
+              />
+            </Box>
 
             <FormControlLabel
               control={

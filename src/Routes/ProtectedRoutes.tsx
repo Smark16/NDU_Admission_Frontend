@@ -5,10 +5,22 @@ import { AuthContext } from '../Context/AuthContext';
 
 interface AdminRouteProps {
   children: ReactNode;
-  permission: string;
+  /** Single permission, or any one of several (OR). */
+  permission: string | string[];
+  /**
+   * When true, allow any authenticated staff user who is not an applicant.
+   * Matches backend `CanViewAdmissionQueues` fallback for legacy permission sync gaps.
+   */
+  allowStaffNonApplicant?: boolean;
 }
 
-const AdminRoute = ({ children, permission }: AdminRouteProps) => {
+function userHasPermission(userPerms: string[] | undefined, required: string | string[]): boolean {
+  if (!userPerms?.length) return false;
+  if (typeof required === "string") return userPerms.includes(required);
+  return required.some((p) => userPerms.includes(p));
+}
+
+const AdminRoute = ({ children, permission, allowStaffNonApplicant }: AdminRouteProps) => {
   const context = React.useContext(AuthContext);
   const loggeduser = context?.loggeduser;
 
@@ -17,7 +29,15 @@ const AdminRoute = ({ children, permission }: AdminRouteProps) => {
     return <Navigate to="/" replace />;
   }
 
-  if (!loggeduser.permissions?.includes(permission)) {
+  if (
+    allowStaffNonApplicant &&
+    loggeduser.is_staff &&
+    !loggeduser.is_applicant
+  ) {
+    return <>{children}</>;
+  }
+
+  if (!userHasPermission(loggeduser.permissions, permission)) {
     // Has no permission → redirect somewhere safe
     return <Navigate to="/admin/admission_dashboard" replace />;
   }

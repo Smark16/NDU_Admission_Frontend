@@ -35,12 +35,14 @@ import {
   BanknoteArrowDown,
   Activity,
   UserSearch,
+  CreditCard,
 } from "lucide-react"
 import { useNavigate, useLocation } from 'react-router-dom'
 import { School as SchoolIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import logo from '../../Images/Ndejje_University_Logo.jpg'
 
 import { AuthContext } from "../../Context/AuthContext"
+import { ADMISSION_QUEUE_ACCESS_PERMISSIONS } from "../../config/admissionQueueAccess"
 
 interface NavItem {
   id: string
@@ -48,7 +50,22 @@ interface NavItem {
   icon: React.ReactNode
   path?: string
   children?: NavItem[]
-  requiredPermission?: string   
+  requiredPermission?: string
+  requiredAnyPermissions?: string[]
+  allowStaffNonApplicant?: boolean
+}
+
+type NavVisibilityCtx = { isStaff: boolean; isApplicant: boolean }
+
+function navItemVisible(item: NavItem, permissions: string[], ctx?: NavVisibilityCtx): boolean {
+  if (item.allowStaffNonApplicant && ctx && ctx.isStaff && !ctx.isApplicant) {
+    return true
+  }
+  if (item.requiredAnyPermissions?.length) {
+    return item.requiredAnyPermissions.some((p) => permissions.includes(p))
+  }
+  if (!item.requiredPermission) return true
+  return permissions.includes(item.requiredPermission)
 }
 
 const navigationItems: NavItem[] = [
@@ -73,14 +90,16 @@ const navigationItems: NavItem[] = [
             label: "All Applications",
             icon: <FileText size={20} />,
             path: "/admin/application_list",
-            requiredPermission: "admissions.view_application",       
+            requiredAnyPermissions: [...ADMISSION_QUEUE_ACCESS_PERMISSIONS],
+            allowStaffNonApplicant: true,
           },
           {
             id: "rejected",
             label: "Rejected Students",
             icon: <CancelIcon sx={{size:"20"}} />,
             path: "/admin/rejected_students",
-            requiredPermission: "admissions.view_application",
+            requiredAnyPermissions: [...ADMISSION_QUEUE_ACCESS_PERMISSIONS],
+            allowStaffNonApplicant: true,
           },
           {
             id: "admitted",
@@ -94,7 +113,8 @@ const navigationItems: NavItem[] = [
             label: "Direct Entry Applicants",
             icon: <FileText size={20} />,
             path: "/admin/direct_entry_list",
-            requiredPermission: "admissions.view_application",
+            requiredAnyPermissions: [...ADMISSION_QUEUE_ACCESS_PERMISSIONS],
+            allowStaffNonApplicant: true,
           },
         ],
       },
@@ -183,7 +203,8 @@ const navigationItems: NavItem[] = [
         label: "All Applicants",
         icon: <FileText size={20} />,
         path: "/admin/reports/all-applicants",
-        requiredPermission: "admissions.view_application",
+        requiredAnyPermissions: [...ADMISSION_QUEUE_ACCESS_PERMISSIONS],
+        allowStaffNonApplicant: true,
       },
       {
         id: "admission-reports",
@@ -205,6 +226,33 @@ const navigationItems: NavItem[] = [
         icon: <Activity size={20} />,
         path: "/admin/reports/system-usage",
         requiredPermission: "audit.view_auditlog",
+      },
+    ],
+  },
+  {
+    id: "student-ids",
+    label: "Student IDs",
+    icon: <CreditCard size={20} />,
+    children: [
+      {
+        id: "student-ids-management",
+        label: "Issue & manage cards",
+        icon: <CreditCard size={20} />,
+        path: "/admin/id-cards",
+        requiredAnyPermissions: [
+          "admissions.manage_id_cards",
+          "admissions.change_admittedstudent",
+        ],
+      },
+      {
+        id: "id-card-templates",
+        label: "ID card templates (PDF map)",
+        icon: <CreditCard size={20} />,
+        path: "/admin/id-card-templates",
+        requiredAnyPermissions: [
+          "admissions.manage_id_cards",
+          "admissions.change_admittedstudent",
+        ],
       },
     ],
   },
@@ -247,20 +295,20 @@ const navigationItems: NavItem[] = [
 ]
 
 // Helper function to filter nav items based on user permissions
-function filterNavItems(items: NavItem[], permissions: string[]): NavItem[] {
+function filterNavItems(items: NavItem[], permissions: string[], ctx?: NavVisibilityCtx): NavItem[] {
   const filtered: NavItem[] = []
 
   for (const item of items) {
     // Leaf node (no children)
     if (!item.children || item.children.length === 0) {
-      if (!item.requiredPermission || permissions.includes(item.requiredPermission)) {
+      if (navItemVisible(item, permissions, ctx)) {
         filtered.push(item)
       }
       continue
     }
 
     // Has children → filter recursively
-    const filteredChildren = filterNavItems(item.children, permissions)
+    const filteredChildren = filterNavItems(item.children, permissions, ctx)
 
     // Only include parent if it has at least one visible child
     if (filteredChildren.length > 0) {
@@ -275,7 +323,7 @@ function filterNavItems(items: NavItem[], permissions: string[]): NavItem[] {
 }
 
 export default function Sidebar() {
-  const [expandedItems, setExpandedItems] = useState<string[]>(["admissions", "applications"])
+  const [expandedItems, setExpandedItems] = useState<string[]>(["admissions", "applications", "student-ids"])
   const navigate = useNavigate()
   const location = useLocation()
   const theme = useTheme()
@@ -286,10 +334,15 @@ export default function Sidebar() {
   const { loggeduser } = useContext(AuthContext) || {}
   const userPermissions = loggeduser?.permissions || []
 
+  const staffNavCtx: NavVisibilityCtx | undefined =
+    loggeduser != null
+      ? { isStaff: !!loggeduser.is_staff, isApplicant: !!loggeduser.is_applicant }
+      : undefined
+
   // Filter navigation based on permissions
   const filteredNavigation = useMemo(() => {
-    return filterNavItems(navigationItems, userPermissions)
-  }, [userPermissions])
+    return filterNavItems(navigationItems, userPermissions, staffNavCtx)
+  }, [userPermissions, staffNavCtx?.isStaff, staffNavCtx?.isApplicant])
 
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) =>
