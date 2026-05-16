@@ -688,6 +688,7 @@ const handleGenerateRegNo = async () => {
                 <MenuItem value="D">Day</MenuItem>
                 <MenuItem value="DL">Distance Learning</MenuItem>
                 <MenuItem value="DJ">Day January</MenuItem>
+                <MenuItem value="I">Inservice</MenuItem>
                 <MenuItem value="WJ">Weekend January</MenuItem>
               </Select>
             </FormControl>
