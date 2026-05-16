@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Box, TextField, Chip, TablePagination, Button, Alert,
@@ -96,24 +96,24 @@ const statusConfig: Record<
   AppStatus,
   { color: "default" | "info" | "warning" | "success" | "error"; icon: React.ReactElement }
 > = {
-  submitted:        { color: "info",    icon: <ScheduleIcon fontSize="small" /> },
-  under_review:     { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
+  submitted: { color: "info", icon: <ScheduleIcon fontSize="small" /> },
+  under_review: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
   pending_approval: { color: "warning", icon: <ScheduleIcon fontSize="small" /> },
-  accepted:         { color: "success", icon: <ThumbUpIcon fontSize="small" /> },
-  direct_entry:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
-  online:         { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
-  rejected:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
-  revoked:         { color: "error",   icon: <CancelIcon fontSize="small" /> },
+  accepted: { color: "success", icon: <ThumbUpIcon fontSize="small" /> },
+  direct_entry: { color: "error", icon: <CancelIcon fontSize="small" /> },
+  online: { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+  rejected: { color: "error", icon: <CancelIcon fontSize="small" /> },
+  revoked: { color: "error", icon: <CancelIcon fontSize="small" /> },
 }
 
 const getStatusLabel = (status: AppStatus) => {
   switch (status) {
-    case "accepted":  return "Approved"
+    case "accepted": return "Approved"
     case "under_review": return "Under Review"
     case "pending_approval": return "Awaiting Registrar"
-    case "online":  return "Online"
-    case "rejected":  return "Rejected"
-    case "revoked":  return "Revoked"
+    case "online": return "Online"
+    case "rejected": return "Rejected"
+    case "revoked": return "Revoked"
     default: return status.replace("_", " ")
   }
 }
@@ -173,10 +173,10 @@ const normalizeApplication = (raw: any): Application => {
     Array.isArray(rawPrograms)
       ? rawPrograms.map((p: any, idx: number) => ({ id: Number(p?.id ?? idx), name: String(p?.name ?? "").trim() }))
       : String(rawPrograms || "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((name, idx) => ({ id: -(idx + 1), name }))
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((name, idx) => ({ id: -(idx + 1), name }))
 
   return {
     id: Number(raw?.id),
@@ -200,7 +200,7 @@ const normalizeApplication = (raw: any): Application => {
 
 export default function ApplicationList() {
   const AxiosInstance = useAxios()
-  const location = useLocation()
+  // const location = useLocation()
   const navigate = useNavigate()
   const initialFilters = readPersistedFilters()
 
@@ -227,7 +227,7 @@ export default function ApplicationList() {
 
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
-
+  const [totalCount, setTotalCount] = useState(0)   // ← Important
   // Track which row is mid-approve so we can show a spinner
   const [approvingId, setApprovingId] = useState<number | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null)
@@ -248,32 +248,86 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const res = await AxiosInstance.get("/api/admissions/all_applications_report")
-        const data: Application[] = (res.data || []).map(normalizeApplication)
-        setApplications(data)
-      } catch (err: any) {
-        console.error("Failed to load applications:", err)
-        setError(
-          err?.response?.data?.detail ||
-          err?.response?.data?.message ||
-          `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
-        )
-      } finally {
-        setLoading(false)
-      }
+  // useEffect(() => {
+  //   const fetchApplications = async () => {
+  //     try {
+  //       setLoading(true)
+  //       setError(null)
+  //       const res = await AxiosInstance.get("/api/admissions/all_applications_report")
+  //       const data: Application[] = (res.data || []).map(normalizeApplication)
+  //       setApplications(data)
+  //     } catch (err: any) {
+  //       console.error("Failed to load applications:", err)
+  //       setError(
+  //         err?.response?.data?.detail ||
+  //         err?.response?.data?.message ||
+  //         `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
+  //       )
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+  //   fetchApplications()
+  // }, [AxiosInstance, location.key])
+
+  const fetchApplications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+
+      // Keep your existing filters (search stays in frontend for now)
+      if (searchTerm) params.append('search', searchTerm)
+      if (statusFilter !== "all") params.append('status', statusFilter)
+      if (choiceConfirmationFilter !== "all") params.append('choice_confirmation', choiceConfirmationFilter)
+      if (academicLevelFilter !== "all") params.append('academic_level', academicLevelFilter)
+      if (batchFilter !== "all") params.append('batch', batchFilter)
+      if (campusFilter !== "all") params.append('campus', campusFilter)
+      if (genderFilter !== "all") params.append('gender', genderFilter)
+      if (dateFrom) params.append('date_from', dateFrom)
+      if (dateTo) params.append('date_to', dateTo)
+
+      // Pagination parameters sent to backend
+      params.append('page', String(page + 1))
+      params.append('page_size', String(rowsPerPage))
+
+      const res = await AxiosInstance.get(`/api/admissions/all_applications_report/?${params.toString()}`)
+
+      const data = res.data.results || res.data   // DRF returns {count, results}
+      setApplications(data.map(normalizeApplication))
+      setTotalCount(res.data.count || data.length)
+
+    } catch (err: any) {
+      console.error(err)
+      setError("Failed to load applications")
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Re-fetch when these change
+  useEffect(() => {
     fetchApplications()
-  }, [AxiosInstance, location.key])
+  }, [
+    page,
+    rowsPerPage,
+    searchTerm,
+    statusFilter,
+    choiceConfirmationFilter,
+    academicLevelFilter,
+    batchFilter,
+    campusFilter,
+    genderFilter,
+    dateFrom,
+    dateTo,
+    AxiosInstance
+  ])
 
   useEffect(() => {
     AxiosInstance.get<Campus[]>("/api/accounts/list_campus")
       .then(res => setCampuses(res.data))
-      .catch(() => {})
+      .catch(() => { })
   }, [AxiosInstance])
 
   useEffect(() => {
@@ -594,50 +648,51 @@ export default function ApplicationList() {
       {/* Stats Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: "Total",          value: applications.length,                                                      filter: "all", kind: "status" as const },
-          { label: "Submitted",      value: applications.filter(a => a.status === "submitted").length,               filter: "submitted", kind: "status" as const },
-          { label: "Under Review",   value: applications.filter(a => a.status === "under_review").length,            filter: "under_review", kind: "status" as const },
+          { label: "Total", value: applications.length, filter: "all", kind: "status" as const },
+          { label: "Submitted", value: applications.filter(a => a.status === "submitted").length, filter: "submitted", kind: "status" as const },
+          { label: "Under Review", value: applications.filter(a => a.status === "under_review").length, filter: "under_review", kind: "status" as const },
           { label: "Awaiting choices", value: choiceStats.awaiting, filter: "awaiting", kind: "choice" as const },
           { label: "Choices confirmed", value: choiceStats.confirmed, filter: "confirmed", kind: "choice" as const },
-          { label: "Approved",       value: applications.filter(a => a.status === "accepted").length,                filter: "accepted", kind: "status" as const },
-          { label: "Online",       value: applications.filter(a => a.is_direct_entry === false).length, filter: "admitted", kind: "status" as const },
-          { label: "Direct Entry",       value: applications.filter(a => a.is_direct_entry === true).length,               filter: "rejected", kind: "status" as const },
+          { label: "Approved", value: applications.filter(a => a.status === "accepted").length, filter: "accepted", kind: "status" as const },
+          { label: "Online", value: applications.filter(a => a.is_direct_entry === false).length, filter: "admitted", kind: "status" as const },
+          { label: "Direct Entry", value: applications.filter(a => a.is_direct_entry === true).length, filter: "rejected", kind: "status" as const },
         ].map((stat, i) => {
           const isActive =
             stat.kind === "choice"
               ? choiceConfirmationFilter === stat.filter
               : statusFilter === stat.filter && choiceConfirmationFilter === "all"
           return (
-          <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
-            <Card
-              onClick={() => {
-                if (stat.kind === "choice") {
-                  setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
-                  setStatusFilter("all")
-                } else {
-                  setStatusFilter(stat.filter)
-                  setChoiceConfirmationFilter("all")
-                }
-                setPage(0)
-              }}
-              sx={{
-                background: isActive
-                  ? "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
-                  : stat.kind === "choice" && stat.filter === "confirmed"
-                    ? "linear-gradient(135deg, #6A1B9A 0%, #7B1FA2 100%)"
-                    : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
-                cursor: "pointer",
-                outline: isActive ? "2px solid #5ba3f5" : "none",
-                transition: "all 0.15s",
-              }}
-            >
-              <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="h5" sx={{ color: "white", fontWeight: "bold" }}>{stat.value}</Typography>
-                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>{stat.label}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        )})}
+            <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
+              <Card
+                onClick={() => {
+                  if (stat.kind === "choice") {
+                    setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
+                    setStatusFilter("all")
+                  } else {
+                    setStatusFilter(stat.filter)
+                    setChoiceConfirmationFilter("all")
+                  }
+                  setPage(0)
+                }}
+                sx={{
+                  background: isActive
+                    ? "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
+                    : stat.kind === "choice" && stat.filter === "confirmed"
+                      ? "linear-gradient(135deg, #6A1B9A 0%, #7B1FA2 100%)"
+                      : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
+                  cursor: "pointer",
+                  outline: isActive ? "2px solid #5ba3f5" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                  <Typography variant="h5" sx={{ color: "white", fontWeight: "bold" }}>{stat.value}</Typography>
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)" }}>{stat.label}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          )
+        })}
       </Grid>
 
       {/* Filters */}
@@ -854,7 +909,7 @@ export default function ApplicationList() {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
+          {/* <TablePagination
             rowsPerPageOptions={[10, 25, 50, 100]}
             component="div"
             count={filteredApplications.length}
@@ -863,6 +918,16 @@ export default function ApplicationList() {
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             sx={{ backgroundColor: "white", borderRadius: "0 0 8px 8px", boxShadow: 3 }}
+          /> */}
+          <TablePagination
+            rowsPerPageOptions={[25, 50, 100, 200]}
+            component="div"
+            count={totalCount}                    // ← Use total from backend
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            sx={{ backgroundColor: "white", borderRadius: "0 0 8px 8px" }}
           />
         </>
       )}
