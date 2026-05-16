@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Box, TextField, Chip, TablePagination, Button, Alert,
@@ -200,7 +200,7 @@ const normalizeApplication = (raw: any): Application => {
 
 export default function ApplicationList() {
   const AxiosInstance = useAxios()
-  // const location = useLocation()
+  const location = useLocation()
   const navigate = useNavigate()
   const initialFilters = readPersistedFilters()
 
@@ -227,7 +227,7 @@ export default function ApplicationList() {
 
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [totalCount, setTotalCount] = useState(0)   // ← Important
+  // const [totalCount, setTotalCount] = useState(0)   // ← Important
   // Track which row is mid-approve so we can show a spinner
   const [approvingId, setApprovingId] = useState<number | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null)
@@ -248,81 +248,81 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
-  // useEffect(() => {
-  //   const fetchApplications = async () => {
-  //     try {
-  //       setLoading(true)
-  //       setError(null)
-  //       const res = await AxiosInstance.get("/api/admissions/all_applications_report")
-  //       const data: Application[] = (res.data || []).map(normalizeApplication)
-  //       setApplications(data)
-  //     } catch (err: any) {
-  //       console.error("Failed to load applications:", err)
-  //       setError(
-  //         err?.response?.data?.detail ||
-  //         err?.response?.data?.message ||
-  //         `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
-  //       )
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-  //   fetchApplications()
-  // }, [AxiosInstance, location.key])
-
-  const fetchApplications = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const params = new URLSearchParams()
-
-      // Keep your existing filters (search stays in frontend for now)
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter !== "all") params.append('status', statusFilter)
-      if (choiceConfirmationFilter !== "all") params.append('choice_confirmation', choiceConfirmationFilter)
-      if (academicLevelFilter !== "all") params.append('academic_level', academicLevelFilter)
-      if (batchFilter !== "all") params.append('batch', batchFilter)
-      if (campusFilter !== "all") params.append('campus', campusFilter)
-      if (genderFilter !== "all") params.append('gender', genderFilter)
-      if (dateFrom) params.append('date_from', dateFrom)
-      if (dateTo) params.append('date_to', dateTo)
-
-      // Pagination parameters sent to backend
-      params.append('page', String(page + 1))
-      params.append('page_size', String(rowsPerPage))
-
-      const res = await AxiosInstance.get(`/api/admissions/all_applications_report/?${params.toString()}`)
-
-      const data = res.data.results || res.data   // DRF returns {count, results}
-      setApplications(data.map(normalizeApplication))
-      setTotalCount(res.data.count || data.length)
-
-    } catch (err: any) {
-      console.error(err)
-      setError("Failed to load applications")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Re-fetch when these change
   useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await AxiosInstance.get("/api/admissions/all_applications_report")
+        const data: Application[] = (res.data || []).map(normalizeApplication)
+        setApplications(data)
+      } catch (err: any) {
+        console.error("Failed to load applications:", err)
+        setError(
+          err?.response?.data?.detail ||
+          err?.response?.data?.message ||
+          `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchApplications()
-  }, [
-    page,
-    rowsPerPage,
-    searchTerm,
-    statusFilter,
-    choiceConfirmationFilter,
-    academicLevelFilter,
-    batchFilter,
-    campusFilter,
-    genderFilter,
-    dateFrom,
-    dateTo,
-    AxiosInstance
-  ])
+  }, [AxiosInstance, location.key])
+
+  // const fetchApplications = async () => {
+  //   try {
+  //     setLoading(true)
+  //     setError(null)
+
+  //     const params = new URLSearchParams()
+
+  //     // Keep your existing filters (search stays in frontend for now)
+  //     if (searchTerm) params.append('search', searchTerm)
+  //     if (statusFilter !== "all") params.append('status', statusFilter)
+  //     if (choiceConfirmationFilter !== "all") params.append('choice_confirmation', choiceConfirmationFilter)
+  //     if (academicLevelFilter !== "all") params.append('academic_level', academicLevelFilter)
+  //     if (batchFilter !== "all") params.append('batch', batchFilter)
+  //     if (campusFilter !== "all") params.append('campus', campusFilter)
+  //     if (genderFilter !== "all") params.append('gender', genderFilter)
+  //     if (dateFrom) params.append('date_from', dateFrom)
+  //     if (dateTo) params.append('date_to', dateTo)
+
+  //     // Pagination parameters sent to backend
+  //     params.append('page', String(page + 1))
+  //     params.append('page_size', String(rowsPerPage))
+
+  //     const res = await AxiosInstance.get(`/api/admissions/all_applications_report/?${params.toString()}`)
+
+  //     const data = res.data.results || res.data   // DRF returns {count, results}
+  //     setApplications(data.map(normalizeApplication))
+  //     setTotalCount(res.data.count || data.length)
+
+  //   } catch (err: any) {
+  //     console.error(err)
+  //     setError("Failed to load applications")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
+  // // Re-fetch when these change
+  // useEffect(() => {
+  //   fetchApplications()
+  // }, [
+  //   page,
+  //   rowsPerPage,
+  //   searchTerm,
+  //   statusFilter,
+  //   choiceConfirmationFilter,
+  //   academicLevelFilter,
+  //   batchFilter,
+  //   campusFilter,
+  //   genderFilter,
+  //   dateFrom,
+  //   dateTo,
+  //   AxiosInstance
+  // ])
 
   useEffect(() => {
     AxiosInstance.get<Campus[]>("/api/accounts/list_campus")
@@ -909,7 +909,7 @@ export default function ApplicationList() {
               </TableBody>
             </Table>
           </TableContainer>
-          {/* <TablePagination
+          <TablePagination
             rowsPerPageOptions={[10, 25, 50, 100]}
             component="div"
             count={filteredApplications.length}
@@ -918,8 +918,8 @@ export default function ApplicationList() {
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             sx={{ backgroundColor: "white", borderRadius: "0 0 8px 8px", boxShadow: 3 }}
-          /> */}
-          <TablePagination
+          />
+          {/* <TablePagination
             rowsPerPageOptions={[25, 50, 100, 200]}
             component="div"
             count={totalCount}                    // ← Use total from backend
@@ -928,7 +928,7 @@ export default function ApplicationList() {
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             sx={{ backgroundColor: "white", borderRadius: "0 0 8px 8px" }}
-          />
+          /> */}
         </>
       )}
 
