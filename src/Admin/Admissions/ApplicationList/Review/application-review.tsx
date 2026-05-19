@@ -17,6 +17,10 @@ import {
   Alert,
   Divider,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material"
 import {
   FileDownload as FileDownloadIcon,
@@ -34,7 +38,6 @@ import {
   TextField,
 } from "@mui/material"
 import ProgramChoiceAutocomplete, {
-  resolveCampusDisplayName,
   resolveDefaultCampusId,
   resolveDefaultProgramIds,
 } from "../../../../ReUsables/ProgramChoiceAutocomplete"
@@ -317,6 +320,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setSelectedCampus(campus)
     }
   }, [openChangeProgramme, campusOptions, application])
+
+  const applicationRecordCampusId = resolveDefaultCampusId(application, campusOptions)
+  const campusChangedFromRecord =
+    selectedCampus !== "" &&
+    applicationRecordCampusId !== "" &&
+    Number(selectedCampus) !== Number(applicationRecordCampusId)
 
   const formatCurrency = (value: number): string => {
     if (!value) return '0';
@@ -946,7 +955,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Update programme choice(s) for this application. Campus is fixed from the applicant&apos;s record.
+            Update campus and programme choice(s) when the applicant applied to the wrong campus or does not
+            qualify for programmes at their current campus.
           </Typography>
 
           {application.program_choices_confirmed_at &&
@@ -958,31 +968,45 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
               </Alert>
             )}
 
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 1,
-              bgcolor: "#f5f7fa",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" display="block">
-              Campus (from application)
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600, color: "#0D0060" }}>
-              {resolveCampusDisplayName(selectedCampus, campusOptions, application)}
-            </Typography>
-          </Box>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel id="change-programme-campus-label">Campus</InputLabel>
+            <Select
+              labelId="change-programme-campus-label"
+              label="Campus"
+              value={selectedCampus === "" ? "" : String(selectedCampus)}
+              onChange={(e) => {
+                const next = e.target.value === "" ? "" : Number(e.target.value)
+                setSelectedCampus(next)
+              }}
+              disabled={changingProgramme || campusOptions.length === 0}
+            >
+              <MenuItem value="">
+                <em>Select campus</em>
+              </MenuItem>
+              {campusOptions.map((c) => (
+                <MenuItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           {selectedCampus === "" && (
             <Alert severity="warning" sx={{ mb: 2 }}>
-              This application has no campus on record. Contact support to fix the profile before changing programmes.
+              Select a campus to list programmes offered there.
             </Alert>
           )}
 
+          {campusChangedFromRecord && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Campus changed from the applicant&apos;s record. Previous programme choices may not apply
+                here — update selections below, then save.
+              </Alert>
+            )}
+
           <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-            Programmes at this campus are listed below. Type in the search box to narrow the list (up to 3 choices).
+            Programmes at the selected campus are listed below. Type in the search box to narrow the list (up to
+            3 choices).
           </Typography>
           <ProgramChoiceAutocomplete
             options={programOptions}
