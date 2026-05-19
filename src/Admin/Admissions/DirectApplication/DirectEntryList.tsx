@@ -26,6 +26,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "../ApplicationList/Review/RejectionForm"
+import { asApiList } from "../../../utils/asApiList"
 
 type AppStatus = "submitted" | "accepted" | "rejected" | "under_review" | "pending_approval" | "Admitted" | "revoked"  
 
@@ -157,7 +158,7 @@ export default function DirectEntryList() {
         setLoading(true)
         setError(null)
         const res = await AxiosInstance.get("/api/admissions/direct_entry_applications")
-        const data: Application[] = (res.data || []).map(normalizeApplication)
+        const data: Application[] = asApiList<Record<string, unknown>>(res.data).map(normalizeApplication)
         setApplications(data)
       } catch (err: any) {
         setError(
