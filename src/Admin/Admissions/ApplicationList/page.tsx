@@ -42,6 +42,7 @@ interface Application {
   campus: string
   is_direct_entry: boolean
   program_choices_confirmed_at: string | null
+  program_choices_confirmed_by?: string
   program_choices_suspect?: boolean
   updated_at: string | null
   reviewed_at: string | null
@@ -133,8 +134,12 @@ const hasProgramChoicesSettled = (app: Application) =>
 
 const hasSuspectProgramChoices = (app: Application) => Boolean(app.program_choices_suspect)
 
-/** Applicant completed the portal confirm flow (after verification email / dashboard). */
-const isProgramChoicesConfirmed = (app: Application) => hasProgramChoicesSettled(app)
+/** Applicant clicked Confirm in the portal (not staff change programme). */
+const isApplicantProgramChoicesConfirmed = (app: Application) =>
+  Boolean(app.program_choices_confirmed_at) &&
+  (app.program_choices_confirmed_by || "").toLowerCase() === "applicant"
+
+const isProgramChoicesConfirmed = (app: Application) => isApplicantProgramChoicesConfirmed(app)
 
 const isProgramChoicesAwaiting = (app: Application) =>
   mayConfirmProgramChoices(app) && !hasProgramChoicesSettled(app)
@@ -160,7 +165,7 @@ const renderStatusChip = (app: Application) => {
   const suspect = hasSuspectProgramChoices(app)
   const confirmed = isProgramChoicesConfirmed(app)
   const label = confirmed
-    ? `${getStatusLabel(app.status)} · Choices ✓`
+    ? `${getStatusLabel(app.status)} · Applicant confirmed ✓`
     : suspect
       ? `${getStatusLabel(app.status)} · Verify choices`
       : getStatusLabel(app.status)
@@ -238,6 +243,7 @@ const normalizeApplication = (raw: any): Application => {
     program_choices_confirmed_at: raw?.program_choices_confirmed_at
       ? String(raw.program_choices_confirmed_at)
       : null,
+    program_choices_confirmed_by: String(raw?.program_choices_confirmed_by ?? ""),
     program_choices_suspect: Boolean(raw?.program_choices_suspect),
     updated_at: raw?.updated_at ? String(raw.updated_at) : null,
     reviewed_at: raw?.reviewed_at ? String(raw.reviewed_at) : null,
@@ -446,7 +452,7 @@ export default function ApplicationList() {
   /** Client-side safety net if API returns rows without applying choice_confirmation. */
   const displayApplications = useMemo(() => {
     if (choiceConfirmationFilter === "confirmed") {
-      return applications.filter(isProgramChoicesConfirmed)
+      return applications.filter(isApplicantProgramChoicesConfirmed)
     }
     if (choiceConfirmationFilter === "awaiting") {
       return applications.filter(isProgramChoicesAwaiting)
@@ -461,7 +467,7 @@ export default function ApplicationList() {
 
   const activeChoiceFilterLabel =
     choiceConfirmationFilter === "confirmed"
-      ? "Showing applicants who confirmed programme choices (purple)"
+      ? "Showing applicants who confirmed programme choices themselves in the portal (purple)"
       : choiceConfirmationFilter === "awaiting"
         ? "Showing applicants awaiting programme choice confirmation"
         : choiceConfirmationFilter === "flagged"
