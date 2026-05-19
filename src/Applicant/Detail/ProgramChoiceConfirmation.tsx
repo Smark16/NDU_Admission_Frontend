@@ -130,6 +130,7 @@ export default function ProgramChoiceConfirmation({
       );
       setData(res.data);
       setSuccess(res.data.detail || "Programme choices confirmed.");
+      window.dispatchEvent(new CustomEvent("programChoicesConfirmed", { detail: { applicationId } }));
       onConfirmed?.();
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to confirm programme choices.");

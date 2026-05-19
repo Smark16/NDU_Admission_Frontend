@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -52,7 +52,7 @@ interface Campus {
   name: string
 }
 
-type ChoiceConfirmationFilter = "all" | "awaiting" | "confirmed"
+type ChoiceConfirmationFilter = "all" | "awaiting" | "confirmed" | "flagged"
 
 type PersistedFilters = {
   searchTerm: string
@@ -79,7 +79,9 @@ const readPersistedFilters = (): PersistedFilters | null => {
     return {
       searchTerm: String(parsed.searchTerm ?? ""),
       statusFilter: String(parsed.statusFilter ?? "all"),
-      choiceConfirmationFilter: (["all", "awaiting", "confirmed"].includes(parsed.choiceConfirmationFilter)
+      choiceConfirmationFilter: (["all", "awaiting", "confirmed", "flagged"].includes(
+        parsed.choiceConfirmationFilter
+      )
         ? parsed.choiceConfirmationFilter
         : "all") as ChoiceConfirmationFilter,
       academicLevelFilter: String(parsed.academicLevelFilter ?? "all"),
@@ -271,7 +273,8 @@ export default function ApplicationList() {
 
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [totalCount, setTotalCount] = useState(0)   // ← Important
+  const [totalCount, setTotalCount] = useState(0)
+  const [choiceStats, setChoiceStats] = useState({ awaiting: 0, confirmed: 0, flagged: 0 })
   // Track which row is mid-approve so we can show a spinner
   const [approvingId, setApprovingId] = useState<number | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null)
@@ -292,18 +295,18 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
-  const fetchApplications = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  const buildFilterParams = useCallback(
+    (opts?: { includeChoice?: boolean; forPage?: boolean }) => {
       const params = new URLSearchParams()
-      params.append("page", String(page + 1))
-      params.append("page_size", String(rowsPerPage))
-
+      if (opts?.forPage !== false) {
+        params.append("page", String(page + 1))
+        params.append("page_size", String(rowsPerPage))
+      }
       if (searchTerm) params.append("search", searchTerm)
       if (statusFilter !== "all") params.append("status", statusFilter)
-      if (choiceConfirmationFilter !== "all") params.append("choice_confirmation", choiceConfirmationFilter)
+      if (opts?.includeChoice !== false && choiceConfirmationFilter !== "all") {
+        params.append("choice_confirmation", choiceConfirmationFilter)
+      }
       if (academicLevelFilter !== "all") params.append("academic_level", academicLevelFilter)
       if (batchFilter !== "all") params.append("batch", batchFilter)
       if (campusFilter !== "all") params.append("campus", campusFilter)
@@ -312,12 +315,36 @@ export default function ApplicationList() {
       if (genderFilter !== "all") params.append("gender", genderFilter)
       if (dateFrom) params.append("date_from", dateFrom)
       if (dateTo) params.append("date_to", dateTo)
+      return params
+    },
+    [
+      page,
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      choiceConfirmationFilter,
+      academicLevelFilter,
+      batchFilter,
+      campusFilter,
+      programFilter,
+      facultyFilter,
+      genderFilter,
+      dateFrom,
+      dateTo,
+    ]
+  )
 
-      const res = await AxiosInstance.get(`/api/admissions/all_applications_report/?${params.toString()}`)
+  const fetchApplications = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const res = await AxiosInstance.get(
+        `/api/admissions/all_applications_report/?${buildFilterParams({ includeChoice: true, forPage: true }).toString()}`
+      )
       const data = res.data.results || res.data
-      setApplications(data.map(normalizeApplication))
-      setTotalCount(res.data.count || data.length)
-
+      setApplications((Array.isArray(data) ? data : []).map(normalizeApplication))
+      setTotalCount(res.data.count ?? (Array.isArray(data) ? data.length : 0))
     } catch (err: any) {
       console.error("Failed to load applications:", err)
       setError(
@@ -328,27 +355,36 @@ export default function ApplicationList() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [AxiosInstance, buildFilterParams])
 
-  // // Re-fetch when these change
+  const fetchChoiceStats = useCallback(async () => {
+    try {
+      const res = await AxiosInstance.get(
+        `/api/admissions/application_choice_stats/?${buildFilterParams({ includeChoice: false, forPage: false }).toString()}`
+      )
+      setChoiceStats({
+        awaiting: Number(res.data?.awaiting ?? 0),
+        confirmed: Number(res.data?.confirmed ?? 0),
+        flagged: Number(res.data?.flagged ?? 0),
+      })
+    } catch {
+      // Stats are supplementary; list still works without them.
+    }
+  }, [AxiosInstance, buildFilterParams])
+
   useEffect(() => {
-    fetchApplications();
-  }, [
-    page,
-    rowsPerPage,
-    searchTerm,
-    statusFilter,
-    choiceConfirmationFilter,
-    academicLevelFilter,
-    batchFilter,
-    campusFilter,
-    programFilter,
-    facultyFilter,
-    genderFilter,
-    dateFrom,
-    dateTo,
-    AxiosInstance,
-  ]);
+    fetchApplications()
+    fetchChoiceStats()
+  }, [fetchApplications, fetchChoiceStats])
+
+  useEffect(() => {
+    const refresh = () => {
+      fetchApplications()
+      fetchChoiceStats()
+    }
+    window.addEventListener("programChoicesConfirmed", refresh)
+    return () => window.removeEventListener("programChoicesConfirmed", refresh)
+  }, [fetchApplications, fetchChoiceStats])
 
   useEffect(() => {
     AxiosInstance.get<Campus[]>("/api/accounts/list_campus")
@@ -407,84 +443,30 @@ export default function ApplicationList() {
     [applications]
   )
 
-  const filteredApplicationsExceptChoice = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase()
-    return applications.filter((app) => {
-      const statusLabel = app.status === "accepted" ? "approved" : app.status
-      const programNames = (app.programs || []).map((p) => p.name).join(" ")
-      const haystack = [
-        app.id,
-        app.first_name,
-        app.last_name,
-        `${app.first_name} ${app.last_name}`,
-        app.email,
-        app.gender,
-        app.status,
-        statusLabel,
-        programNames,
-        app.faculty,
-        app.academic_level,
-        app.batch,
-        app.campus,
-      ]
-        .filter((v) => v !== undefined && v !== null && v !== "")
-        .join(" | ")
-        .toLowerCase()
+  /** Client-side safety net if API returns rows without applying choice_confirmation. */
+  const displayApplications = useMemo(() => {
+    if (choiceConfirmationFilter === "confirmed") {
+      return applications.filter(isProgramChoicesConfirmed)
+    }
+    if (choiceConfirmationFilter === "awaiting") {
+      return applications.filter(isProgramChoicesAwaiting)
+    }
+    if (choiceConfirmationFilter === "flagged") {
+      return applications.filter((app) => hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app))
+    }
+    return applications
+  }, [applications, choiceConfirmationFilter])
 
-      const matchesSearch = q === "" || haystack.includes(q)
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter
-      const matchesLevel = academicLevelFilter === "all" || app.academic_level === academicLevelFilter
-      const matchesBatch = batchFilter === "all" || app.batch === batchFilter
-      const matchesCampus = campusFilter === "all" || app.campus === campusFilter
-      const matchesProgram =
-        programFilter === "all" ||
-        (app.programs || []).some(p => p.name === programFilter)
-      const matchesFaculty =
-        facultyFilter === "all" ||
-        String(app.faculty || "")
-          .split(",")
-          .map(s => s.trim())
-          .includes(facultyFilter)
-      const matchesGender = genderFilter === "all" || app.gender === genderFilter
-      const appDate = new Date(app.created_at)
-      const matchesDateFrom = !dateFrom || appDate >= new Date(`${dateFrom}T00:00:00`)
-      const matchesDateTo = !dateTo || appDate <= new Date(`${dateTo}T23:59:59.999`)
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesLevel &&
-        matchesBatch &&
-        matchesCampus &&
-        matchesProgram &&
-        matchesFaculty &&
-        matchesGender &&
-        matchesDateFrom &&
-        matchesDateTo
-      )
-    })
-  }, [
-    applications,
-    searchTerm,
-    statusFilter,
-    academicLevelFilter,
-    batchFilter,
-    campusFilter,
-    programFilter,
-    facultyFilter,
-    genderFilter,
-    dateFrom,
-    dateTo,
-  ])
+  const paginatedApplications = displayApplications
 
-  const choiceStats = useMemo(
-    () => ({
-      awaiting: filteredApplicationsExceptChoice.filter(isProgramChoicesAwaiting).length,
-      confirmed: filteredApplicationsExceptChoice.filter(isProgramChoicesConfirmed).length,
-    }),
-    [filteredApplicationsExceptChoice]
-  )
-
-  const paginatedApplications = applications
+  const activeChoiceFilterLabel =
+    choiceConfirmationFilter === "confirmed"
+      ? "Showing applicants who confirmed programme choices (purple)"
+      : choiceConfirmationFilter === "awaiting"
+        ? "Showing applicants awaiting programme choice confirmation"
+        : choiceConfirmationFilter === "flagged"
+          ? "Showing applicants with migration-flagged programme data (teal)"
+          : null
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }
@@ -550,9 +532,10 @@ export default function ApplicationList() {
   const clearSelection = () => setSelected([])
 
   const handleApplyFilters = () => {
-    setPage(0);        // Reset to first page
-    fetchApplications();
-  };
+    setPage(0)
+    fetchApplications()
+    fetchChoiceStats()
+  }
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -701,6 +684,12 @@ export default function ApplicationList() {
             kind: "choice" as const
           },
           {
+            label: "Flagged data",
+            value: choiceStats.flagged,
+            filter: "flagged",
+            kind: "choice" as const
+          },
+          {
             label: "Approved",
             value: applications.filter(a => a.status === "accepted").length,
             filter: "accepted",
@@ -739,10 +728,14 @@ export default function ApplicationList() {
                 }}
                 sx={{
                   background: isActive
-                    ? "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
+                    ? stat.kind === "choice" && stat.filter === "flagged"
+                      ? "linear-gradient(135deg, #00695C 0%, #00796B 100%)"
+                      : "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
                     : stat.kind === "choice" && stat.filter === "confirmed"
                       ? "linear-gradient(135deg, #6A1B9A 0%, #7B1FA2 100%)"
-                      : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
+                      : stat.kind === "choice" && stat.filter === "flagged"
+                        ? "linear-gradient(135deg, #00695C 0%, #00897B 100%)"
+                        : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
                   cursor: "pointer",
                   outline: isActive ? "2px solid #5ba3f5" : "none",
                   transition: "all 0.15s",
@@ -761,6 +754,15 @@ export default function ApplicationList() {
           )
         })}
       </Grid>
+      {activeChoiceFilterLabel && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {activeChoiceFilterLabel}
+          {choiceConfirmationFilter === "confirmed" && totalCount === 0 && (
+            <> — No confirmed applications match your filters. If applicants have confirmed in the portal, run{" "}
+              <code>python manage.py ensure_program_choice_confirmation_columns</code> on the server, then refresh.</>
+          )}
+        </Alert>
+      )}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 960 }}>
         The choice summary cards use the same search, status, batch, campus, and date filters as the table
         (excluding the &quot;Programme choices&quot; dropdown). If a number looks wrong, click Clear Filters or
@@ -807,7 +809,8 @@ export default function ApplicationList() {
               >
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="awaiting">Awaiting confirmation</MenuItem>
-                <MenuItem value="confirmed">Choices confirmed</MenuItem>
+                <MenuItem value="confirmed">Choices confirmed (purple)</MenuItem>
+                <MenuItem value="flagged">Flagged programme data (teal)</MenuItem>
               </Select>
             </FormControl>
           </Grid>
