@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import SearchIcon from "@mui/icons-material/Search"
 import {
+  Alert,
   Box,
   Checkbox,
   FormControlLabel,
@@ -115,6 +116,27 @@ export default function ProgramChoiceAutocomplete({
     )
   }, [byCampus, search])
 
+  /** Selected IDs that do not appear in the campus-filtered list (wrong campus or bad migration data). */
+  const orphanIds = useMemo(
+    () =>
+      valueIds.filter(
+        (id) => campusId !== null && !byCampus.some((p) => p.id === id),
+      ),
+    [valueIds, byCampus, campusId],
+  )
+
+  const orphanLabel = (programId: number): string => {
+    const hit = options.find((p) => p.id === programId)
+    if (!hit) {
+      return `Programme #${programId} (missing from catalogue — uncheck to replace)`
+    }
+    const onCampus = hit.campus_ids.includes(campusId!)
+    const base = programOptionLabel(hit)
+    return onCampus
+      ? base
+      : `${base} (not offered at this campus — uncheck to replace)`
+  }
+
   const toggleProgram = (programId: number, checked: boolean) => {
     if (checked) {
       if (valueIds.length < maxSelections) {
@@ -154,6 +176,13 @@ export default function ProgramChoiceAutocomplete({
             : `${byCampus.length} programme(s) at this campus · ${valueIds.length} of ${maxSelections} selected`}
       </Typography>
 
+      {orphanIds.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 1 }}>
+          {orphanIds.length} current choice(s) are not valid for this campus (or are outdated IDs).
+          Uncheck them below, then pick programmes from the list.
+        </Alert>
+      )}
+
       <FormGroup
         sx={{
           maxHeight: 280,
@@ -168,12 +197,39 @@ export default function ProgramChoiceAutocomplete({
           <Typography variant="body2" color="text.secondary" sx={{ px: 1, py: 0.5 }}>
             Campus is not set on this application.
           </Typography>
-        ) : visible.length === 0 ? (
+        ) : visible.length === 0 && orphanIds.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ px: 1, py: 0.5 }}>
             No programmes match your search.
           </Typography>
         ) : (
-          visible.map((p) => {
+          <>
+            {orphanIds.map((id) => (
+              <FormControlLabel
+                key={`orphan-${id}`}
+                sx={{
+                  alignItems: "flex-start",
+                  mx: 0,
+                  py: 0.5,
+                  bgcolor: "#fff8e1",
+                  borderRadius: 1,
+                  px: 0.5,
+                }}
+                control={
+                  <Checkbox
+                    checked
+                    disabled={disabled}
+                    onChange={() => toggleProgram(id, false)}
+                    sx={{ color: "#e65100", "&.Mui-checked": { color: "#e65100" } }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ pt: 0.75 }}>
+                    {orphanLabel(id)}
+                  </Typography>
+                }
+              />
+            ))}
+            {visible.map((p) => {
             const checked = valueIds.includes(p.id)
             const atLimit = !checked && valueIds.length >= maxSelections
             return (
@@ -190,7 +246,8 @@ export default function ProgramChoiceAutocomplete({
                 label={programOptionLabel(p)}
               />
             )
-          })
+          })}
+          </>
         )}
       </FormGroup>
     </Box>
