@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Container,
   Grid,
@@ -37,16 +37,91 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField,
 } from "@mui/material"
-import ProgramChoiceAutocomplete, {
-  resolveDefaultCampusId,
-  resolveDefaultProgramIds,
-} from "../../../../ReUsables/ProgramChoiceAutocomplete"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
 import { useLocation, useNavigate } from "react-router-dom"
 import useAxios from "../../../../AxiosInstance/UseAxios"
 import CustomButton from "../../../../ReUsables/custombutton"
 import RejectionForm from "./RejectionForm"
+import AdminProgramChoicePicker, {
+  type AdminProgramOption,
+  type ProgramChoiceSeed,
+} from "../../../../ReUsables/AdminProgramChoicePicker"
+
+function resolveProgramIdsFromChoices(
+  program_choices: Array<{ program_id?: number; choice_order?: number; program?: number }> | undefined,
+  application?: { programs?: Array<{ id: number }> },
+): number[] {
+  const ordered: number[] = []
+  const seen = new Set<number>()
+  const add = (raw: unknown) => {
+    const id = Number(raw)
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return
+    seen.add(id)
+    ordered.push(id)
+  }
+
+  if (program_choices?.length) {
+    for (const c of [...program_choices].sort(
+      (a, b) => (a.choice_order ?? 99) - (b.choice_order ?? 99),
+    )) {
+      add(c.program_id)
+      add(c.program)
+    }
+  }
+  for (const p of application?.programs ?? []) {
+    add(p.id)
+  }
+  return ordered
+}
+
+function resolveChoiceSeeds(
+  program_choices:
+    | Array<{ program_id?: number; program_name?: string; choice_order?: number; program?: number }>
+    | undefined,
+  application?: { programs?: Array<{ id: number; name: string }> },
+): ProgramChoiceSeed[] {
+  const byId = new Map<number, string>()
+
+  if (program_choices?.length) {
+    for (const c of [...program_choices].sort(
+      (a, b) => (a.choice_order ?? 99) - (b.choice_order ?? 99),
+    )) {
+      const id = Number(c.program_id ?? c.program)
+      if (Number.isFinite(id) && id > 0) {
+        byId.set(id, String(c.program_name || byId.get(id) || `Programme #${id}`))
+      }
+    }
+  }
+  for (const p of application?.programs ?? []) {
+    const id = Number(p.id)
+    if (Number.isFinite(id) && id > 0) {
+      byId.set(id, String(p.name || byId.get(id) || `Programme #${id}`))
+    }
+  }
+  return Array.from(byId.entries()).map(([id, name]) => ({ id, name }))
+}
+
+function resolveDefaultCampusId(
+  application: any,
+  campusOptions: Array<{ id: number; name: string }>,
+): number | "" {
+  const raw = application?.campus_id ?? application?.campus?.id
+  if (raw != null && raw !== "" && Number.isFinite(Number(raw))) {
+    return Number(raw)
+  }
+  const campusName =
+    typeof application?.campus === "string"
+      ? application.campus
+      : application?.campus?.name
+  if (campusName && campusOptions.length) {
+    const hit = campusOptions.find(
+      (c) => c.name.toLowerCase() === String(campusName).toLowerCase(),
+    )
+    if (hit) return hit.id
+  }
+  return ""
+}
 
 interface ApplicationReviewProps {
   application: any
@@ -57,7 +132,14 @@ interface ApplicationReviewProps {
   additionalQualifications: any[]
 }
 
-const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, documents, olevelresults, alevelresults, additionalQualifications, program_choices }) => {
+const ApplicationReview: React.FC<ApplicationReviewProps> = ({
+  application,
+  documents,
+  olevelresults,
+  alevelresults,
+  additionalQualifications,
+  program_choices,
+}) => {
   const [isLoading, setIsLoading] = useState(false)
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
@@ -70,9 +152,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [selectedPrograms, setSelectedPrograms] = useState<number[]>([])
   const [selectedCampus, setSelectedCampus] = useState<number | "">("")
   const [campusOptions, setCampusOptions] = useState<Array<{ id: number; name: string }>>([])
-  const [programOptions, setProgramOptions] = useState<Array<{ id: number; name: string; code?: string; campus_ids: number[] }>>([])
+  const [programOptions, setProgramOptions] = useState<AdminProgramOption[]>([])
   const [changeNote, setChangeNote] = useState("")
   const [changingProgramme, setChangingProgramme] = useState(false)
+  const [loadingProgrammeDialog, setLoadingProgrammeDialog] = useState(false)
+  const [dialogProgramChoices, setDialogProgramChoices] = useState<any[]>([])
+  const [dialogAppPrograms, setDialogAppPrograms] = useState<Array<{ id: number; name: string }>>(
+    [],
+  )
   const navigate = useNavigate()
   const location = useLocation()
   const AxiosInstance = useAxios()
@@ -282,36 +369,95 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     }
   }
 
+  const dialogApplication = useMemo(
+    () => ({
+      ...application,
+      programs:
+        dialogAppPrograms.length > 0 ? dialogAppPrograms : application?.programs ?? [],
+    }),
+    [application, dialogAppPrograms],
+  )
+
+  const activeProgramChoices = openChangeProgramme ? dialogProgramChoices : program_choices
+
+  const choiceSeeds = useMemo(
+    () => resolveChoiceSeeds(activeProgramChoices, dialogApplication),
+    [activeProgramChoices, dialogApplication],
+  )
+
   useEffect(() => {
     if (!openChangeProgramme) return
-    const loadOptions = async () => {
+    let cancelled = false
+
+    const loadDialog = async () => {
+      setLoadingProgrammeDialog(true)
       try {
+        const reviewRes = await AxiosInstance.get(
+          `/api/admissions/review_application/${application.id}`,
+        )
+        const freshChoices = reviewRes.data?.program_choices ?? []
+        const freshPrograms = reviewRes.data?.application?.programs ?? []
+        if (cancelled) return
+
+        setDialogProgramChoices(freshChoices)
+        setDialogAppPrograms(freshPrograms)
+
+        const ids = resolveProgramIdsFromChoices(freshChoices, {
+          programs: freshPrograms,
+        })
+        setSelectedPrograms(ids)
+
         const [campusRes, programRes] = await Promise.all([
           AxiosInstance.get("/api/accounts/list_campus"),
           AxiosInstance.get("/api/program/list_programs"),
         ])
-        setCampusOptions(Array.isArray(campusRes.data) ? campusRes.data : [])
+        if (cancelled) return
 
-        const normalizedPrograms = (Array.isArray(programRes.data) ? programRes.data : []).map((p: any) => ({
-          id: Number(p.id),
-          name: p.name,
-          code: p.code,
-          campus_ids: Array.isArray(p.campuses)
-            ? p.campuses.map((c: any) => Number(typeof c === "object" ? c.id : c)).filter((x: number) => Number.isFinite(x))
-            : [],
-        }))
+        const campuses = Array.isArray(campusRes.data) ? campusRes.data : []
+        setCampusOptions(campuses)
+
+        const normalizedPrograms = (Array.isArray(programRes.data) ? programRes.data : []).map(
+          (p: any) => ({
+            id: Number(p.id),
+            name: p.name,
+            code: p.code,
+            campus_ids: Array.isArray(p.campuses)
+              ? p.campuses
+                  .map((c: any) => Number(typeof c === "object" ? c.id : c))
+                  .filter((x: number) => Number.isFinite(x))
+              : [],
+            academic_level_id:
+              p.academic_level_id != null && Number.isFinite(Number(p.academic_level_id))
+                ? Number(p.academic_level_id)
+                : null,
+            academic_level: String(p.academic_level || ""),
+          }),
+        )
         setProgramOptions(normalizedPrograms)
+
+        const campus = resolveDefaultCampusId(
+          { ...application, campus_id: reviewRes.data?.application?.campus_id },
+          campuses,
+        )
+        if (campus !== "") {
+          setSelectedCampus(campus)
+        }
       } catch {
-        showNotification("Failed to load campus/program options.", "error")
+        if (!cancelled) {
+          showNotification("Failed to load programme choices.", "error")
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingProgrammeDialog(false)
+        }
       }
     }
-    loadOptions()
-  }, [openChangeProgramme])
 
-  useEffect(() => {
-    if (!openChangeProgramme) return
-    setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
-  }, [openChangeProgramme, program_choices, application])
+    loadDialog()
+    return () => {
+      cancelled = true
+    }
+  }, [openChangeProgramme, application.id])
 
   useEffect(() => {
     if (!openChangeProgramme || campusOptions.length === 0) return
@@ -321,11 +467,17 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     }
   }, [openChangeProgramme, campusOptions, application])
 
-  const applicationRecordCampusId = resolveDefaultCampusId(application, campusOptions)
-  const campusChangedFromRecord =
-    selectedCampus !== "" &&
-    applicationRecordCampusId !== "" &&
-    Number(selectedCampus) !== Number(applicationRecordCampusId)
+  const firstSelectedProgram = useMemo(() => {
+    const id = selectedPrograms[0]
+    if (!id) return undefined
+    return programOptions.find((p) => p.id === id) ?? choiceSeeds.find((p) => p.id === id)
+  }, [programOptions, selectedPrograms, choiceSeeds])
+
+  const academicLevelHint =
+    firstSelectedProgram?.academic_level_id != null &&
+    Number(firstSelectedProgram.academic_level_id) !== Number(application?.academic_level_id ?? 0)
+      ? `Academic level will update to ${firstSelectedProgram.academic_level} on save`
+      : undefined
 
   const formatCurrency = (value: number): string => {
     if (!value) return '0';
@@ -766,7 +918,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 fullWidth
                 startIcon={<SwapHorizIcon />}
                 onClick={() => {
-                  setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
+                  setDialogProgramChoices(program_choices)
+                  setDialogAppPrograms(application?.programs ?? [])
+                  setSelectedPrograms(resolveProgramIdsFromChoices(program_choices, application))
                   const campus = resolveDefaultCampusId(application, campusOptions)
                   setSelectedCampus(campus !== "" ? campus : "")
                   setChangeNote("")
@@ -953,22 +1107,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         <DialogTitle sx={{ background: "#0D0060", color: "#fff" }}>
           Change Programme — {application.first_name} {application.last_name}
         </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Update campus and programme choice(s) when the applicant applied to the wrong campus or does not
-            qualify for programmes at their current campus.
-          </Typography>
-
-          {application.program_choices_confirmed_at &&
-            (application.program_choices_confirmed_by || "").toLowerCase() === "applicant" && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                This applicant confirmed their programme choices in the portal. You can still change them
-                here (for example if they do not qualify). Saving clears their confirmation so they can
-                review and confirm again.
-              </Alert>
-            )}
-
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+        <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          <FormControl fullWidth size="small">
             <InputLabel id="change-programme-campus-label">Campus</InputLabel>
             <Select
               labelId="change-programme-campus-label"
@@ -980,9 +1120,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
               }}
               disabled={changingProgramme || campusOptions.length === 0}
             >
-              <MenuItem value="">
-                <em>Select campus</em>
-              </MenuItem>
               {campusOptions.map((c) => (
                 <MenuItem key={c.id} value={String(c.id)}>
                   {c.name}
@@ -991,32 +1128,25 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             </Select>
           </FormControl>
 
-          {selectedCampus === "" && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Select a campus to list programmes offered there.
-            </Alert>
+          {loadingProgrammeDialog ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={28} sx={{ color: "#0D0060" }} />
+            </Box>
+          ) : (
+            <AdminProgramChoicePicker
+              campusId={selectedCampus}
+              options={programOptions}
+              valueIds={selectedPrograms}
+              currentChoices={choiceSeeds}
+              onChange={setSelectedPrograms}
+              disabled={changingProgramme}
+              academicLevelHint={
+                selectedPrograms.length === 0
+                  ? "No saved programme choices on this application — search to add up to 3"
+                  : academicLevelHint
+              }
+            />
           )}
-
-          {campusChangedFromRecord && (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                Campus changed from the applicant&apos;s record. Previous programme choices may not apply
-                here — update selections below, then save.
-              </Alert>
-            )}
-
-          <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-            Programmes at the selected campus are listed below. Type in the search box to narrow the list (up to
-            3 choices).
-          </Typography>
-          <ProgramChoiceAutocomplete
-            options={programOptions}
-            selectedCampus={selectedCampus}
-            valueIds={selectedPrograms}
-            onChange={setSelectedPrograms}
-            maxSelections={3}
-            disabled={changingProgramme}
-            staffOverride
-          />
 
           <TextField
             fullWidth
@@ -1026,7 +1156,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             onChange={(e) => setChangeNote(e.target.value)}
             multiline
             rows={2}
-            sx={{ mt: 2 }}
           />
         </DialogContent>
         <DialogActions>
