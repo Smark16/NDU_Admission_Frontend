@@ -470,8 +470,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const firstSelectedProgram = useMemo(() => {
     const id = selectedPrograms[0]
     if (!id) return undefined
-    return programOptions.find((p) => p.id === id) ?? choiceSeeds.find((p) => p.id === id)
-  }, [programOptions, selectedPrograms, choiceSeeds])
+    return programOptions.find((p) => p.id === id)
+  }, [programOptions, selectedPrograms])
 
   const academicLevelHint =
     firstSelectedProgram?.academic_level_id != null &&
