@@ -949,6 +949,15 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             Update programme choice(s) for this application. Campus is fixed from the applicant&apos;s record.
           </Typography>
 
+          {application.program_choices_confirmed_at &&
+            (application.program_choices_confirmed_by || "").toLowerCase() === "applicant" && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This applicant confirmed their programme choices in the portal. You can still change them
+                here (for example if they do not qualify). Saving clears their confirmation so they can
+                review and confirm again.
+              </Alert>
+            )}
+
           <Box
             sx={{
               mb: 2,
@@ -982,6 +991,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
             onChange={setSelectedPrograms}
             maxSelections={3}
             disabled={changingProgramme}
+            staffOverride
           />
 
           <TextField
