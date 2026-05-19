@@ -32,9 +32,12 @@ import {
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField,
-  Select, MenuItem, InputLabel, FormControl,
 } from "@mui/material"
-import ProgramChoiceAutocomplete from "../../../../ReUsables/ProgramChoiceAutocomplete"
+import ProgramChoiceAutocomplete, {
+  resolveCampusDisplayName,
+  resolveDefaultCampusId,
+  resolveDefaultProgramIds,
+} from "../../../../ReUsables/ProgramChoiceAutocomplete"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
 import { useLocation, useNavigate } from "react-router-dom"
@@ -301,6 +304,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     }
     loadOptions()
   }, [openChangeProgramme])
+
+  useEffect(() => {
+    if (!openChangeProgramme) return
+    setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
+  }, [openChangeProgramme, program_choices, application])
+
+  useEffect(() => {
+    if (!openChangeProgramme || campusOptions.length === 0) return
+    const campus = resolveDefaultCampusId(application, campusOptions)
+    if (campus !== "") {
+      setSelectedCampus(campus)
+    }
+  }, [openChangeProgramme, campusOptions, application])
 
   const formatCurrency = (value: number): string => {
     if (!value) return '0';
@@ -741,8 +757,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 fullWidth
                 startIcon={<SwapHorizIcon />}
                 onClick={() => {
-                  setSelectedPrograms(application.programs?.map((p: any) => p.id) || [])
-                  setSelectedCampus(application.campus_id || application?.campus?.id || "")
+                  setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
+                  const campus = resolveDefaultCampusId(application, campusOptions)
+                  setSelectedCampus(campus !== "" ? campus : "")
                   setChangeNote("")
                   setOpenChangeProgramme(true)
                 }}
@@ -929,28 +946,34 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Change campus and/or programme(s). Current values are pre-filled.
+            Update programme choice(s) for this application. Campus is fixed from the applicant&apos;s record.
           </Typography>
 
-          {/* Campus selector */}
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Campus</InputLabel>
-            <Select
-              value={selectedCampus}
-              label="Campus"
-              onChange={(e) => {
-                setSelectedCampus(e.target.value as number)
-                setSelectedPrograms([])
-              }}
-            >
-              {campusOptions.map((c: any) => (
-                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: "#f5f7fa",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" display="block">
+              Campus (from application)
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600, color: "#0D0060" }}>
+              {resolveCampusDisplayName(selectedCampus, campusOptions, application)}
+            </Typography>
+          </Box>
+
+          {selectedCampus === "" && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              This application has no campus on record. Contact support to fix the profile before changing programmes.
+            </Alert>
+          )}
 
           <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-            Search and select up to 3 programmes at the selected campus:
+            Programmes at this campus are listed below. Type in the search box to narrow the list (up to 3 choices).
           </Typography>
           <ProgramChoiceAutocomplete
             options={programOptions}
@@ -977,7 +1000,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
           <Button
             variant="contained"
             onClick={handleChangeProgramme}
-            disabled={changingProgramme || selectedPrograms.length === 0}
+            disabled={changingProgramme || selectedPrograms.length === 0 || selectedCampus === ""}
             sx={{ bgcolor: "#0D0060" }}
           >
             {changingProgramme ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Save Changes"}

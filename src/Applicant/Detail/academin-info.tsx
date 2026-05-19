@@ -1,10 +1,29 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
-import ProgramChoiceAutocomplete from "../../ReUsables/ProgramChoiceAutocomplete";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  TextField,
+  Typography,
+} from "@mui/material";
+import ProgramChoiceAutocomplete, {
+  resolveCampusDisplayName,
+  resolveDefaultCampusId,
+  resolveDefaultProgramIds,
+} from "../../ReUsables/ProgramChoiceAutocomplete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import { Card, CardContent, CardHeader, Grid, Box, Chip } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import useAxios from "../../AxiosInstance/UseAxios";
 
@@ -100,6 +119,19 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
     loadOptions()
   }, [openChangeProgramme])
 
+  useEffect(() => {
+    if (!openChangeProgramme) return
+    setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
+  }, [openChangeProgramme, program_choices, application])
+
+  useEffect(() => {
+    if (!openChangeProgramme || campusOptions.length === 0) return
+    const campus = resolveDefaultCampusId(application, campusOptions)
+    if (campus !== "") {
+      setSelectedCampus(campus)
+    }
+  }, [openChangeProgramme, campusOptions, application])
+
   return (
     <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
       {notification && (
@@ -148,8 +180,9 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
             fullWidth
             startIcon={<SwapHorizIcon />}
             onClick={() => {
-              setSelectedPrograms(application.programs?.map((p: any) => p.id) || [])
-              setSelectedCampus(application.campus_id || application?.campus?.id || "")
+              setSelectedPrograms(resolveDefaultProgramIds(program_choices, application))
+              const campus = resolveDefaultCampusId(application, campusOptions)
+              setSelectedCampus(campus !== "" ? campus : "")
               setChangeNote("")
               setOpenChangeProgramme(true)
             }}
@@ -242,28 +275,34 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Change campus and/or programme(s). Current values are pre-filled.
+            Update your programme choice(s). Your campus cannot be changed here.
           </Typography>
 
-          {/* Campus selector */}
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Campus</InputLabel>
-            <Select
-              value={selectedCampus}
-              label="Campus"
-              onChange={(e) => {
-                setSelectedCampus(e.target.value as number)
-                setSelectedPrograms([])
-              }}
-            >
-              {campusOptions.map((c: any) => (
-                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: "#f5f7fa",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" display="block">
+              Your campus
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600, color: "#0D0060" }}>
+              {resolveCampusDisplayName(selectedCampus, campusOptions, application)}
+            </Typography>
+          </Box>
+
+          {selectedCampus === "" && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Campus is missing on your application. Please contact the Admissions Office.
+            </Alert>
+          )}
 
           <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-            Search and select up to 3 programmes at the selected campus:
+            Programmes at your campus are listed below. Type in the search box to narrow the list (up to 3 choices).
           </Typography>
           <ProgramChoiceAutocomplete
             options={programOptions}
@@ -290,7 +329,7 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
           <Button
             variant="contained"
             onClick={handleChangeProgramme}
-            disabled={changingProgramme || selectedPrograms.length === 0}
+            disabled={changingProgramme || selectedPrograms.length === 0 || selectedCampus === ""}
             sx={{ bgcolor: "#0D0060" }}
           >
             {changingProgramme ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Save Changes"}

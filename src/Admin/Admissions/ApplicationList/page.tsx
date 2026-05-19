@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -42,6 +42,10 @@ interface Application {
   campus: string
   is_direct_entry: boolean
   program_choices_confirmed_at: string | null
+  program_choices_confirmed_by?: string
+  program_choices_suspect?: boolean
+  updated_at: string | null
+  reviewed_at: string | null
 }
 
 interface Campus {
@@ -49,7 +53,7 @@ interface Campus {
   name: string
 }
 
-type ChoiceConfirmationFilter = "all" | "awaiting" | "confirmed"
+type ChoiceConfirmationFilter = "all" | "awaiting" | "confirmed" | "flagged"
 
 type PersistedFilters = {
   searchTerm: string
@@ -76,7 +80,9 @@ const readPersistedFilters = (): PersistedFilters | null => {
     return {
       searchTerm: String(parsed.searchTerm ?? ""),
       statusFilter: String(parsed.statusFilter ?? "all"),
-      choiceConfirmationFilter: (["all", "awaiting", "confirmed"].includes(parsed.choiceConfirmationFilter)
+      choiceConfirmationFilter: (["all", "awaiting", "confirmed", "flagged"].includes(
+        parsed.choiceConfirmationFilter
+      )
         ? parsed.choiceConfirmationFilter
         : "all") as ChoiceConfirmationFilter,
       academicLevelFilter: String(parsed.academicLevelFilter ?? "all"),
@@ -122,32 +128,73 @@ const getStatusLabel = (status: AppStatus) => {
 const mayConfirmProgramChoices = (app: Application) =>
   app.status === "submitted" || app.status === "under_review"
 
-const isProgramChoicesConfirmed = (app: Application) =>
-  mayConfirmProgramChoices(app) && Boolean(app.program_choices_confirmed_at)
+/** Applicant confirmed or staff settled choices (admin change programme). */
+const hasProgramChoicesSettled = (app: Application) =>
+  Boolean(app.program_choices_confirmed_at)
+
+const hasSuspectProgramChoices = (app: Application) => Boolean(app.program_choices_suspect)
+
+/** Applicant clicked Confirm in the portal (not staff change programme). */
+const isApplicantProgramChoicesConfirmed = (app: Application) =>
+  Boolean(app.program_choices_confirmed_at) &&
+  (app.program_choices_confirmed_by || "").toLowerCase() === "applicant"
+
+const isProgramChoicesConfirmed = (app: Application) => isApplicantProgramChoicesConfirmed(app)
 
 const isProgramChoicesAwaiting = (app: Application) =>
-  mayConfirmProgramChoices(app) && !app.program_choices_confirmed_at
+  mayConfirmProgramChoices(app) && !hasProgramChoicesSettled(app)
+
+const purpleChipSx = {
+  minWidth: 100,
+  bgcolor: "#7B1FA2",
+  color: "#fff",
+  fontWeight: 600,
+  "& .MuiChip-icon": { color: "#fff" },
+} as const
+
+/** Flagged migration clone pattern — teal so it is not confused with under_review (orange). */
+const verifyChoicesChipSx = {
+  minWidth: 120,
+  bgcolor: "#00796B",
+  color: "#fff",
+  fontWeight: 600,
+  "& .MuiChip-icon": { color: "#fff" },
+} as const
 
 const renderStatusChip = (app: Application) => {
-  if (isProgramChoicesConfirmed(app)) {
+  const suspect = hasSuspectProgramChoices(app)
+  const confirmed = isProgramChoicesConfirmed(app)
+  const label = confirmed
+    ? `${getStatusLabel(app.status)} · Applicant confirmed ✓`
+    : suspect
+      ? `${getStatusLabel(app.status)} · Verify choices`
+      : getStatusLabel(app.status)
+
+  if (suspect && !confirmed) {
     return (
       <Chip
-        label={getStatusLabel(app.status)}
+        label={label}
         size="small"
-        icon={<CheckCircleIcon fontSize="small" />}
-        sx={{
-          minWidth: 100,
-          bgcolor: "#7B1FA2",
-          color: "#fff",
-          fontWeight: 600,
-          "& .MuiChip-icon": { color: "#fff" },
-        }}
+        icon={<ScheduleIcon fontSize="small" />}
+        sx={verifyChoicesChipSx}
       />
     )
   }
+
+  if (confirmed) {
+    return (
+      <Chip
+        label={label}
+        size="small"
+        icon={<CheckCircleIcon fontSize="small" />}
+        sx={purpleChipSx}
+      />
+    )
+  }
+
   return (
     <Chip
-      label={getStatusLabel(app.status)}
+      label={label}
       color={statusConfig[app.status]?.color ?? "default"}
       icon={statusConfig[app.status]?.icon}
       size="small"
@@ -196,6 +243,10 @@ const normalizeApplication = (raw: any): Application => {
     program_choices_confirmed_at: raw?.program_choices_confirmed_at
       ? String(raw.program_choices_confirmed_at)
       : null,
+    program_choices_confirmed_by: String(raw?.program_choices_confirmed_by ?? ""),
+    program_choices_suspect: Boolean(raw?.program_choices_suspect),
+    updated_at: raw?.updated_at ? String(raw.updated_at) : null,
+    reviewed_at: raw?.reviewed_at ? String(raw.reviewed_at) : null,
   }
 }
 
@@ -228,7 +279,8 @@ export default function ApplicationList() {
 
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [totalCount, setTotalCount] = useState(0)   // ← Important
+  const [totalCount, setTotalCount] = useState(0)
+  const [choiceStats, setChoiceStats] = useState({ awaiting: 0, confirmed: 0, flagged: 0 })
   // Track which row is mid-approve so we can show a spinner
   const [approvingId, setApprovingId] = useState<number | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Application | null>(null)
@@ -249,85 +301,96 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
-  // useEffect(() => {
-  //   const fetchApplications = async () => {
-  //     try {
-  //       setLoading(true)
-  //       setError(null)
-  //       const res = await AxiosInstance.get("/api/admissions/all_applications_report")
-  //       const data: Application[] = (res.data || []).map(normalizeApplication)
-  //       setApplications(data)
-  //     } catch (err: any) {
-  //       console.error("Failed to load applications:", err)
-  //       setError(
-  //         err?.response?.data?.detail ||
-  //         err?.response?.data?.message ||
-  //         `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
-  //       )
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-  //   fetchApplications()
-  // }, [AxiosInstance, location.key])
+  const buildFilterParams = useCallback(
+    (opts?: { includeChoice?: boolean; forPage?: boolean }) => {
+      const params = new URLSearchParams()
+      if (opts?.forPage !== false) {
+        params.append("page", String(page + 1))
+        params.append("page_size", String(rowsPerPage))
+      }
+      if (searchTerm) params.append("search", searchTerm)
+      if (statusFilter !== "all") params.append("status", statusFilter)
+      if (opts?.includeChoice !== false && choiceConfirmationFilter !== "all") {
+        params.append("choice_confirmation", choiceConfirmationFilter)
+      }
+      if (academicLevelFilter !== "all") params.append("academic_level", academicLevelFilter)
+      if (batchFilter !== "all") params.append("batch", batchFilter)
+      if (campusFilter !== "all") params.append("campus", campusFilter)
+      if (programFilter !== "all") params.append("program", programFilter)
+      if (facultyFilter !== "all") params.append("faculty", facultyFilter)
+      if (genderFilter !== "all") params.append("gender", genderFilter)
+      if (dateFrom) params.append("date_from", dateFrom)
+      if (dateTo) params.append("date_to", dateTo)
+      return params
+    },
+    [
+      page,
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      choiceConfirmationFilter,
+      academicLevelFilter,
+      batchFilter,
+      campusFilter,
+      programFilter,
+      facultyFilter,
+      genderFilter,
+      dateFrom,
+      dateTo,
+    ]
+  )
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
-      const params = new URLSearchParams();
-
-      // Pagination (Backend)
-      params.append('page', String(page + 1));
-      params.append('page_size', String(rowsPerPage));
-
-      // Filters
-      if (searchTerm) params.append('search', searchTerm);
-      if (statusFilter !== "all") params.append('status', statusFilter);
-      if (choiceConfirmationFilter !== "all") params.append('choice_confirmation', choiceConfirmationFilter);
-      if (academicLevelFilter !== "all") params.append('academic_level', academicLevelFilter);
-      if (batchFilter !== "all") params.append('batch', batchFilter);
-      if (campusFilter !== "all") params.append('campus', campusFilter);
-      if (programFilter !== "all") params.append('program', programFilter);
-      if (facultyFilter !== "all") params.append('faculty', facultyFilter);
-      if (genderFilter !== "all") params.append('gender', genderFilter);
-      if (dateFrom) params.append('date_from', dateFrom);
-      if (dateTo) params.append('date_to', dateTo);
-
-      const res = await AxiosInstance.get(`/api/admissions/all_applications_report/?${params.toString()}`);
-
-      const data = res.data.results || res.data;
-      setApplications(data.map(normalizeApplication));
-      setTotalCount(res.data.count || 0);
-
+      const res = await AxiosInstance.get(
+        `/api/admissions/all_applications_report/?${buildFilterParams({ includeChoice: true, forPage: true }).toString()}`
+      )
+      const data = res.data.results || res.data
+      setApplications((Array.isArray(data) ? data : []).map(normalizeApplication))
+      setTotalCount(res.data.count ?? (Array.isArray(data) ? data.length : 0))
     } catch (err: any) {
-      console.error(err);
-      setError("Failed to load applications");
+      console.error("Failed to load applications:", err)
+      setError(
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        `Failed to load applications (HTTP ${err?.response?.status ?? "unknown"})`
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [AxiosInstance, buildFilterParams])
 
-  // // Re-fetch when these change
+  const fetchChoiceStats = useCallback(async () => {
+    try {
+      const res = await AxiosInstance.get(
+        `/api/admissions/application_choice_stats/?${buildFilterParams({ includeChoice: false, forPage: false }).toString()}`
+      )
+      setChoiceStats({
+        awaiting: Number(res.data?.awaiting ?? 0),
+        confirmed: Number(res.data?.confirmed ?? 0),
+        flagged: Number(res.data?.flagged ?? 0),
+      })
+    } catch {
+      // Stats are supplementary; list still works without them.
+    }
+  }, [AxiosInstance, buildFilterParams])
+
   useEffect(() => {
-    fetchApplications();
-  }, [
-    page,
-    rowsPerPage,
-    searchTerm,
-    statusFilter,
-    choiceConfirmationFilter,
-    academicLevelFilter,
-    batchFilter,
-    campusFilter,
-    programFilter,
-    facultyFilter,
-    genderFilter,
-    dateFrom,
-    dateTo,
-    AxiosInstance,
-  ]);
+    fetchApplications()
+    fetchChoiceStats()
+  }, [fetchApplications, fetchChoiceStats])
+
+  useEffect(() => {
+    const refresh = () => {
+      fetchApplications()
+      fetchChoiceStats()
+    }
+    window.addEventListener("programChoicesConfirmed", refresh)
+    return () => window.removeEventListener("programChoicesConfirmed", refresh)
+  }, [fetchApplications, fetchChoiceStats])
 
   useEffect(() => {
     AxiosInstance.get<Campus[]>("/api/accounts/list_campus")
@@ -386,109 +449,30 @@ export default function ApplicationList() {
     [applications]
   )
 
-  const filteredApplications = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase()
-    return applications.filter((app) => {
-      // Build a single haystack of every field we want searchable, then match q against it.
-      // Status is also exposed via its display label ("approved" instead of "accepted")
-      // so users can search by what they actually see on screen.
-      const statusLabel = app.status === "accepted" ? "approved" : app.status
-      const programNames = (app.programs || []).map((p) => p.name).join(" ")
-      const haystack = [
-        app.id,
-        app.first_name,
-        app.last_name,
-        `${app.first_name} ${app.last_name}`,
-        app.email,
-        app.gender,
-        app.status,
-        statusLabel,
-        programNames,
-        app.faculty,
-        app.academic_level,
-        app.batch,
-        app.campus,
-      ]
-        .filter((v) => v !== undefined && v !== null && v !== "")
-        .join(" | ")
-        .toLowerCase()
+  /** Client-side safety net if API returns rows without applying choice_confirmation. */
+  const displayApplications = useMemo(() => {
+    if (choiceConfirmationFilter === "confirmed") {
+      return applications.filter(isApplicantProgramChoicesConfirmed)
+    }
+    if (choiceConfirmationFilter === "awaiting") {
+      return applications.filter(isProgramChoicesAwaiting)
+    }
+    if (choiceConfirmationFilter === "flagged") {
+      return applications.filter((app) => hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app))
+    }
+    return applications
+  }, [applications, choiceConfirmationFilter])
 
-      const matchesSearch = q === "" || haystack.includes(q)
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter
-      const matchesLevel = academicLevelFilter === "all" || app.academic_level === academicLevelFilter
-      const matchesBatch = batchFilter === "all" || app.batch === batchFilter
-      const matchesCampus = campusFilter === "all" || app.campus === campusFilter
-      const matchesProgram =
-        programFilter === "all" ||
-        (app.programs || []).some(p => p.name === programFilter)
-      const matchesFaculty =
-        facultyFilter === "all" ||
-        String(app.faculty || "")
-          .split(",")
-          .map(s => s.trim())
-          .includes(facultyFilter)
-      const matchesGender = genderFilter === "all" || app.gender === genderFilter
-      const appDate = new Date(app.created_at)
-      const matchesDateFrom = !dateFrom || appDate >= new Date(`${dateFrom}T00:00:00`)
-      const matchesDateTo = !dateTo || appDate <= new Date(`${dateTo}T23:59:59.999`)
-      const matchesChoiceConfirmation =
-        choiceConfirmationFilter === "all" ||
-        (choiceConfirmationFilter === "awaiting" && isProgramChoicesAwaiting(app)) ||
-        (choiceConfirmationFilter === "confirmed" && isProgramChoicesConfirmed(app))
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesChoiceConfirmation &&
-        matchesLevel &&
-        matchesBatch &&
-        matchesCampus &&
-        matchesProgram &&
-        matchesFaculty &&
-        matchesGender &&
-        matchesDateFrom &&
-        matchesDateTo
-      )
-    })
-  }, [
-    applications,
-    searchTerm,
-    statusFilter,
-    choiceConfirmationFilter,
-    academicLevelFilter,
-    batchFilter,
-    campusFilter,
-    programFilter,
-    facultyFilter,
-    genderFilter,
-    dateFrom,
-    dateTo,
-  ])
+  const paginatedApplications = displayApplications
 
-  const choiceStats = useMemo(
-    () => ({
-      awaiting: applications.filter(isProgramChoicesAwaiting).length,
-      confirmed: applications.filter(isProgramChoicesConfirmed).length,
-    }),
-    [applications]
-  )
-
-  // const clearFilters = () => {
-  //   setSearchTerm("")
-  //   setStatusFilter("all")
-  //   setChoiceConfirmationFilter("all")
-  //   setAcademicLevelFilter("all")
-  //   setBatchFilter("all")
-  //   setCampusFilter("all")
-  //   setProgramFilter("all")
-  //   setFacultyFilter("all")
-  //   setGenderFilter("all")
-  //   setDateFrom("")
-  //   setDateTo("")
-  //   setPage(0)
-  //   if (typeof window !== "undefined") window.localStorage.removeItem(FILTERS_STORAGE_KEY)
-  // }
-
-  const paginatedApplications = applications
+  const activeChoiceFilterLabel =
+    choiceConfirmationFilter === "confirmed"
+      ? "Showing applicants who confirmed programme choices themselves in the portal (purple)"
+      : choiceConfirmationFilter === "awaiting"
+        ? "Showing applicants awaiting programme choice confirmation"
+        : choiceConfirmationFilter === "flagged"
+          ? "Showing applicants with migration-flagged programme data (teal)"
+          : null
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }
@@ -541,7 +525,7 @@ export default function ApplicationList() {
 
   // ── Selection helpers ──
   const allPageIds = paginatedApplications.map(a => a.id)
-  const allFilteredIds = filteredApplications.map(a => a.id)
+  const allFilteredIds = applications.map(a => a.id)
   const allPageSelected = allPageIds.length > 0 && allPageIds.every(id => selected.includes(id))
   const somePageSelected = allPageIds.some(id => selected.includes(id))
 
@@ -554,9 +538,10 @@ export default function ApplicationList() {
   const clearSelection = () => setSelected([])
 
   const handleApplyFilters = () => {
-    setPage(0);        // Reset to first page
-    fetchApplications();
-  };
+    setPage(0)
+    fetchApplications()
+    fetchChoiceStats()
+  }
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -705,6 +690,12 @@ export default function ApplicationList() {
             kind: "choice" as const
           },
           {
+            label: "Flagged data",
+            value: choiceStats.flagged,
+            filter: "flagged",
+            kind: "choice" as const
+          },
+          {
             label: "Approved",
             value: applications.filter(a => a.status === "accepted").length,
             filter: "accepted",
@@ -743,10 +734,14 @@ export default function ApplicationList() {
                 }}
                 sx={{
                   background: isActive
-                    ? "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
+                    ? stat.kind === "choice" && stat.filter === "flagged"
+                      ? "linear-gradient(135deg, #00695C 0%, #00796B 100%)"
+                      : "linear-gradient(135deg, #0a004a 0%, #0D0060 100%)"
                     : stat.kind === "choice" && stat.filter === "confirmed"
                       ? "linear-gradient(135deg, #6A1B9A 0%, #7B1FA2 100%)"
-                      : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
+                      : stat.kind === "choice" && stat.filter === "flagged"
+                        ? "linear-gradient(135deg, #00695C 0%, #00897B 100%)"
+                        : "linear-gradient(135deg, #0D0060 0%, #0D0060 100%)",
                   cursor: "pointer",
                   outline: isActive ? "2px solid #5ba3f5" : "none",
                   transition: "all 0.15s",
@@ -765,6 +760,21 @@ export default function ApplicationList() {
           )
         })}
       </Grid>
+      {activeChoiceFilterLabel && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {activeChoiceFilterLabel}
+          {choiceConfirmationFilter === "confirmed" && totalCount === 0 && (
+            <> — No confirmed applications match your filters. If applicants have confirmed in the portal, run{" "}
+              <code>python manage.py ensure_program_choice_confirmation_columns</code> on the server, then refresh.</>
+          )}
+        </Alert>
+      )}
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 960 }}>
+        The choice summary cards use the same search, status, batch, campus, and date filters as the table
+        (excluding the &quot;Programme choices&quot; dropdown). If a number looks wrong, click Clear Filters or
+        widen the date range. Purple status = applicant has confirmed programme choices in the portal (use this to track responses to your verification emails).
+        Click &quot;Choices confirmed&quot; to list only that cohort. Teal &quot;Verify choices&quot; = not confirmed yet and programme IDs may still be from the bad migration (teal is used here so it is not confused with under review, which is orange).
+      </Typography>
 
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
@@ -805,7 +815,8 @@ export default function ApplicationList() {
               >
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="awaiting">Awaiting confirmation</MenuItem>
-                <MenuItem value="confirmed">Choices confirmed</MenuItem>
+                <MenuItem value="confirmed">Choices confirmed (purple)</MenuItem>
+                <MenuItem value="flagged">Flagged programme data (teal)</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -908,7 +919,7 @@ export default function ApplicationList() {
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Tooltip title="Select all matching the current filters">
                   <Button size="small" variant="outlined" onClick={selectAllFiltered} sx={{ textTransform: "none", fontSize: "0.75rem" }}>
-                    Select all {filteredApplications.length}
+                    Select all on page ({applications.length})
                   </Button>
                 </Tooltip>
                 <Button size="small" onClick={clearSelection} sx={{ textTransform: "none", fontSize: "0.75rem", color: "#c0001a" }}>
@@ -957,7 +968,13 @@ export default function ApplicationList() {
                       selected={selected.includes(app.id)}
                       sx={{
                         "&:hover": { backgroundColor: "#fafafa" },
-                        bgcolor: (app.status || "").toLowerCase() === "admitted" ? "rgba(46,125,50,0.04)" : "inherit",
+                        bgcolor: isProgramChoicesConfirmed(app)
+                          ? "rgba(123,31,162,0.08)"
+                          : hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app)
+                            ? "rgba(0,121,107,0.07)"
+                            : (app.status || "").toLowerCase() === "admitted"
+                              ? "rgba(46,125,50,0.04)"
+                              : "inherit",
                       }}
                     >
                       <TableCell padding="checkbox">

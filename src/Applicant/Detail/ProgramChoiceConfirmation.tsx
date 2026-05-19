@@ -9,8 +9,10 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Chip,
   CircularProgress,
+  FormControlLabel,
   TextField,
   Typography,
 } from "@mui/material";
@@ -23,6 +25,7 @@ type ChoicePayload = {
   application_id: number;
   status: string;
   program_choices_confirmed_at: string | null;
+  program_choices_suspect?: boolean;
   can_update_programs: boolean;
   can_confirm: boolean;
   is_confirmed: boolean;
@@ -47,6 +50,7 @@ export default function ProgramChoiceConfirmation({
   const [success, setSuccess] = useState<string | null>(null);
   const [data, setData] = useState<ChoicePayload | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [verifiedIntended, setVerifiedIntended] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,6 +61,7 @@ export default function ProgramChoiceConfirmation({
       );
       setData(res.data);
       setSelectedIds(res.data.current_programs.map((p) => p.id));
+      setVerifiedIntended(false);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Could not load programme choices.");
     } finally {
@@ -125,6 +130,7 @@ export default function ProgramChoiceConfirmation({
       );
       setData(res.data);
       setSuccess(res.data.detail || "Programme choices confirmed.");
+      window.dispatchEvent(new CustomEvent("programChoicesConfirmed", { detail: { applicationId } }));
       onConfirmed?.();
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to confirm programme choices.");
@@ -146,7 +152,7 @@ export default function ProgramChoiceConfirmation({
             Programme choices
           </Typography>
         }
-        subheader="Review your programme(s) of choice and confirm they are correct. No extra application fee is required."
+        subheader="Review your programme(s) of choice carefully. If anything looks wrong, change them before confirming. No extra application fee is required."
         action={
           data.is_confirmed ? (
             <Chip
@@ -163,6 +169,20 @@ export default function ProgramChoiceConfirmation({
       <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {error && <Alert severity="error">{error}</Alert>}
         {success && <Alert severity="success">{success}</Alert>}
+
+        {data.program_choices_suspect && (
+          <Alert severity="warning">
+            The programme(s) shown below may not match what you originally applied for because of a
+            system data correction. Please check each name carefully, update if needed, and only
+            confirm when they are your real choices.
+          </Alert>
+        )}
+
+        {!data.program_choices_suspect && !data.is_confirmed && (
+          <Alert severity="info">
+            Confirm only if these programme(s) are exactly what you intended to apply for.
+          </Alert>
+        )}
 
         {data.can_update_programs && data.available_programs.length > 0 ? (
           <Autocomplete
@@ -198,25 +218,38 @@ export default function ProgramChoiceConfirmation({
         )}
 
         {!data.is_confirmed && data.can_confirm && (
-          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-            {data.can_update_programs && (
+          <>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={verifiedIntended}
+                  onChange={(e) => setVerifiedIntended(e.target.checked)}
+                />
+              }
+              label="I have checked that these programme(s) are the ones I applied for."
+            />
+            <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              {data.can_update_programs && (
+                <Button
+                  variant="outlined"
+                  disabled={saving || confirming || selectedIds.length === 0}
+                  onClick={handleSave}
+                >
+                  {saving ? "Saving…" : "Save changes"}
+                </Button>
+              )}
               <Button
-                variant="outlined"
-                disabled={saving || confirming || selectedIds.length === 0}
-                onClick={handleSave}
+                variant="contained"
+                disabled={
+                  saving || confirming || selectedIds.length === 0 || !verifiedIntended
+                }
+                onClick={handleConfirm}
+                sx={{ bgcolor: "#7B1FA2", "&:hover": { bgcolor: "#6A1B9A" } }}
               >
-                {saving ? "Saving…" : "Save changes"}
+                {confirming ? "Confirming…" : "Confirm programme choices"}
               </Button>
-            )}
-            <Button
-              variant="contained"
-              disabled={saving || confirming || selectedIds.length === 0}
-              onClick={handleConfirm}
-              sx={{ bgcolor: "#7B1FA2", "&:hover": { bgcolor: "#6A1B9A" } }}
-            >
-              {confirming ? "Confirming…" : "Confirm programme choices"}
-            </Button>
-          </Box>
+            </Box>
+          </>
         )}
 
         {data.is_confirmed && data.program_choices_confirmed_at && (
