@@ -81,6 +81,8 @@ type Props = {
   onChange: (ids: number[]) => void
   maxSelections?: number
   disabled?: boolean
+  /** Admin: swap choices at the limit instead of locking the list when 3 are selected. */
+  staffOverride?: boolean
 }
 
 export default function ProgramChoiceAutocomplete({
@@ -90,6 +92,7 @@ export default function ProgramChoiceAutocomplete({
   onChange,
   maxSelections = 3,
   disabled = false,
+  staffOverride = false,
 }: Props) {
   const [search, setSearch] = useState("")
   const campusId = selectedCampus === "" ? null : Number(selectedCampus)
@@ -139,8 +142,12 @@ export default function ProgramChoiceAutocomplete({
 
   const toggleProgram = (programId: number, checked: boolean) => {
     if (checked) {
+      if (valueIds.includes(programId)) return
       if (valueIds.length < maxSelections) {
         onChange([...valueIds, programId])
+      } else if (staffOverride) {
+        // Replace lowest-priority slot (last in order) so staff can swap without unchecking first.
+        onChange([...valueIds.slice(0, -1), programId])
       }
     } else {
       onChange(valueIds.filter((id) => id !== programId))
@@ -175,6 +182,13 @@ export default function ProgramChoiceAutocomplete({
             ? `${visible.length} match(es) · ${valueIds.length} of ${maxSelections} selected`
             : `${byCampus.length} programme(s) at this campus · ${valueIds.length} of ${maxSelections} selected`}
       </Typography>
+
+      {staffOverride && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+          Staff override: you can change any selection, even if the applicant already confirmed. At the
+          3-programme limit, picking another programme replaces the 3rd choice.
+        </Typography>
+      )}
 
       {orphanIds.length > 0 && (
         <Alert severity="warning" sx={{ mb: 1 }}>
@@ -231,7 +245,7 @@ export default function ProgramChoiceAutocomplete({
             ))}
             {visible.map((p) => {
             const checked = valueIds.includes(p.id)
-            const atLimit = !checked && valueIds.length >= maxSelections
+            const atLimit = !staffOverride && !checked && valueIds.length >= maxSelections
             return (
               <FormControlLabel
                 key={p.id}
