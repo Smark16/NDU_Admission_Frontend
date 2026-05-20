@@ -24,6 +24,7 @@ import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "./Review/RejectionForm"
 import { Stack } from "@mui/system"
+import { asApiList } from "../../../utils/asApiList"
 
 type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected' | "revoked"
 
@@ -125,13 +126,6 @@ const getStatusLabel = (status: AppStatus) => {
   }
 }
 
-const mayConfirmProgramChoices = (app: Application) =>
-  app.status === "submitted" || app.status === "under_review"
-
-/** Applicant confirmed or staff settled choices (admin change programme). */
-const hasProgramChoicesSettled = (app: Application) =>
-  Boolean(app.program_choices_confirmed_at)
-
 const hasSuspectProgramChoices = (app: Application) => Boolean(app.program_choices_suspect)
 
 /** Applicant clicked Confirm in the portal (not staff change programme). */
@@ -141,9 +135,6 @@ const isApplicantProgramChoicesConfirmed = (app: Application) =>
 
 const isProgramChoicesConfirmed = (app: Application) => isApplicantProgramChoicesConfirmed(app)
 
-const isProgramChoicesAwaiting = (app: Application) =>
-  mayConfirmProgramChoices(app) && !hasProgramChoicesSettled(app)
-
 const purpleChipSx = {
   minWidth: 100,
   bgcolor: "#7B1FA2",
@@ -152,8 +143,8 @@ const purpleChipSx = {
   "& .MuiChip-icon": { color: "#fff" },
 } as const
 
-/** Flagged migration clone pattern — teal so it is not confused with under_review (orange). */
-const verifyChoicesChipSx = {
+/** Migration / verification cohort — teal (distinct from under_review orange and submitted blue). */
+const choicesForReviewChipSx = {
   minWidth: 120,
   bgcolor: "#00796B",
   color: "#fff",
@@ -161,27 +152,42 @@ const verifyChoicesChipSx = {
   "& .MuiChip-icon": { color: "#fff" },
 } as const
 
-const renderStatusChip = (app: Application) => {
-  const suspect = hasSuspectProgramChoices(app)
-  const confirmed = isProgramChoicesConfirmed(app)
-  const label = confirmed
-    ? `${getStatusLabel(app.status)} · Applicant confirmed ✓`
-    : suspect
-      ? `${getStatusLabel(app.status)} · Verify choices`
-      : getStatusLabel(app.status)
+/** Purple when applicant confirmed programme choices (e.g. Approved · Choices confirmed). */
+const isChoicesConfirmedRow = (app: Application, choiceFilter: ChoiceConfirmationFilter) =>
+  isProgramChoicesConfirmed(app) || choiceFilter === "confirmed"
 
-  if (suspect && !confirmed) {
+/** Teal when choices need review; trust active "Choices for review" filter if API omit suspect flag. */
+const isChoicesForReviewRow = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  if (isChoicesConfirmedRow(app, choiceFilter)) return false
+  return hasSuspectProgramChoices(app) || choiceFilter === "flagged"
+}
+
+const choiceAwareStatusLabel = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  const statusPart = getStatusLabel(app.status)
+  if (isChoicesConfirmedRow(app, choiceFilter)) {
+    return `${statusPart} · Choices confirmed`
+  }
+  if (isChoicesForReviewRow(app, choiceFilter)) {
+    return `${statusPart} · Choices for review`
+  }
+  return statusPart
+}
+
+const renderStatusChip = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  const label = choiceAwareStatusLabel(app, choiceFilter)
+
+  if (isChoicesForReviewRow(app, choiceFilter)) {
     return (
       <Chip
         label={label}
         size="small"
         icon={<ScheduleIcon fontSize="small" />}
-        sx={verifyChoicesChipSx}
+        sx={choicesForReviewChipSx}
       />
     )
   }
 
-  if (confirmed) {
+  if (isChoicesConfirmedRow(app, choiceFilter)) {
     return (
       <Chip
         label={label}
@@ -263,6 +269,8 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "")
+  /** Debounced value sent to the API so typing does not fight programme-choice filters. */
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.statusFilter ?? "all")
   const [choiceConfirmationFilter, setChoiceConfirmationFilter] = useState<ChoiceConfirmationFilter>(
     initialFilters?.choiceConfirmationFilter ?? "all"
@@ -301,6 +309,11 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400)
+    return () => window.clearTimeout(timer)
+  }, [searchTerm])
+
   const buildFilterParams = useCallback(
     (opts?: { includeChoice?: boolean; forPage?: boolean }) => {
       const params = new URLSearchParams()
@@ -308,7 +321,7 @@ export default function ApplicationList() {
         params.append("page", String(page + 1))
         params.append("page_size", String(rowsPerPage))
       }
-      if (searchTerm) params.append("search", searchTerm)
+      if (debouncedSearch) params.append("search", debouncedSearch)
       if (statusFilter !== "all") params.append("status", statusFilter)
       if (opts?.includeChoice !== false && choiceConfirmationFilter !== "all") {
         params.append("choice_confirmation", choiceConfirmationFilter)
@@ -326,7 +339,7 @@ export default function ApplicationList() {
     [
       page,
       rowsPerPage,
-      searchTerm,
+      debouncedSearch,
       statusFilter,
       choiceConfirmationFilter,
       academicLevelFilter,
@@ -348,9 +361,13 @@ export default function ApplicationList() {
       const res = await AxiosInstance.get(
         `/api/admissions/all_applications_report/?${buildFilterParams({ includeChoice: true, forPage: true }).toString()}`
       )
-      const data = res.data.results || res.data
-      setApplications((Array.isArray(data) ? data : []).map(normalizeApplication))
-      setTotalCount(res.data.count ?? (Array.isArray(data) ? data.length : 0))
+      const list = asApiList<Record<string, unknown>>(res.data)
+      setApplications(list.map(normalizeApplication))
+      const count =
+        res.data && typeof res.data === "object" && !Array.isArray(res.data) && "count" in res.data
+          ? Number((res.data as { count?: number }).count ?? list.length)
+          : list.length
+      setTotalCount(count)
     } catch (err: any) {
       console.error("Failed to load applications:", err)
       setError(
@@ -382,6 +399,16 @@ export default function ApplicationList() {
     fetchApplications()
     fetchChoiceStats()
   }, [fetchApplications, fetchChoiceStats])
+
+  /** Prevent empty table when filters shrink result set but page stays high. */
+  useEffect(() => {
+    if (totalCount <= 0) {
+      if (page !== 0) setPage(0)
+      return
+    }
+    const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1)
+    if (page > maxPage) setPage(maxPage)
+  }, [totalCount, rowsPerPage, page])
 
   useEffect(() => {
     const refresh = () => {
@@ -449,31 +476,20 @@ export default function ApplicationList() {
     [applications]
   )
 
-  /** Client-side safety net if API returns rows without applying choice_confirmation. */
-  const displayApplications = useMemo(() => {
-  
-    if (choiceConfirmationFilter === "confirmed") {
-      return applications.filter(isApplicantProgramChoicesConfirmed)
-    }
-    if (choiceConfirmationFilter === "awaiting") {
-      return applications.filter(isProgramChoicesAwaiting)
-    }
-    if (choiceConfirmationFilter === "flagged") {
-      return applications.filter((app) => hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app))
-    }
-    return applications
-  }, [applications, choiceConfirmationFilter])
-
-  const paginatedApplications = displayApplications
-  console.log('paginatedApplications', paginatedApplications)
+  /**
+   * Table rows come straight from the API when a programme-choice filter is active.
+   * Re-filtering client-side hid every row if program_choices_suspect was missing/false
+   * in the payload even though the server already applied choice_confirmation.
+   */
+  const paginatedApplications = applications
 
   const activeChoiceFilterLabel =
     choiceConfirmationFilter === "confirmed"
-      ? "Showing applicants who confirmed programme choices themselves in the portal (purple)"
+      ? "Showing applicants who confirmed programme choices in the portal — status chip includes “Choices confirmed” (purple)"
       : choiceConfirmationFilter === "awaiting"
         ? "Showing applicants awaiting programme choice confirmation"
         : choiceConfirmationFilter === "flagged"
-          ? "Showing applicants with migration-flagged programme data (teal)"
+          ? "Showing applicants whose programme choices need review — status chip includes “Choices for review” (teal)"
           : null
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
@@ -540,13 +556,13 @@ export default function ApplicationList() {
   const clearSelection = () => setSelected([])
 
   const handleApplyFilters = () => {
+    setDebouncedSearch(searchTerm.trim())
     setPage(0)
-    fetchApplications()
-    fetchChoiceStats()
   }
 
   const handleClearFilters = () => {
     setSearchTerm("");
+    setDebouncedSearch("");
     setStatusFilter("all");
     setChoiceConfirmationFilter("all");
     setAcademicLevelFilter("all");
@@ -692,7 +708,7 @@ export default function ApplicationList() {
             kind: "choice" as const
           },
           {
-            label: "Flagged data",
+            label: "Choices for review",
             value: choiceStats.flagged,
             filter: "flagged",
             kind: "choice" as const
@@ -726,6 +742,8 @@ export default function ApplicationList() {
               <Card
                 onClick={() => {
                   if (stat.kind === "choice") {
+                    setSearchTerm("")
+                    setDebouncedSearch("")
                     setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
                     setStatusFilter("all")
                   } else {
@@ -774,8 +792,8 @@ export default function ApplicationList() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 960 }}>
         The choice summary cards use the same search, status, batch, campus, and date filters as the table
         (excluding the &quot;Programme choices&quot; dropdown). If a number looks wrong, click Clear Filters or
-        widen the date range. Purple status = applicant has confirmed programme choices in the portal (use this to track responses to your verification emails).
-        Click &quot;Choices confirmed&quot; to list only that cohort. Teal &quot;Verify choices&quot; = not confirmed yet and programme IDs may still be from the bad migration (teal is used here so it is not confused with under review, which is orange).
+        widen the date range. Purple chip = e.g. &quot;Approved · Choices confirmed&quot; after the applicant confirms in the portal.
+        Teal chip = e.g. &quot;Submitted · Choices for review&quot; for the migration cohort (not the same as blue Submitted alone).
       </Typography>
 
       {/* Filters */}
@@ -784,9 +802,10 @@ export default function ApplicationList() {
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth size="small"
-              placeholder="Search by name, email, ID..."
+              placeholder="Search name, email, programme, faculty..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApplyFilters() }}
               slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#999" }} /></InputAdornment> } }}
             />
           </Grid>
@@ -811,14 +830,20 @@ export default function ApplicationList() {
                 value={choiceConfirmationFilter}
                 label="Programme choices"
                 onChange={(e) => {
-                  setChoiceConfirmationFilter(e.target.value as ChoiceConfirmationFilter)
+                  const value = e.target.value as ChoiceConfirmationFilter
+                  if (value !== "all") {
+                    setSearchTerm("")
+                    setDebouncedSearch("")
+                  }
+                  setChoiceConfirmationFilter(value)
+                  setStatusFilter("all")
                   setPage(0)
                 }}
               >
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="awaiting">Awaiting confirmation</MenuItem>
                 <MenuItem value="confirmed">Choices confirmed (purple)</MenuItem>
-                <MenuItem value="flagged">Flagged programme data (teal)</MenuItem>
+                <MenuItem value="flagged">Choices for review (teal)</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -970,9 +995,9 @@ export default function ApplicationList() {
                       selected={selected.includes(app.id)}
                       sx={{
                         "&:hover": { backgroundColor: "#fafafa" },
-                        bgcolor: isProgramChoicesConfirmed(app)
+                        bgcolor: isChoicesConfirmedRow(app, choiceConfirmationFilter)
                           ? "rgba(123,31,162,0.08)"
-                          : hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app)
+                          : isChoicesForReviewRow(app, choiceConfirmationFilter)
                             ? "rgba(0,121,107,0.07)"
                             : (app.status || "").toLowerCase() === "admitted"
                               ? "rgba(46,125,50,0.04)"
@@ -989,7 +1014,7 @@ export default function ApplicationList() {
                       <TableCell sx={{ fontSize: "0.875rem" }}>{(app.programs ?? []).map(p => p.name).join(", ") || "—"}</TableCell>
                       <TableCell sx={{ fontSize: "0.875rem" }}>{app.faculty || "—"}</TableCell>
                       <TableCell>
-                        {renderStatusChip(app)}
+                        {renderStatusChip(app, choiceConfirmationFilter)}
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center">
@@ -1000,7 +1025,16 @@ export default function ApplicationList() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
-                      <Alert severity="info">No applications match your filters.</Alert>
+                      <Alert severity="info">
+                        No applications match your filters.
+                        {debouncedSearch || searchTerm.trim() ? (
+                          <> Try <strong>Clear Filters</strong> or wait a moment after typing (search updates automatically).</>
+                        ) : choiceConfirmationFilter !== "all" && totalCount > 0 ? (
+                          <> Pagination is catching up — wait a moment or click <strong>Clear Filters</strong> and select the card again.</>
+                        ) : choiceConfirmationFilter !== "all" ? (
+                          <> Click <strong>Clear Filters</strong>, then <strong>Choices for review</strong> or <strong>Choices confirmed</strong>.</>
+                        ) : null}
+                      </Alert>
                     </TableCell>
                   </TableRow>
                 )}
