@@ -143,8 +143,8 @@ const purpleChipSx = {
   "& .MuiChip-icon": { color: "#fff" },
 } as const
 
-/** Flagged migration clone pattern — teal so it is not confused with under_review (orange). */
-const verifyChoicesChipSx = {
+/** Migration / verification cohort — teal (distinct from under_review orange and submitted blue). */
+const choicesForReviewChipSx = {
   minWidth: 120,
   bgcolor: "#00796B",
   color: "#fff",
@@ -152,27 +152,42 @@ const verifyChoicesChipSx = {
   "& .MuiChip-icon": { color: "#fff" },
 } as const
 
-const renderStatusChip = (app: Application) => {
-  const suspect = hasSuspectProgramChoices(app)
-  const confirmed = isProgramChoicesConfirmed(app)
-  const label = confirmed
-    ? `${getStatusLabel(app.status)} · Applicant confirmed ✓`
-    : suspect
-      ? `${getStatusLabel(app.status)} · Verify choices`
-      : getStatusLabel(app.status)
+/** Purple when applicant confirmed programme choices (e.g. Approved · Choices confirmed). */
+const isChoicesConfirmedRow = (app: Application, choiceFilter: ChoiceConfirmationFilter) =>
+  isProgramChoicesConfirmed(app) || choiceFilter === "confirmed"
 
-  if (suspect && !confirmed) {
+/** Teal when choices need review; trust active "Choices for review" filter if API omit suspect flag. */
+const isChoicesForReviewRow = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  if (isChoicesConfirmedRow(app, choiceFilter)) return false
+  return hasSuspectProgramChoices(app) || choiceFilter === "flagged"
+}
+
+const choiceAwareStatusLabel = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  const statusPart = getStatusLabel(app.status)
+  if (isChoicesConfirmedRow(app, choiceFilter)) {
+    return `${statusPart} · Choices confirmed`
+  }
+  if (isChoicesForReviewRow(app, choiceFilter)) {
+    return `${statusPart} · Choices for review`
+  }
+  return statusPart
+}
+
+const renderStatusChip = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
+  const label = choiceAwareStatusLabel(app, choiceFilter)
+
+  if (isChoicesForReviewRow(app, choiceFilter)) {
     return (
       <Chip
         label={label}
         size="small"
         icon={<ScheduleIcon fontSize="small" />}
-        sx={verifyChoicesChipSx}
+        sx={choicesForReviewChipSx}
       />
     )
   }
 
-  if (confirmed) {
+  if (isChoicesConfirmedRow(app, choiceFilter)) {
     return (
       <Chip
         label={label}
@@ -470,11 +485,11 @@ export default function ApplicationList() {
 
   const activeChoiceFilterLabel =
     choiceConfirmationFilter === "confirmed"
-      ? "Showing applicants who confirmed programme choices themselves in the portal (purple)"
+      ? "Showing applicants who confirmed programme choices in the portal — status chip includes “Choices confirmed” (purple)"
       : choiceConfirmationFilter === "awaiting"
         ? "Showing applicants awaiting programme choice confirmation"
         : choiceConfirmationFilter === "flagged"
-          ? "Showing applicants with migration-flagged programme data (teal)"
+          ? "Showing applicants whose programme choices need review — status chip includes “Choices for review” (teal)"
           : null
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
@@ -693,7 +708,7 @@ export default function ApplicationList() {
             kind: "choice" as const
           },
           {
-            label: "Flagged data",
+            label: "Choices for review",
             value: choiceStats.flagged,
             filter: "flagged",
             kind: "choice" as const
@@ -777,8 +792,8 @@ export default function ApplicationList() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 960 }}>
         The choice summary cards use the same search, status, batch, campus, and date filters as the table
         (excluding the &quot;Programme choices&quot; dropdown). If a number looks wrong, click Clear Filters or
-        widen the date range. Purple status = applicant has confirmed programme choices in the portal (use this to track responses to your verification emails).
-        Click &quot;Choices confirmed&quot; to list only that cohort. Teal &quot;Verify choices&quot; = not confirmed yet and programme IDs may still be from the bad migration (teal is used here so it is not confused with under review, which is orange).
+        widen the date range. Purple chip = e.g. &quot;Approved · Choices confirmed&quot; after the applicant confirms in the portal.
+        Teal chip = e.g. &quot;Submitted · Choices for review&quot; for the migration cohort (not the same as blue Submitted alone).
       </Typography>
 
       {/* Filters */}
@@ -828,7 +843,7 @@ export default function ApplicationList() {
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="awaiting">Awaiting confirmation</MenuItem>
                 <MenuItem value="confirmed">Choices confirmed (purple)</MenuItem>
-                <MenuItem value="flagged">Flagged programme data (teal)</MenuItem>
+                <MenuItem value="flagged">Choices for review (teal)</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -980,9 +995,9 @@ export default function ApplicationList() {
                       selected={selected.includes(app.id)}
                       sx={{
                         "&:hover": { backgroundColor: "#fafafa" },
-                        bgcolor: isProgramChoicesConfirmed(app)
+                        bgcolor: isChoicesConfirmedRow(app, choiceConfirmationFilter)
                           ? "rgba(123,31,162,0.08)"
-                          : hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app)
+                          : isChoicesForReviewRow(app, choiceConfirmationFilter)
                             ? "rgba(0,121,107,0.07)"
                             : (app.status || "").toLowerCase() === "admitted"
                               ? "rgba(46,125,50,0.04)"
@@ -999,7 +1014,7 @@ export default function ApplicationList() {
                       <TableCell sx={{ fontSize: "0.875rem" }}>{(app.programs ?? []).map(p => p.name).join(", ") || "—"}</TableCell>
                       <TableCell sx={{ fontSize: "0.875rem" }}>{app.faculty || "—"}</TableCell>
                       <TableCell>
-                        {renderStatusChip(app)}
+                        {renderStatusChip(app, choiceConfirmationFilter)}
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center">
@@ -1017,7 +1032,7 @@ export default function ApplicationList() {
                         ) : choiceConfirmationFilter !== "all" && totalCount > 0 ? (
                           <> Pagination is catching up — wait a moment or click <strong>Clear Filters</strong> and select the card again.</>
                         ) : choiceConfirmationFilter !== "all" ? (
-                          <> Click <strong>Clear Filters</strong>, then <strong>Flagged data</strong> or <strong>Choices confirmed</strong>.</>
+                          <> Click <strong>Clear Filters</strong>, then <strong>Choices for review</strong> or <strong>Choices confirmed</strong>.</>
                         ) : null}
                       </Alert>
                     </TableCell>
