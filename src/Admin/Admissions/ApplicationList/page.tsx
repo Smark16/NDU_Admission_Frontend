@@ -451,6 +451,7 @@ export default function ApplicationList() {
 
   /** Client-side safety net if API returns rows without applying choice_confirmation. */
   const displayApplications = useMemo(() => {
+  
     if (choiceConfirmationFilter === "confirmed") {
       return applications.filter(isApplicantProgramChoicesConfirmed)
     }
@@ -464,6 +465,7 @@ export default function ApplicationList() {
   }, [applications, choiceConfirmationFilter])
 
   const paginatedApplications = displayApplications
+  console.log('paginatedApplications', paginatedApplications)
 
   const activeChoiceFilterLabel =
     choiceConfirmationFilter === "confirmed"
@@ -661,7 +663,7 @@ export default function ApplicationList() {
         {[
           {
             label: "Total",
-            value: totalCount,                    // ← Changed to real total from backend
+            value: totalCount,                    
             filter: "all",
             kind: "status" as const
           },

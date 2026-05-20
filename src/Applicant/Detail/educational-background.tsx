@@ -283,7 +283,8 @@ export default function EducationalBackgroundSection({
           </TableBody>
         </Table>
       </TableContainer>
-
+      
+      {application?.status === 'submitted' && (
       <Button
         fullWidth
         variant="outlined"
@@ -293,6 +294,7 @@ export default function EducationalBackgroundSection({
       >
         Update {levelName} results
       </Button>
+      )} 
     </Paper>
   );
 
@@ -305,9 +307,12 @@ export default function EducationalBackgroundSection({
             Additional Qualifications
           </Typography>
         </Box>
+
+        {application?.status === 'submitted' && (
         <Button variant="outlined" size="small" startIcon={<SwapHorizIcon />} onClick={handleOpenAdditional}>
           Update
         </Button>
+        )}
       </Box>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
