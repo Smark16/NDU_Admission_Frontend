@@ -669,7 +669,7 @@ export default function ApplicationList() {
         {[
           {
             label: "Total",
-            value: totalCount,                    // ← Changed to real total from backend
+            value: totalCount,                    
             filter: "all",
             kind: "status" as const
           },
