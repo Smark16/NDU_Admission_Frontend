@@ -34,6 +34,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useState, useEffect } from "react";
+import useAxios from "../../AxiosInstance/UseAxios";
 
 interface EducationalBackgroundSectionProps {
   alevelresults: any[];
@@ -61,6 +62,7 @@ export default function EducationalBackgroundSection({
   application,
   onUpdate,
 }: EducationalBackgroundSectionProps) {
+  const AxiosInstance = useAxios()
   const [olevelresults, setOlevelResults] = useState<any[]>([]);
   const [alevelresults, setAlevelResults] = useState<any[]>([]);
   const [additionalQuals, setAdditionalQuals] = useState<any[]>([]);
@@ -85,21 +87,49 @@ export default function EducationalBackgroundSection({
   useEffect(() => setAdditionalQuals(initialAdditional || []), [initialAdditional]);
 
   // Fetch subjects
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const [oRes, aRes] = await Promise.all([
-          fetch("/api/admissions/list_olevel_subject"),
-          fetch("/api/admissions/list_alevel_subject"),
-        ]);
-        if (oRes.ok) setOlevelSubjects(await oRes.json());
-        if (aRes.ok) setAlevelSubjects(await aRes.json());
-      } catch (err) {
-        console.error("Failed to load subjects", err);
+  // useEffect(() => {
+  //   const fetchSubjects = async () => {
+  //     try {
+  //       const [oRes, aRes] = await Promise.all([
+  //         fetch("/api/admissions/list_olevel_subject"),
+  //         fetch("/api/admissions/list_alevel_subject"),
+  //       ]);
+  //       if (oRes.ok) setOlevelSubjects(await oRes.json());
+  //       if (aRes.ok) setAlevelSubjects(await aRes.json());
+  //     } catch (err) {
+  //       console.error("Failed to load subjects", err);
+  //     }
+  //   };
+  //   fetchSubjects();
+  // }, []);
+  // Fetch subjects - FIXED & IMPROVED
+useEffect(() => {
+  const fetchSubjects = async () => {
+    try {
+      const [oRes, aRes] = await Promise.all([
+        AxiosInstance.get("/api/admissions/list_olevel_subject"),
+        AxiosInstance.get("/api/admissions/list_alevel_subject"),
+      ]);
+
+      // Safely set the data
+      setOlevelSubjects(Array.isArray(oRes.data) ? oRes.data : []);
+      setAlevelSubjects(Array.isArray(aRes.data) ? aRes.data : []);
+
+    } catch (err: any) {
+      console.error("Failed to load subjects", err);
+
+      // Optional: Log more details in production to debug
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+      } else if (err.request) {
+        console.error("No response received - possible network/CORS issue");
       }
-    };
-    fetchSubjects();
-  }, []);
+    }
+  };
+
+  fetchSubjects();
+}, [AxiosInstance]);  
 
   // Open Modals
   const handleOpenOlevel = () => {
@@ -177,62 +207,120 @@ export default function EducationalBackgroundSection({
     return duplicates;
   };
 
+  // const handleSave = async (type: "olevel" | "alevel" | "additional") => {
+  //   setIsSaving(true);
+  //   setSavingLevel(type);
+
+  //   let endpoint = "";
+  //   let payloadKey = "";
+  //   let payloadData: any = [];
+
+  //   if (type === "olevel") {
+  //     endpoint = `/api/admissions/update_olevel_results/${application?.id}/`;
+  //     payloadKey = "results";
+  //     payloadData = currentOlevel
+  //       .filter(item => item.subject?.id && item.grade)
+  //       .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
+  //   } else if (type === "alevel") {
+  //     endpoint = `/api/admissions/update_alevel_results/${application?.id}/`;
+  //     payloadKey = "results";
+  //     payloadData = currentAlevel
+  //       .filter(item => item.subject?.id && item.grade)
+  //       .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
+  //   } else {
+  //     endpoint = `/api/admissions/update_additional_qualifications/${application?.id}/`;
+  //     payloadKey = "qualifications";
+  //     payloadData = currentAdditional.filter(q => 
+  //       q.additional_qualification_institution?.trim() && 
+  //       q.additional_qualification_type?.trim()
+  //     );
+  //   }
+
+  //   try {
+  //     const res = await AxiosInstance.post(endpoint, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ [payloadKey]: payloadData }),
+  //     });
+
+  //     if (res.ok) {
+  //       if (type === "olevel") setOlevelResults(currentOlevel);
+  //       else if (type === "alevel") setAlevelResults(currentAlevel);
+  //       else setAdditionalQuals(currentAdditional);
+
+  //       setOpenOlevelModal(false);
+  //       setOpenAlevelModal(false);
+  //       setOpenAdditionalModal(false);
+  //       onUpdate?.();
+  //     } else {
+  //       const error = await res.json().catch(() => ({}));
+  //       alert(error.detail || "Failed to update");
+  //     }
+  //   } catch (err) {
+  //     alert("Network error. Please try again.");
+  //   } finally {
+  //     setIsSaving(false);
+  //     setSavingLevel("");
+  //   }
+  // };
   const handleSave = async (type: "olevel" | "alevel" | "additional") => {
-    setIsSaving(true);
-    setSavingLevel(type);
+  setIsSaving(true);
+  setSavingLevel(type);
 
-    let endpoint = "";
-    let payloadKey = "";
-    let payloadData: any = [];
+  let endpoint = "";
+  let payloadKey = "";
+  let payloadData: any = [];
 
-    if (type === "olevel") {
-      endpoint = `/api/admissions/update_olevel_results/${application?.id}/`;
-      payloadKey = "results";
-      payloadData = currentOlevel
-        .filter(item => item.subject?.id && item.grade)
-        .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
-    } else if (type === "alevel") {
-      endpoint = `/api/admissions/update_alevel_results/${application?.id}/`;
-      payloadKey = "results";
-      payloadData = currentAlevel
-        .filter(item => item.subject?.id && item.grade)
-        .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
-    } else {
-      endpoint = `/api/admissions/update_additional_qualifications/${application?.id}/`;
-      payloadKey = "qualifications";
-      payloadData = currentAdditional.filter(q => 
-        q.additional_qualification_institution?.trim() && 
-        q.additional_qualification_type?.trim()
-      );
-    }
+  if (type === "olevel") {
+    endpoint = `/api/admissions/update_olevel_results/${application?.id}/`;
+    payloadKey = "results";
+    payloadData = currentOlevel
+      .filter(item => item.subject?.id && item.grade)
+      .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
+  } else if (type === "alevel") {
+    endpoint = `/api/admissions/update_alevel_results/${application?.id}/`;
+    payloadKey = "results";
+    payloadData = currentAlevel
+      .filter(item => item.subject?.id && item.grade)
+      .map(item => ({ subject_id: item.subject.id, grade: item.grade }));
+  } else {
+    endpoint = `/api/admissions/update_additional_qualifications/${application?.id}/`;
+    payloadKey = "qualifications";
+    payloadData = currentAdditional.filter(q => 
+      q.additional_qualification_institution?.trim() && 
+      q.additional_qualification_type?.trim()
+    );
+  }
 
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [payloadKey]: payloadData }),
-      });
+  try {
+    const res = await AxiosInstance.post(endpoint, {
+      [payloadKey]: payloadData
+    });
 
-      if (res.ok) {
-        if (type === "olevel") setOlevelResults(currentOlevel);
-        else if (type === "alevel") setAlevelResults(currentAlevel);
-        else setAdditionalQuals(currentAdditional);
+    // Success
+    if (type === "olevel") setOlevelResults(currentOlevel);
+    else if (type === "alevel") setAlevelResults(currentAlevel);
+    else setAdditionalQuals(currentAdditional);
 
-        setOpenOlevelModal(false);
-        setOpenAlevelModal(false);
-        setOpenAdditionalModal(false);
-        onUpdate?.();
-      } else {
-        const error = await res.json().catch(() => ({}));
-        alert(error.detail || "Failed to update");
-      }
-    } catch (err) {
-      alert("Network error. Please try again.");
-    } finally {
-      setIsSaving(false);
-      setSavingLevel("");
-    }
-  };
+    setOpenOlevelModal(false);
+    setOpenAlevelModal(false);
+    setOpenAdditionalModal(false);
+    onUpdate?.();
+
+  } catch (err: any) {
+    console.error("Save error:", err);
+
+    const errorMessage = 
+      err.response?.data?.detail || 
+      err.response?.data?.message || 
+      "Failed to update. Please try again.";
+
+    alert(errorMessage);
+  } finally {
+    setIsSaving(false);
+    setSavingLevel("");
+  }
+};
 
   const renderLevelContainer = (
     levelName: string,
