@@ -264,8 +264,8 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "")
-  /** Only sent to the API after Apply Filters (avoids hiding rows while typing). */
-  const [appliedSearch, setAppliedSearch] = useState("")
+  /** Debounced value sent to the API so typing does not fight programme-choice filters. */
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.statusFilter ?? "all")
   const [choiceConfirmationFilter, setChoiceConfirmationFilter] = useState<ChoiceConfirmationFilter>(
     initialFilters?.choiceConfirmationFilter ?? "all"
@@ -304,6 +304,11 @@ export default function ApplicationList() {
     return () => window.removeEventListener("applicationStatusChanged", handler)
   }, [])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400)
+    return () => window.clearTimeout(timer)
+  }, [searchTerm])
+
   const buildFilterParams = useCallback(
     (opts?: { includeChoice?: boolean; forPage?: boolean }) => {
       const params = new URLSearchParams()
@@ -311,7 +316,7 @@ export default function ApplicationList() {
         params.append("page", String(page + 1))
         params.append("page_size", String(rowsPerPage))
       }
-      if (appliedSearch.trim()) params.append("search", appliedSearch.trim())
+      if (debouncedSearch) params.append("search", debouncedSearch)
       if (statusFilter !== "all") params.append("status", statusFilter)
       if (opts?.includeChoice !== false && choiceConfirmationFilter !== "all") {
         params.append("choice_confirmation", choiceConfirmationFilter)
@@ -329,7 +334,7 @@ export default function ApplicationList() {
     [
       page,
       rowsPerPage,
-      appliedSearch,
+      debouncedSearch,
       statusFilter,
       choiceConfirmationFilter,
       academicLevelFilter,
@@ -546,13 +551,13 @@ export default function ApplicationList() {
   const clearSelection = () => setSelected([])
 
   const handleApplyFilters = () => {
-    setAppliedSearch(searchTerm.trim())
+    setDebouncedSearch(searchTerm.trim())
     setPage(0)
   }
 
   const handleClearFilters = () => {
     setSearchTerm("");
-    setAppliedSearch("");
+    setDebouncedSearch("");
     setStatusFilter("all");
     setChoiceConfirmationFilter("all");
     setAcademicLevelFilter("all");
@@ -731,9 +736,9 @@ export default function ApplicationList() {
             <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
               <Card
                 onClick={() => {
-                  setSearchTerm("")
-                  setAppliedSearch("")
                   if (stat.kind === "choice") {
+                    setSearchTerm("")
+                    setDebouncedSearch("")
                     setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
                     setStatusFilter("all")
                   } else {
@@ -792,9 +797,10 @@ export default function ApplicationList() {
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth size="small"
-              placeholder="Search name, email, ref — then Apply Filters"
+              placeholder="Search name, email, programme, faculty..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApplyFilters() }}
               slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#999" }} /></InputAdornment> } }}
             />
           </Grid>
@@ -819,9 +825,12 @@ export default function ApplicationList() {
                 value={choiceConfirmationFilter}
                 label="Programme choices"
                 onChange={(e) => {
-                  setSearchTerm("")
-                  setAppliedSearch("")
-                  setChoiceConfirmationFilter(e.target.value as ChoiceConfirmationFilter)
+                  const value = e.target.value as ChoiceConfirmationFilter
+                  if (value !== "all") {
+                    setSearchTerm("")
+                    setDebouncedSearch("")
+                  }
+                  setChoiceConfirmationFilter(value)
                   setStatusFilter("all")
                   setPage(0)
                 }}
@@ -1013,8 +1022,8 @@ export default function ApplicationList() {
                     <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
                       <Alert severity="info">
                         No applications match your filters.
-                        {appliedSearch.trim() || searchTerm.trim() ? (
-                          <> Clear the search box and click <strong>Clear Filters</strong> (search only applies after Apply Filters).</>
+                        {debouncedSearch || searchTerm.trim() ? (
+                          <> Try <strong>Clear Filters</strong> or wait a moment after typing (search updates automatically).</>
                         ) : choiceConfirmationFilter !== "all" && totalCount > 0 ? (
                           <> Pagination is catching up — wait a moment or click <strong>Clear Filters</strong> and select the card again.</>
                         ) : choiceConfirmationFilter !== "all" ? (
