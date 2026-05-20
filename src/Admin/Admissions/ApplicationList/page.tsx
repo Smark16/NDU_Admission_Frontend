@@ -126,13 +126,6 @@ const getStatusLabel = (status: AppStatus) => {
   }
 }
 
-const mayConfirmProgramChoices = (app: Application) =>
-  app.status === "submitted" || app.status === "under_review"
-
-/** Applicant confirmed or staff settled choices (admin change programme). */
-const hasProgramChoicesSettled = (app: Application) =>
-  Boolean(app.program_choices_confirmed_at)
-
 const hasSuspectProgramChoices = (app: Application) => Boolean(app.program_choices_suspect)
 
 /** Applicant clicked Confirm in the portal (not staff change programme). */
@@ -141,9 +134,6 @@ const isApplicantProgramChoicesConfirmed = (app: Application) =>
   (app.program_choices_confirmed_by || "").toLowerCase() === "applicant"
 
 const isProgramChoicesConfirmed = (app: Application) => isApplicantProgramChoicesConfirmed(app)
-
-const isProgramChoicesAwaiting = (app: Application) =>
-  mayConfirmProgramChoices(app) && !hasProgramChoicesSettled(app)
 
 const purpleChipSx = {
   minWidth: 100,
