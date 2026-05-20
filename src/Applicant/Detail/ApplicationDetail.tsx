@@ -86,7 +86,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
               <PersonalInfoSection application={application} />
               <AcademicInfoSection application={application} program_choices={program_choices} />
               <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />
-              <DocumentsSection documents={documents} />
+              <DocumentsSection documents={documents} application={application} />
               <PassportPhotoSection application={application} />
             </Box>
           </Grid>

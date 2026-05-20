@@ -255,7 +255,7 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, hasOLevel: e.target.checked }))}
                 />
               }
-              label="I completed O-Level (S4)"
+              label="Did you complete O-Level (S4)?"
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -266,7 +266,7 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, hasALevel: e.target.checked }))}
                 />
               }
-              label="I completed A-Level (S6)"
+              label="Did you complete A-Level (S6)?"
             />
           </Grid>
         </Grid>

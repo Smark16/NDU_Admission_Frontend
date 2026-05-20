@@ -211,9 +211,6 @@ export default function NewApplicationForm() {
     message: string
     type: "success" | "error" | "info"
   } | null>(null)
-  // const [submissionMessage, setSubmissionMessage] = useState(
-  //   "Your application has been submitted successfully. You will receive a confirmation email shortly."
-  // )
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
@@ -637,39 +634,16 @@ export default function NewApplicationForm() {
         draftPayload.append("campus", formData.campus || "");
         draftPayload.append("academic_level", formData.academic_level || "");
 
-        // Programs
-        // if (Array.isArray(formData.programs)) {
-        //   formData.programs.forEach(id => {
-        //     draftPayload.append("programs", String(id));
-        //   });
-        // }
-        // const validPrograms = Array.isArray(formData.programs) 
-        //   ? formData.programs.filter(id => Number(id) > 0)   // Remove 0 and invalid IDs
-        //   : [];
-
-        // validPrograms.forEach(id => {
-        //   draftPayload.append("programs", String(id));
-        // });
-
+        // ====================== PROGRAMS - PRESERVE ORDER ======================
         const validPrograms = Array.isArray(formData.programs)
           ? formData.programs
-            .map(id => Number(id))                    // Convert everything to number
-            .filter(id => !isNaN(id) && id > 0)       // Remove 0, NaN, empty strings
+            .map(id => Number(id))                    
+            .filter(id => !isNaN(id) && id > 0)       
           : [];
 
         validPrograms.forEach(id => {
           draftPayload.append("programs", String(id));
         });
-
-        // ====================== PROGRAMS - PRESERVE ORDER ======================
-        // const validPrograms = Array.isArray(formData.programs) 
-        //   ? formData.programs
-        //       .map(id => Number(id))
-        //       .filter(id => !isNaN(id) && id > 0)
-        //   : [];
-
-        // // Send as JSON string to preserve exact order
-        // draftPayload.append("programs", JSON.stringify(validPrograms));
 
         // JSON
         draftPayload.append("oLevelYear", formData.oLevelYear || "");
@@ -827,25 +801,11 @@ export default function NewApplicationForm() {
       if (formData.passportNumber) formDataToSend.append("passport_number", formData.passportNumber);
 
       // Programs
-      // formData.programs.forEach(id => formDataToSend.append("programs", String(id)));
-      // const validPrograms = formData.programs.filter(id => Number(id) > 0);
-      // validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
-      // const validPrograms = formData.programs
-      //   .map(id => Number(id))
-      //   .filter(id => !isNaN(id) && id > 0);
-
-      // validPrograms.forEach(id => formDataToSend.append("programs", String(id)));
       const orderedPrograms = formData.programs
         .map(id => Number(id))
         .filter(id => !isNaN(id) && id > 0);
 
       formDataToSend.append("programs", JSON.stringify(orderedPrograms));
-
-      // const validPrograms = formData.programs
-      //   .map(id => Number(id))
-      //   .filter(id => !isNaN(id) && id > 0);
-
-      // formDataToSend.append("programs", JSON.stringify(validPrograms));
 
       // Academic Details
       formDataToSend.append("has_olevel", formData.hasOLevel ? "true" : "false");
@@ -1411,18 +1371,6 @@ export default function NewApplicationForm() {
                   }
                 />
               )
-
-              // <CustomButton
-              //     onClick={handleSubmit}
-              //     endIcon={<CheckCircleIcon />}
-              //     text={
-              //       submitLoader ? (
-              //         <CircularProgress size={24} sx={{ color: "#ffffff" }} />
-              //       ) : (
-              //         "Submit Application"
-              //       )
-              //     }
-              //   />
             ) : (
               <CustomButton
                 onClick={handleNext}
@@ -1460,91 +1408,97 @@ export default function NewApplicationForm() {
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
-        // onPaymentSuccess={async(externalRef?: string) => {
+        // onPaymentSuccess={async (externalRef?: string) => {
         //   try {
-        //     // 1. Update state
+        //     // 1. Immediately update UI state
         //     setFormData((prev) => ({
         //       ...prev,
         //       application_fee_paid: true,
         //       externalReference: externalRef || "",
         //     }));
 
-        //     // 2. FORCE save draft and WAIT
-        //     await saveDraft(false);
+        //     showNotification("Payment successful! Saving your progress...", "success");
 
-        //     showNotification("Payment successful! Submitting your application now...", "success");
+        //     // 2. FORCE save draft with payment info (CRITICAL)
+        //     await saveDraft(false, 3, {
+        //       externalReference: externalRef || "",
+        //       forcePaid: true,
+        //     });   // This must complete before proceeding
 
-        //     // 4. Close modal AFTER everything
+        //     // 3. Close modal
         //     setTimeout(() => {
         //       setPaymentModalOpen(false);
-        //     }, 1500)  
+        //     }, 1200);
 
-
-        //     // 3. Submit ONLY after draft is saved
-        //     setTimeout(()=>{
-        //       handleSubmit({ 
-        //         externalReference: externalRef || "", 
-        //         forcePaid: true 
+        //     // 4. Submit application AFTER draft is saved
+        //     setTimeout(() => {
+        //       handleSubmit({
+        //         externalReference: externalRef || "",
+        //         forcePaid: true
         //       });
-        //     }, 1500)
+        //     }, 800);
 
         //   } catch (error) {
-        //     console.error("Critical flow failed:", error);
+        //     console.error("Failed to save draft after payment:", error);
 
-        //     showNotification(
-        //       "Payment received but failed to save your application. Please try again.",
-        //       "error"
-        //     );
+        //     // Still try to submit even if draft save fails
+        //     setFormData((prev) => ({
+        //       ...prev,
+        //       application_fee_paid: true,
+        //       externalReference: externalRef || "",
+        //     }));
+
+        //     showNotification("Payment received. Submitting application...", "success");
+
+        //     setTimeout(() => {
+        //       handleSubmit({
+        //         externalReference: externalRef || "",
+        //         forcePaid: true
+        //       });
+        //     }, 1000);
         //   }
         // }}
         onPaymentSuccess={async (externalRef?: string) => {
+          const newPaidState = {
+            application_fee_paid: true,
+            externalReference: externalRef || "",
+          };
+
+          // Update state
+          setFormData(prev => ({ ...prev, ...newPaidState }));
+
+          showNotification("Payment successful! Saving progress...", "success");
+
           try {
-            // 1. Immediately update UI state
-            setFormData((prev) => ({
-              ...prev,
-              application_fee_paid: true,
-              externalReference: externalRef || "",
-            }));
-
-            showNotification("Payment successful! Saving your progress...", "success");
-
-            // 2. FORCE save draft with payment info (CRITICAL)
+            // Wait for state + draft save
             await saveDraft(false, 3, {
               externalReference: externalRef || "",
               forcePaid: true,
-            });   // This must complete before proceeding
+            });
 
-            // 3. Close modal
-            setTimeout(() => {
-              setPaymentModalOpen(false);
-            }, 1200);
+            setPaymentModalOpen(false);
 
-            // 4. Submit application AFTER draft is saved
-            setTimeout(() => {
-              handleSubmit({
-                externalReference: externalRef || "",
-                forcePaid: true
-              });
-            }, 800);
+            // Submit immediately after draft succeeds (no arbitrary timeout)
+            await handleSubmit({
+              externalReference: externalRef || "",
+              forcePaid: true,
+            });
 
           } catch (error) {
-            console.error("Failed to save draft after payment:", error);
-
-            // Still try to submit even if draft save fails
-            setFormData((prev) => ({
-              ...prev,
-              application_fee_paid: true,
-              externalReference: externalRef || "",
-            }));
-
+            console.error("Post-payment save failed:", error);
+            
+            // Fallback: still try to submit with latest known values
+            setFormData(prev => ({ ...prev, ...newPaidState }));
+            
             showNotification("Payment received. Submitting application...", "success");
-
+            
+            // Small delay only as last resort
             setTimeout(() => {
               handleSubmit({
                 externalReference: externalRef || "",
-                forcePaid: true
+                forcePaid: true,
               });
-            }, 1000);
+            }, 300);
           }
         }}
         onPaymentFailed={clearPaymentState}

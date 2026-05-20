@@ -120,6 +120,220 @@
 //   )
 // }
 
+// "use client";
+
+// import {
+//   Card,
+//   CardContent,
+//   CardHeader,
+//   Typography,
+//   Box,
+//   Button,
+//   Paper,
+//   Stack,
+//   Chip,
+//   IconButton,
+//   Dialog,
+//   DialogTitle,
+//   DialogContent,
+//   DialogActions,
+//   FormControl,
+//   InputLabel,
+//   Select,
+//   MenuItem,
+//   TextField,
+//   // LinearProgress,
+// } from "@mui/material";
+// import FileIcon from "@mui/icons-material/Description";
+// import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+// import EditIcon from "@mui/icons-material/Edit";
+// import DeleteIcon from "@mui/icons-material/Delete";
+// import { useState } from "react";
+// import useAxios from "../../AxiosInstance/UseAxios";
+
+// interface DocumentsSectionProps {
+//   documents: any[];
+//   onUpdate?: () => void;
+// }
+
+// const DOCUMENT_TYPES = [
+//   "OLevel", "ALevel", "Other Qualifications"
+// ];
+
+// export default function DocumentsSection({
+//   documents,
+//   onUpdate,
+// }: DocumentsSectionProps) {
+//   const AxiosInstance = useAxios()
+//   const [openUpdateModal, setOpenUpdateModal] = useState(false);
+//   const [selectedDoc, setSelectedDoc] = useState<any>(null);
+//   const [newFile, setNewFile] = useState<File | null>(null);
+//   const [newDocumentType, setNewDocumentType] = useState("");
+//   const [newName, setNewName] = useState("");
+//   const [isUploading, setIsUploading] = useState(false);
+
+//   const handleOpenUpdate = (doc: any) => {
+//     setSelectedDoc(doc);
+//     setNewDocumentType(doc.document_type);
+//     setNewName(doc.name || "");
+//     setNewFile(null);
+//     setOpenUpdateModal(true);
+//   };
+
+//   const handleUpdateDocument = async () => {
+//     if (!selectedDoc || !newFile) {
+//       alert("Please select a new file to replace the current one.");
+//       return;
+//     }
+
+//     setIsUploading(true);
+
+//     const formData = new FormData();
+//     formData.append("file", newFile);
+//     if (newDocumentType) formData.append("document_type", newDocumentType);
+//     if (newName) formData.append("name", newFile.name);
+
+//     try {
+//       const res = await AxiosInstance.patch(`/api/admissions/document/${selectedDoc.id}/update/`, {formData});
+//       setOpenUpdateModal(false);
+//       onUpdate?.();
+
+//     } catch (err) {
+//       alert("Network error. Please try again.");
+//     } finally {
+//       setIsUploading(false);
+//     }
+//   };
+
+//   const handleDelete = async (docId: number) => {
+//     if (!confirm("Delete this document permanently?")) return;
+
+//     try {
+//       const res = await AxiosInstance.delete(`/api/admissions/document/${docId}/`);
+
+//       if (res.ok) onUpdate?.();
+//       else alert("Failed to delete document");
+//     } catch (err) {
+//       alert("Network error");
+//     }
+//   };
+
+//   const openInNewTab = (url: string) => {
+//     window.open(url, "_blank", "noopener,noreferrer");
+//   };
+
+//   return (
+//     <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
+//       <CardHeader
+//         avatar={<FileIcon sx={{ color: "primary.main" }} />}
+//         title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Documents</Typography>}
+//       />
+//       <CardContent>
+//         {documents.length > 0 ? (
+//           <Stack spacing={2}>
+//             {documents.map((doc: any) => (
+//               <Paper
+//                 key={doc.id}
+//                 sx={{
+//                   p: 2.5,
+//                   border: "1px solid",
+//                   borderColor: "divider",
+//                   "&:hover": { borderColor: "primary.main", backgroundColor: "action.hover" },
+//                 }}
+//               >
+//                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+//                   <FileIcon sx={{ color: "primary.main", fontSize: 32 }} />
+
+//                   <Box sx={{ flexGrow: 1 }}>
+//                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+//                       {doc.name || "Untitled Document"}
+//                     </Typography>
+//                     <Chip label={doc.document_type} size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+//                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+//                       Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}
+//                     </Typography>
+//                   </Box>
+
+//                   <Stack direction="row" spacing={1}>
+//                     <IconButton color="primary" onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file_url}`|| `${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}>
+//                       <OpenInNewIcon />
+//                     </IconButton>
+//                     <IconButton color="info" onClick={() => handleOpenUpdate(doc)}>
+//                       <EditIcon />
+//                     </IconButton>
+//                     <IconButton color="error" onClick={() => handleDelete(doc.id)}>
+//                       <DeleteIcon />
+//                     </IconButton>
+//                   </Stack>
+//                 </Box>
+//               </Paper>
+//             ))}
+//           </Stack>
+//         ) : (
+//           <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 6 }}>
+//             No documents uploaded yet
+//           </Typography>
+//         )}
+//       </CardContent>
+
+//       {/* Update / Replace Document Modal */}
+//       <Dialog open={openUpdateModal} onClose={() => setOpenUpdateModal(false)} maxWidth="sm" fullWidth>
+//         <DialogTitle>Replace Document</DialogTitle>
+//         <DialogContent sx={{ mt: 2 }}>
+//           {selectedDoc && (
+//             <Box sx={{ mb: 3 }}>
+//               <Typography variant="subtitle2">Current Document:</Typography>
+//               <Typography>{selectedDoc.name || selectedDoc.document_type}</Typography>
+//             </Box>
+//           )}
+
+//           <Stack spacing={3}>
+//             <FormControl fullWidth>
+//               <InputLabel>Document Type</InputLabel>
+//               <Select
+//                 value={newDocumentType}
+//                 label="Document Type"
+//                 onChange={(e) => setNewDocumentType(e.target.value)}
+//               >
+//                 {DOCUMENT_TYPES.map((type) => (
+//                   <MenuItem key={type} value={type}>{type}</MenuItem>
+//                 ))}
+//               </Select>
+//             </FormControl>
+
+//             <TextField
+//               fullWidth
+//               label="Document Name (Optional)"
+//               value={newName}
+//               onChange={(e) => setNewName(e.target.value)}
+//             />
+
+//             <Button
+//               variant="outlined"
+//               component="label"
+//               fullWidth
+//               startIcon={<FileIcon />}
+//             >
+//               {newFile ? newFile.name : "Choose New File"}
+//               <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
+//             </Button>
+//           </Stack>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setOpenUpdateModal(false)} disabled={isUploading}>Cancel</Button>
+//           <Button
+//             variant="contained"
+//             onClick={handleUpdateDocument}
+//             disabled={!newFile || isUploading}
+//           >
+//             {isUploading ? "Replacing..." : "Replace Document"}
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </Card>
+//   );
+// }
+
 "use client";
 
 import {
@@ -141,74 +355,134 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
-  // LinearProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import FileIcon from "@mui/icons-material/Description";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useState } from "react";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { useState, useEffect } from "react";
+import useAxios from "../../AxiosInstance/UseAxios";
 
 interface DocumentsSectionProps {
   documents: any[];
+  application: any;           // Full application object
   onUpdate?: () => void;
 }
 
 const DOCUMENT_TYPES = [
-  "OLevel", "ALevel", "Passport", "National ID", "Birth Certificate",
-  "Recommendation Letter", "Transcript", "Other"
+  "OLevel",
+  "ALevel",
+  "Other Qualifications",
 ];
 
 export default function DocumentsSection({
-  documents,
+  documents: initialDocuments,
+  application,
   onUpdate,
 }: DocumentsSectionProps) {
-  const [openUpdateModal, setOpenUpdateModal] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
-  const [newFile, setNewFile] = useState<File | null>(null);
-  const [newDocumentType, setNewDocumentType] = useState("");
-  const [newName, setNewName] = useState("");
+  const AxiosInstance = useAxios();
+
+  const [documents, setDocuments] = useState<any[]>(initialDocuments || []);
+  const [openUploadModal, setOpenUploadModal] = useState(false);
+  const [openReplaceModal, setOpenReplaceModal] = useState(false);
+
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  console.log('documents', documents)
-  const handleOpenUpdate = (doc: any) => {
-    setSelectedDoc(doc);
-    setNewDocumentType(doc.document_type);
-    setNewName(doc.name || "");
-    setNewFile(null);
-    setOpenUpdateModal(true);
+
+  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [replaceType, setReplaceType] = useState("");
+  const [isReplacing, setIsReplacing] = useState(false);
+
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // Sync external changes
+  useEffect(() => {
+    setDocuments(initialDocuments || []);
+  }, [initialDocuments]);
+
+  const showToast = (message: string, severity: "success" | "error" = "success") => {
+    setToast({ open: true, message, severity });
   };
 
-  const handleUpdateDocument = async () => {
-    if (!selectedDoc || !newFile) {
-      alert("Please select a new file to replace the current one.");
+  const handleOpenUpload = () => {
+    setUploadFile(null);
+    setUploadType("");
+    setOpenUploadModal(true);
+  };
+
+  const handleOpenReplace = (doc: any) => {
+    setSelectedDoc(doc);
+    setReplaceType(doc.document_type || "");
+    setReplaceFile(null);
+    setOpenReplaceModal(true);
+  };
+
+  // Upload New Document
+  const handleUploadNew = async () => {
+    if (!uploadFile || !uploadType) {
+      showToast("Please select a file and document type", "error");
       return;
     }
 
     setIsUploading(true);
-
     const formData = new FormData();
-    formData.append("file", newFile);
-    if (newDocumentType) formData.append("document_type", newDocumentType);
-    if (newName) formData.append("name", newName);
+    formData.append("file", uploadFile);
+    formData.append("document_type", uploadType);
 
     try {
-      const res = await fetch(`/api/admissions/document/${selectedDoc.id}/update/`, {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (res.ok) {
-        setOpenUpdateModal(false);
-        onUpdate?.();
-      } else {
-        const error = await res.json().catch(() => ({}));
-        alert(error.detail || "Failed to update document");
-      }
-    } catch (err) {
-      alert("Network error. Please try again.");
+      const res = await AxiosInstance.post(`/api/admissions/upload_document/${application.id}/`, formData);
+      
+      // Immediate UI Update
+      setDocuments(prev => [res.data, ...prev]);
+      
+      setOpenUploadModal(false);
+      showToast("Document uploaded successfully!", "success");
+      onUpdate?.();
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to upload document", "error");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Replace Document
+  const handleReplaceDocument = async () => {
+    if (!selectedDoc || !replaceFile) {
+      showToast("Please select a new file", "error");
+      return;
+    }
+
+    setIsReplacing(true);
+    const formData = new FormData();
+    formData.append("file", replaceFile);
+    if (replaceType) formData.append("document_type", replaceType);
+
+    try {
+      await AxiosInstance.patch(`/api/admissions/document/${selectedDoc.id}/update/`, formData);
+      
+      // Immediate UI Update
+      setDocuments(prev => prev.map(doc => 
+        doc.id === selectedDoc.id 
+          ? { ...doc, name: replaceFile.name, document_type: replaceType || doc.document_type }
+          : doc
+      ));
+
+      setOpenReplaceModal(false);
+      showToast("Document replaced successfully!", "success");
+      onUpdate?.();
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to replace document", "error");
+    } finally {
+      setIsReplacing(false);
     }
   };
 
@@ -216,19 +490,20 @@ export default function DocumentsSection({
     if (!confirm("Delete this document permanently?")) return;
 
     try {
-      const res = await fetch(`/api/admissions/document/${docId}/`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) onUpdate?.();
-      else alert("Failed to delete document");
+      await AxiosInstance.delete(`/api/admissions/document/${docId}/`);
+      
+      // Immediate UI Update
+      setDocuments(prev => prev.filter(doc => doc.id !== docId));
+      
+      showToast("Document deleted successfully", "success");
+      onUpdate?.();
     } catch (err) {
-      alert("Network error");
+      showToast("Failed to delete document", "error");
     }
   };
 
   const openInNewTab = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -236,7 +511,20 @@ export default function DocumentsSection({
       <CardHeader
         avatar={<FileIcon sx={{ color: "primary.main" }} />}
         title={<Typography variant="h6" sx={{ fontWeight: 700 }}>Documents</Typography>}
+        action={
+          application?.status?.toLowerCase() !== 'admitted' && (
+          <Button
+            variant="contained"
+            startIcon={<UploadFileIcon />}
+            onClick={handleOpenUpload}
+            size="small"
+          >
+            Upload New
+          </Button>
+          )
+        }
       />
+
       <CardContent>
         {documents.length > 0 ? (
           <Stack spacing={2}>
@@ -257,40 +545,79 @@ export default function DocumentsSection({
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                       {doc.name || "Untitled Document"}
                     </Typography>
-                    <Chip label={doc.document_type} size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+                    <Chip 
+                      label={doc.document_type} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined" 
+                      sx={{ mt: 0.5 }} 
+                    />
                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
                       Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}
                     </Typography>
                   </Box>
 
                   <Stack direction="row" spacing={1}>
-                    <IconButton color="primary" onClick={() => openInNewTab(doc.file_url || doc.file)}>
+                    <IconButton color="primary" onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file_url}`|| `${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}>
                       <OpenInNewIcon />
                     </IconButton>
-                    <IconButton color="info" onClick={() => handleOpenUpdate(doc)}>
+
+                    {application?.status?.toLowerCase() !== 'admitted' && (
+                      <>
+                    <IconButton color="info" onClick={() => handleOpenReplace(doc)}>
                       <EditIcon />
                     </IconButton>
                     <IconButton color="error" onClick={() => handleDelete(doc.id)}>
                       <DeleteIcon />
                     </IconButton>
+                      </>
+                    )}
                   </Stack>
                 </Box>
               </Paper>
             ))}
           </Stack>
         ) : (
-          <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 6 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 8 }}>
             No documents uploaded yet
           </Typography>
         )}
       </CardContent>
 
-      {/* Update / Replace Document Modal */}
-      <Dialog open={openUpdateModal} onClose={() => setOpenUpdateModal(false)} maxWidth="sm" fullWidth>
+      {/* Upload New Modal */}
+      <Dialog open={openUploadModal} onClose={() => setOpenUploadModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Upload New Document</DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Stack spacing={3}>
+            <FormControl fullWidth>
+              <InputLabel>Document Type *</InputLabel>
+              <Select value={uploadType} label="Document Type *" onChange={(e) => setUploadType(e.target.value)}>
+                {DOCUMENT_TYPES.map((type) => (
+                  <MenuItem key={type} value={type}>{type}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button variant="outlined" component="label" fullWidth startIcon={<UploadFileIcon />}>
+              {uploadFile ? uploadFile.name : "Choose File *"}
+              <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenUploadModal(false)} disabled={isUploading}>Cancel</Button>
+          <Button variant="contained" onClick={handleUploadNew} disabled={!uploadFile || !uploadType || isUploading}>
+            {isUploading ? "Uploading..." : "Upload Document"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Replace Document Modal */}
+      <Dialog open={openReplaceModal} onClose={() => setOpenReplaceModal(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Replace Document</DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           {selectedDoc && (
-            <Box sx={{ mb: 3 }}>
+            <Box sx={{ mb: 3, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
               <Typography variant="subtitle2">Current Document:</Typography>
               <Typography>{selectedDoc.name || selectedDoc.document_type}</Typography>
             </Box>
@@ -299,46 +626,36 @@ export default function DocumentsSection({
           <Stack spacing={3}>
             <FormControl fullWidth>
               <InputLabel>Document Type</InputLabel>
-              <Select
-                value={newDocumentType}
-                label="Document Type"
-                onChange={(e) => setNewDocumentType(e.target.value)}
-              >
-                {DOCUMENT_TYPES.map((type) => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
-                ))}
+              <Select value={replaceType} label="Document Type" onChange={(e) => setReplaceType(e.target.value)}>
+                {DOCUMENT_TYPES.map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}
               </Select>
             </FormControl>
 
-            <TextField
-              fullWidth
-              label="Document Name (Optional)"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-
-            <Button
-              variant="outlined"
-              component="label"
-              fullWidth
-              startIcon={<FileIcon />}
-            >
-              {newFile ? newFile.name : "Choose New File"}
-              <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setNewFile(e.target.files?.[0] || null)} />
+            <Button variant="outlined" component="label" fullWidth startIcon={<UploadFileIcon />}>
+              {replaceFile ? replaceFile.name : "Choose New File"}
+              <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setReplaceFile(e.target.files?.[0] || null)} />
             </Button>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenUpdateModal(false)} disabled={isUploading}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleUpdateDocument}
-            disabled={!newFile || isUploading}
-          >
-            {isUploading ? "Replacing..." : "Replace Document"}
+          <Button onClick={() => setOpenReplaceModal(false)} disabled={isReplacing}>Cancel</Button>
+          <Button variant="contained" onClick={handleReplaceDocument} disabled={!replaceFile || isReplacing}>
+            {isReplacing ? "Replacing..." : "Replace Document"}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success/Error Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity={toast.severity} variant="filled" sx={{ width: "100%" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 }

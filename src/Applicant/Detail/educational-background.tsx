@@ -284,17 +284,47 @@ export default function EducationalBackgroundSection({
         </Table>
       </TableContainer>
       
-      {application?.status === 'submitted' && (
-      <Button
-        fullWidth
-        variant="outlined"
-        startIcon={<SwapHorizIcon />}
-        sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060", mt: 3 }}
-        onClick={onClick}
-      >
-        Update {levelName} results
-      </Button>
-      )} 
+      {application?.status?.toLowerCase() !== 'admitted' && (
+        <>
+          {/* O-Level Update Button */}
+          {levelName === 'O Level' && (
+            application?.has_olevel ? (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<SwapHorizIcon />}
+                sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060", mt: 3 }}
+                onClick={onClick}
+              >
+                Update {levelName} results
+              </Button>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: 'center' }}>
+                Enable "Has O-Level" in Personal Information to update results
+              </Typography>
+            )
+          )}
+
+          {/* A-Level Update Button */}
+          {levelName === 'A Level' && (
+            application?.has_alevel ? (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<SwapHorizIcon />}
+                sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060", mt: 3 }}
+                onClick={onClick}
+              >
+                Update {levelName} results
+              </Button>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: 'center' }}>
+                Enable "Has A-Level" in Personal Information to update results
+              </Typography>
+            )
+          )}
+        </>
+      )}
     </Paper>
   );
 
@@ -308,7 +338,7 @@ export default function EducationalBackgroundSection({
           </Typography>
         </Box>
 
-        {application?.status === 'submitted' && (
+        {application?.status?.toLowerCase() !== 'admitted' && (
         <Button variant="outlined" size="small" startIcon={<SwapHorizIcon />} onClick={handleOpenAdditional}>
           Update
         </Button>
