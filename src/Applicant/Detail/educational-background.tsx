@@ -293,7 +293,7 @@ useEffect(() => {
   }
 
   try {
-    const res = await AxiosInstance.post(endpoint, {
+    await AxiosInstance.post(endpoint, {
       [payloadKey]: payloadData
     });
 
