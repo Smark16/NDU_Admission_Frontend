@@ -24,6 +24,7 @@ import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 import RejectionForm from "./Review/RejectionForm"
 import { Stack } from "@mui/system"
+import { asApiList } from "../../../utils/asApiList"
 
 type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected' | "revoked"
 
@@ -263,6 +264,8 @@ export default function ApplicationList() {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
   const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm ?? "")
+  /** Only sent to the API after Apply Filters (avoids hiding rows while typing). */
+  const [appliedSearch, setAppliedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>(initialFilters?.statusFilter ?? "all")
   const [choiceConfirmationFilter, setChoiceConfirmationFilter] = useState<ChoiceConfirmationFilter>(
     initialFilters?.choiceConfirmationFilter ?? "all"
@@ -308,7 +311,7 @@ export default function ApplicationList() {
         params.append("page", String(page + 1))
         params.append("page_size", String(rowsPerPage))
       }
-      if (searchTerm) params.append("search", searchTerm)
+      if (appliedSearch.trim()) params.append("search", appliedSearch.trim())
       if (statusFilter !== "all") params.append("status", statusFilter)
       if (opts?.includeChoice !== false && choiceConfirmationFilter !== "all") {
         params.append("choice_confirmation", choiceConfirmationFilter)
@@ -326,7 +329,7 @@ export default function ApplicationList() {
     [
       page,
       rowsPerPage,
-      searchTerm,
+      appliedSearch,
       statusFilter,
       choiceConfirmationFilter,
       academicLevelFilter,
@@ -348,9 +351,13 @@ export default function ApplicationList() {
       const res = await AxiosInstance.get(
         `/api/admissions/all_applications_report/?${buildFilterParams({ includeChoice: true, forPage: true }).toString()}`
       )
-      const data = res.data.results || res.data
-      setApplications((Array.isArray(data) ? data : []).map(normalizeApplication))
-      setTotalCount(res.data.count ?? (Array.isArray(data) ? data.length : 0))
+      const list = asApiList<Record<string, unknown>>(res.data)
+      setApplications(list.map(normalizeApplication))
+      const count =
+        res.data && typeof res.data === "object" && !Array.isArray(res.data) && "count" in res.data
+          ? Number((res.data as { count?: number }).count ?? list.length)
+          : list.length
+      setTotalCount(count)
     } catch (err: any) {
       console.error("Failed to load applications:", err)
       setError(
@@ -382,6 +389,16 @@ export default function ApplicationList() {
     fetchApplications()
     fetchChoiceStats()
   }, [fetchApplications, fetchChoiceStats])
+
+  /** Prevent empty table when filters shrink result set but page stays high. */
+  useEffect(() => {
+    if (totalCount <= 0) {
+      if (page !== 0) setPage(0)
+      return
+    }
+    const maxPage = Math.max(0, Math.ceil(totalCount / rowsPerPage) - 1)
+    if (page > maxPage) setPage(maxPage)
+  }, [totalCount, rowsPerPage, page])
 
   useEffect(() => {
     const refresh = () => {
@@ -449,21 +466,12 @@ export default function ApplicationList() {
     [applications]
   )
 
-  /** Client-side safety net if API returns rows without applying choice_confirmation. */
-  const displayApplications = useMemo(() => {
-    if (choiceConfirmationFilter === "confirmed") {
-      return applications.filter(isApplicantProgramChoicesConfirmed)
-    }
-    if (choiceConfirmationFilter === "awaiting") {
-      return applications.filter(isProgramChoicesAwaiting)
-    }
-    if (choiceConfirmationFilter === "flagged") {
-      return applications.filter((app) => hasSuspectProgramChoices(app) && !isProgramChoicesConfirmed(app))
-    }
-    return applications
-  }, [applications, choiceConfirmationFilter])
-
-  const paginatedApplications = displayApplications
+  /**
+   * Table rows come straight from the API when a programme-choice filter is active.
+   * Re-filtering client-side hid every row if program_choices_suspect was missing/false
+   * in the payload even though the server already applied choice_confirmation.
+   */
+  const paginatedApplications = applications
 
   const activeChoiceFilterLabel =
     choiceConfirmationFilter === "confirmed"
@@ -538,13 +546,13 @@ export default function ApplicationList() {
   const clearSelection = () => setSelected([])
 
   const handleApplyFilters = () => {
+    setAppliedSearch(searchTerm.trim())
     setPage(0)
-    fetchApplications()
-    fetchChoiceStats()
   }
 
   const handleClearFilters = () => {
     setSearchTerm("");
+    setAppliedSearch("");
     setStatusFilter("all");
     setChoiceConfirmationFilter("all");
     setAcademicLevelFilter("all");
@@ -723,6 +731,8 @@ export default function ApplicationList() {
             <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
               <Card
                 onClick={() => {
+                  setSearchTerm("")
+                  setAppliedSearch("")
                   if (stat.kind === "choice") {
                     setChoiceConfirmationFilter(stat.filter as ChoiceConfirmationFilter)
                     setStatusFilter("all")
@@ -782,7 +792,7 @@ export default function ApplicationList() {
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth size="small"
-              placeholder="Search by name, email, ID..."
+              placeholder="Search name, email, ref — then Apply Filters"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#999" }} /></InputAdornment> } }}
@@ -809,7 +819,10 @@ export default function ApplicationList() {
                 value={choiceConfirmationFilter}
                 label="Programme choices"
                 onChange={(e) => {
+                  setSearchTerm("")
+                  setAppliedSearch("")
                   setChoiceConfirmationFilter(e.target.value as ChoiceConfirmationFilter)
+                  setStatusFilter("all")
                   setPage(0)
                 }}
               >
@@ -998,7 +1011,16 @@ export default function ApplicationList() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
-                      <Alert severity="info">No applications match your filters.</Alert>
+                      <Alert severity="info">
+                        No applications match your filters.
+                        {appliedSearch.trim() || searchTerm.trim() ? (
+                          <> Clear the search box and click <strong>Clear Filters</strong> (search only applies after Apply Filters).</>
+                        ) : choiceConfirmationFilter !== "all" && totalCount > 0 ? (
+                          <> Pagination is catching up — wait a moment or click <strong>Clear Filters</strong> and select the card again.</>
+                        ) : choiceConfirmationFilter !== "all" ? (
+                          <> Click <strong>Clear Filters</strong>, then <strong>Flagged data</strong> or <strong>Choices confirmed</strong>.</>
+                        ) : null}
+                      </Alert>
                     </TableCell>
                   </TableRow>
                 )}
