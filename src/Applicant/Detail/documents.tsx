@@ -142,7 +142,7 @@ import {
   Select,
   MenuItem,
   TextField,
-  LinearProgress,
+  // LinearProgress,
 } from "@mui/material";
 import FileIcon from "@mui/icons-material/Description";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -152,7 +152,6 @@ import { useState } from "react";
 
 interface DocumentsSectionProps {
   documents: any[];
-  applicationId: number | string;
   onUpdate?: () => void;
 }
 
@@ -163,7 +162,6 @@ const DOCUMENT_TYPES = [
 
 export default function DocumentsSection({
   documents,
-  applicationId,
   onUpdate,
 }: DocumentsSectionProps) {
   const [openUpdateModal, setOpenUpdateModal] = useState(false);
