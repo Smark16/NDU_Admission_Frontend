@@ -1065,7 +1065,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Box, TextField, Chip, TablePagination, Button, Alert,
@@ -1577,6 +1577,23 @@ export default function ApplicationList() {
     }
   }
 
+const location = useLocation();
+
+// Restore scroll position when returning from detail view
+useEffect(() => {
+  const state = location.state as { scrollY?: number } | null;
+
+  if (state?.scrollY !== undefined && state.scrollY > 0) {
+    // Small delay to allow table to render
+    setTimeout(() => {
+      window.scrollTo({
+        top: state.scrollY,
+        behavior: "instant",   // instant = no animation
+      });
+    }, 120);
+  }
+}, [location.state, applications]); // Re-run when data loads
+
   // Inline reject — opens the rejection dialog, then PATCHes when the user confirms
   const handleConfirmReject = async (reason: string) => {
     if (!rejectTarget) return
@@ -1642,6 +1659,18 @@ export default function ApplicationList() {
   const renderActions = (app: Application) => {
     const status = (app.status || "").toLowerCase()
 
+    const handleView = () => {
+    // Save current scroll position before navigating
+    const currentScrollY = window.scrollY;
+    
+    navigate(`/admin/application_review/${app.id}`, {
+      state: { 
+        returnTo: "/admin/application_list",
+        scrollY: currentScrollY   // ← This is the key
+      }
+    });
+  };
+
     const approveBtn = (
       <Button
         size="small"
@@ -1680,17 +1709,34 @@ export default function ApplicationList() {
       </Button>
     )
 
+    // const viewBtn = (
+    //   <Button
+    //     component={Link}
+    //     to={`/admin/application_review/${app.id}`}
+    //     state={{ returnTo: "/admin/application_list", listApp: app }}
+    //     size="small" variant="outlined" startIcon={<VisibilityIcon />}
+    //     sx={{ textTransform: "none", borderColor: "#1976d2", color: "#1976d2", fontSize: "0.75rem" }}
+    //   >
+    //     View
+    //   </Button>
+    // )
+
     const viewBtn = (
-      <Button
-        component={Link}
-        to={`/admin/application_review/${app.id}`}
-        state={{ returnTo: "/admin/application_list", listApp: app }}
-        size="small" variant="outlined" startIcon={<VisibilityIcon />}
-        sx={{ textTransform: "none", borderColor: "#1976d2", color: "#1976d2", fontSize: "0.75rem" }}
-      >
-        View
-      </Button>
-    )
+    <Button
+      size="small"
+      variant="outlined"
+      startIcon={<VisibilityIcon />}
+      onClick={handleView}          
+      sx={{ 
+        textTransform: "none", 
+        borderColor: "#1976d2", 
+        color: "#1976d2", 
+        fontSize: "0.75rem" 
+      }}
+    >
+      View
+    </Button>
+  );
 
     // Reviewer queue: submitted / under review → Approve + Reject + View
     if (status === "submitted" || status === "under_review") {
@@ -2109,7 +2155,7 @@ export default function ApplicationList() {
           <TablePagination
             rowsPerPageOptions={[25, 50, 100, 200]}
             component="div"
-            count={totalCount}           // ← Use total from backend
+            count={totalCount}        
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
