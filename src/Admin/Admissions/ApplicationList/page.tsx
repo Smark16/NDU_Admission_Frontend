@@ -1880,6 +1880,7 @@ export default function ApplicationList() {
                 <MenuItem value="submitted">Submitted</MenuItem>
                 <MenuItem value="under_review">Under Review</MenuItem>
                 <MenuItem value="pending_approval">Awaiting Registrar</MenuItem>
+                <MenuItem value="pending">Pending Results</MenuItem>
                 <MenuItem value="accepted">Approved</MenuItem>
                 <MenuItem value="admitted">Admitted</MenuItem>
                 <MenuItem value="revoked">Revoked</MenuItem>
