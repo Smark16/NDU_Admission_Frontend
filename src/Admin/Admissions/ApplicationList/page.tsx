@@ -1283,7 +1283,7 @@ const normalizeStatus = (status: string): AppStatus => {
   if (s === "direct_entry") return "direct_entry"
   if (s === "under_review") return "under_review"
   if (s === "pending_approval") return "pending_approval"
-  if(s === "pending") return "Pending Results"
+  if(s === "pending") return "pending"
   if (s === "rejected") return "rejected"
   if (s === "revoked") return "revoked"
   return "submitted"
