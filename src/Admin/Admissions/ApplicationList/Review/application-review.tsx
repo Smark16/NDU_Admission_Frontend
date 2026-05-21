@@ -47,6 +47,7 @@ import AdminProgramChoicePicker, {
   type AdminProgramOption,
   type ProgramChoiceSeed,
 } from "../../../../ReUsables/AdminProgramChoicePicker"
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 
 function resolveProgramIdsFromChoices(
   program_choices: Array<{ program_id?: number; choice_order?: number; program?: number }> | undefined,
@@ -141,6 +142,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   program_choices,
 }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [isPending, setIsPending] = useState(false)
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
@@ -206,6 +208,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         return "Submitted"
       case "rejected":
         return "Rejected"
+      case "pending":
+        return "Pending Results"
       default:
         return status || "Unknown"
     }
@@ -221,6 +225,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       case "submitted":
       case "under_review":
         return "info"
+      case "pending":
+        return "warning"
       default:
         return "warning"
     }
@@ -242,6 +248,21 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       showNotification(err?.response?.data?.detail || "Failed to approve application", "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePendingResults = async () => {
+    try {
+      setIsPending(true);
+      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "pending" });
+      setCurrentStatus("pending")
+      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "pending" } }))
+      showNotification("Application is Pending due to incomplete results", "success");
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to change application status", "error");
+    } finally {
+      setIsPending(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -992,7 +1013,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           fontWeight: 600,
                         }}
                       >
-                        Admit Student
+                        Admit
                       </Button>
                       <Button
                         variant="outlined"
@@ -1001,6 +1022,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         onClick={() => setOpenReject(true)}
                       >
                         Reject
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
+                        disabled={isPending}
+                        sx={{ textTransform: "none", borderColor: "#e67214", color: "#f17f14" }}
+                        onClick={handlePendingResults}
+                      >
+                        Pending
                       </Button>
                     </>
                   )}
@@ -1026,6 +1057,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         onClick={() => setOpenReject(true)}
                       >
                         Reject
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
+                        disabled={isPending}
+                        sx={{ textTransform: "none", borderColor: "#e67214", color: "#f17f14" }}
+                        onClick={handlePendingResults}
+                      >
+                        Pending
                       </Button>
                     </>
                   )}
