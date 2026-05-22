@@ -58,6 +58,7 @@ import { Link } from "react-router-dom";
 import useAxios from "../../../AxiosInstance/UseAxios";
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog";
 import { AuthContext } from "../../../Context/AuthContext";
+import TableChartIcon from '@mui/icons-material/TableChart';
 
 interface Admitted {
   id: number;
@@ -140,6 +141,7 @@ export default function AdmittedStudents() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadExport, setLoadExport] = useState(false)
 
   const [revokeReason, setRevokeReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -403,6 +405,73 @@ export default function AdmittedStudents() {
     return `${apiBaseUrl || window.location.origin}${normalized}`;
   };
 
+  // EXPORT ADMITTED STUDENTS - CORRECTED
+const handleExportExcel = async () => {
+  try {
+    setLoadExport(true);
+
+    const params = new URLSearchParams();
+
+    // Add your current filters to match backend expectations
+    if (batchFilter && batchFilter !== "all") {
+      params.append("batch", batchFilter);
+    }
+
+    if (campusFilter && campusFilter !== "all") {
+      // If you have campus ID, use it. Otherwise send name
+      const campusObj = allCampuses.find(c => c.name === campusFilter); // adjust if you have IDs
+      if (campusObj) params.append("campus", String(campusObj.id));
+      else params.append("campus", campusFilter);
+    }
+
+    if (facultyFilter && facultyFilter !== "all") {
+      params.append("faculty", facultyFilter);
+    }
+
+    if (programFilter && programFilter !== "all") {
+      params.append("program", programFilter);
+    }
+
+    if (registrationFilter !== "all") {
+      params.append("is_registered", registrationFilter === "registered" ? "true" : "false");
+    }
+
+    // You can add academic year if you have it in state
+    // params.append("academic_year", currentAcademicYear || "");
+
+    const url = `/api/admission_reports/export_admitted_students/?${params.toString()}`;
+
+    const response = await AxiosInstance.get(url, { 
+      responseType: "blob" 
+    });
+
+    // Create download link
+    const blob = new Blob([response.data], { 
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+    });
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `admitted_students_${new Date().toISOString().split("T")[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showToast("Admitted Students exported successfully!", "success");
+
+  } catch (err: any) {
+    console.error("Export failed:", err);
+    const errorMsg = err?.response?.data?.detail || 
+                    err?.response?.data?.error || 
+                    "Failed to export Excel file";
+    showToast(errorMsg, "error");
+  } finally {
+    setLoadExport(false);
+  }
+};
+
   const handleGenerateOfferLetter = async (student: Admitted) => {
     setStudentActionLoading(student.id, true);
     try {
@@ -477,7 +546,8 @@ export default function AdmittedStudents() {
               Admitted Students
             </Typography>
           </Stack>
-
+          
+          <Box sx={{display:"flex", gap:2}}>
           <Button
             variant="contained"
             startIcon={<CampaignIcon />}
@@ -486,6 +556,24 @@ export default function AdmittedStudents() {
           >
             {selectedAppIds.length > 0 ? `Send to ${selectedAppIds.length}` : "Send Communication"}
           </Button>
+
+          <Button
+            variant="contained"
+            startIcon={loadExport ? <CircularProgress size={20} color="inherit" /> : <TableChartIcon />}
+            onClick={handleExportExcel}
+            disabled={loadExport}
+            sx={{ 
+              backgroundColor: '#217346', // Excel green
+              '&:hover': { backgroundColor: '#1e6b3f' },
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            {loadExport ? "Exporting..." : "Export to Excel"}
+          </Button>
+          </Box>
+
+          
         </Stack>
 
         {/* Filters */}
