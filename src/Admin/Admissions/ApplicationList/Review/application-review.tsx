@@ -18,8 +18,11 @@ import {
   Divider,
   CircularProgress,
   FormControl,
+  RadioGroup,
   InputLabel,
   Select,
+  FormControlLabel,
+  Radio,
   MenuItem,
 } from "@mui/material"
 import {
@@ -32,6 +35,7 @@ import {
   Description as DescriptionIcon,
   SwapHoriz as SwapHorizIcon,
   Edit as EditIcon,
+  HourglassEmpty as PendingIcon,
 } from "@mui/icons-material"
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -47,7 +51,7 @@ import AdminProgramChoicePicker, {
   type AdminProgramOption,
   type ProgramChoiceSeed,
 } from "../../../../ReUsables/AdminProgramChoicePicker"
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+// import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 
 function resolveProgramIdsFromChoices(
   program_choices: Array<{ program_id?: number; choice_order?: number; program?: number }> | undefined,
@@ -148,6 +152,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   const [profileDownload, setProfileDownload] = useState(false)
   const [openReject, setOpenReject] = useState(false)
   const [openEditProfile, setOpenEditProfile] = useState(false)
+
+  // custom reasons
+  const [openPendingDialog, setOpenPendingDialog] = useState(false)  
+  const [pendingReason, setPendingReason] = useState<"incomplete_results" | "does_not_qualify" | "other">("incomplete_results")
+  const [customReason, setCustomReason] = useState("")
+
   const [editForm, setEditForm] = useState<Record<string, string>>({})
   const [savingProfile, setSavingProfile] = useState(false)
   const [openChangeProgramme, setOpenChangeProgramme] = useState(false)
@@ -251,20 +261,58 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     }
   };
 
-  const handlePendingResults = async () => {
-    try {
-      setIsPending(true);
-      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "pending" });
-      setCurrentStatus("pending")
-      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "pending" } }))
-      showNotification("Application is Pending due to incomplete results", "success");
-    } catch (err: any) {
-      showNotification(err?.response?.data?.detail || "Failed to change application status", "error");
-    } finally {
-      setIsPending(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  // const handlePendingResults = async () => {
+  //   try {
+  //     setIsPending(true);
+  //     await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "pending" });
+  //     setCurrentStatus("pending")
+  //     window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "pending" } }))
+  //     showNotification("Application is Pending due to incomplete results", "success");
+  //   } catch (err: any) {
+  //     showNotification(err?.response?.data?.detail || "Failed to change application status", "error");
+  //   } finally {
+  //     setIsPending(true);
+  //     window.scrollTo({ top: 0, behavior: "smooth" });
+  //   }
+  // };
+   // ==================== PENDING REASONS HANDLER ====================
+  const handlePending = async () => {
+    if (!pendingReason) return
+
+    let finalReason = ""
+
+    if (pendingReason === "other") {
+      if (!customReason.trim()) {
+        showNotification("Please provide a reason for 'Others'", "error")
+        return
+      }
+      finalReason = customReason.trim()
+    } else {
+      finalReason = pendingReason === "incomplete_results" ? "Incomplete Results" : "Does Not Qualify"
     }
-  };
+
+    try {
+      setIsPending(true)
+      await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, {
+        status: "pending",
+        pending_reason: finalReason,
+      })
+
+      setCurrentStatus("pending")
+      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { 
+        detail: { id: application.id, status: "pending" } 
+      }))
+
+      showNotification("Application marked as Pending with reason.", "success")
+      setOpenPendingDialog(false)
+      setCustomReason("")
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to mark as pending", "error")
+    } finally {
+      setIsPending(false)
+       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
 
   const handleReject = async (rejection_reason: string) => {
   if (!rejection_reason?.trim()) {
@@ -1023,7 +1071,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       >
                         Reject
                       </Button>
-                      <Button
+                      {/* <Button
                         variant="outlined"
                         size="small"
                         startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
@@ -1032,7 +1080,17 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         onClick={handlePendingResults}
                       >
                         Pending
-                      </Button>
+                      </Button> */}
+                       <Button
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<PendingIcon />}
+                      onClick={() => setOpenPendingDialog(true)}
+                      sx={{ borderColor: "#f57c00", color: "#f57c00" }}
+                    >
+                      Mark as Pending
+                    </Button>
+
                     </>
                   )}
 
@@ -1058,7 +1116,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       >
                         Reject
                       </Button>
-                      <Button
+                      {/* <Button
                         variant="outlined"
                         size="small"
                         startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
@@ -1067,7 +1125,17 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         onClick={handlePendingResults}
                       >
                         Pending
-                      </Button>
+                      </Button> */}
+                       <Button
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<PendingIcon />}
+                      onClick={() => setOpenPendingDialog(true)}
+                      sx={{ borderColor: "#f57c00", color: "#f57c00" }}
+                    >
+                      Mark as Pending
+                    </Button>
+
                     </>
                   )}
 
@@ -1084,6 +1152,60 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           </Card>
         </Grid>
       </Grid>
+
+      {/* ==================== PENDING REASONS DIALOG ==================== */}
+      <Dialog open={openPendingDialog} onClose={() => setOpenPendingDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Mark Application as Pending</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Please select a reason for marking this application as pending:
+          </Typography>
+
+          <RadioGroup
+            value={pendingReason}
+            onChange={(e) => setPendingReason(e.target.value as any)}
+          >
+            <FormControlLabel
+              value="incomplete_results"
+              control={<Radio />}
+              label="Incomplete Results / Missing Documents"
+            />
+            <FormControlLabel
+              value="does_not_qualify"
+              control={<Radio />}
+              label="Does Not Qualify Academically"
+            />
+            <FormControlLabel
+              value="other"
+              control={<Radio />}
+              label="Other Reason"
+            />
+          </RadioGroup>
+
+          {pendingReason === "other" && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Please specify the reason"
+              value={customReason}
+              onChange={(e) => setCustomReason(e.target.value)}
+              sx={{ mt: 2 }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPendingDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handlePending}
+            disabled={isPending || (pendingReason === "other" && !customReason.trim())}
+            startIcon={isPending ? <CircularProgress size={18} /> : null}
+          >
+            {isPending ? "Processing..." : "Confirm Pending"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <RejectionForm
         open={openReject}

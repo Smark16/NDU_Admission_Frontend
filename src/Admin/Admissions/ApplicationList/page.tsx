@@ -35,6 +35,7 @@ interface Application {
   last_name: string
   gender: string
   status: AppStatus
+  pending_reason:string
   created_at: string
   email: string
   programs: { id: number; name: string }[]
@@ -178,6 +179,8 @@ const choiceAwareStatusLabel = (app: Application, choiceFilter: ChoiceConfirmati
 
 const renderStatusChip = (app: Application, choiceFilter: ChoiceConfirmationFilter) => {
   const label = choiceAwareStatusLabel(app, choiceFilter)
+  const isPending = app.status === "pending";
+  const hasReason = !!app.pending_reason;
 
   if (isChoicesForReviewRow(app, choiceFilter)) {
     return (
@@ -202,13 +205,34 @@ const renderStatusChip = (app: Application, choiceFilter: ChoiceConfirmationFilt
   }
 
   return (
-    <Chip
-      label={label}
-      color={statusConfig[app.status]?.color ?? "default"}
-      icon={statusConfig[app.status]?.icon}
-      size="small"
-      sx={{ minWidth: 100 }}
-    />
+    <Box>
+      <Chip
+        label={label}
+        color={statusConfig[app.status]?.color ?? "default"}
+        icon={statusConfig[app.status]?.icon}
+        size="small"
+        sx={{ minWidth: 100 }}
+      />
+      
+      {/* Show reason below the chip if status is pending */}
+      {isPending && hasReason && (
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            mt: 0.5,
+            color: "#d32f2f",
+            fontStyle: "italic",
+            fontSize: "0.7rem",
+            lineHeight: 1.2,
+            maxWidth: 180,
+            wordBreak: "break-word"
+          }}
+        >
+          {app.pending_reason}
+        </Typography>
+      )}
+    </Box>
   )
 }
 
@@ -242,6 +266,7 @@ const normalizeApplication = (raw: any): Application => {
     last_name: String(raw?.last_name ?? ""),
     gender: String(raw?.gender ?? ""),
     status: normalizeStatus(String(raw?.status)),
+    pending_reason: String(raw?.pending_reason ?? ""),   // ← ADD THIS LINE
     created_at: String(raw?.created_at ?? new Date().toISOString()),
     email: String(raw?.email ?? ""),
     programs: normalizedPrograms,
@@ -1025,10 +1050,10 @@ useEffect(() => {
                   <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Academic Level</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Program(s)</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Faculty</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Submitted</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }} align="center">Actions</TableCell>
                 </TableRow>
