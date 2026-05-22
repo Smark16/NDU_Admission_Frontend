@@ -1050,10 +1050,10 @@ useEffect(() => {
                   <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Academic Level</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Program(s)</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Faculty</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }}>Submitted</TableCell>
                   <TableCell sx={{ fontWeight: "bold" }} align="center">Actions</TableCell>
                 </TableRow>
