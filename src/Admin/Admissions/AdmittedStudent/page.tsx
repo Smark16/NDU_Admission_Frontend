@@ -418,10 +418,6 @@ const handleExportExcel = async () => {
     }
 
     if (campusFilter && campusFilter !== "all") {
-      // If you have campus ID, use it. Otherwise send name
-      // const campusObj = allCampuses.find(c => c === campusFilter); // adjust if you have IDs
-      // if (campusObj) params.append("campus", String(campusObj.id));
-      // else
         params.append("campus", campusFilter);
     }
 

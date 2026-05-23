@@ -26,6 +26,7 @@ import RejectionForm from "./Review/RejectionForm"
 import { Stack } from "@mui/system"
 import { asApiList } from "../../../utils/asApiList"
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import TableChartIcon from '@mui/icons-material/TableChart';
 
 type AppStatus = "submitted" | "accepted" | "direct_entry" | "under_review" | "pending_approval" | "online" | 'rejected' | "revoked" | "pending"
 
@@ -35,7 +36,7 @@ interface Application {
   last_name: string
   gender: string
   status: AppStatus
-  pending_reason:string
+  pending_reason: string
   created_at: string
   email: string
   programs: { id: number; name: string }[]
@@ -114,7 +115,7 @@ const statusConfig: Record<
   online: { color: "success", icon: <CheckCircleIcon fontSize="small" /> },
   rejected: { color: "error", icon: <CancelIcon fontSize="small" /> },
   revoked: { color: "error", icon: <CancelIcon fontSize="small" /> },
-  pending: {color : "warning", icon: <HourglassEmptyIcon fontSize="small" /> }
+  pending: { color: "warning", icon: <HourglassEmptyIcon fontSize="small" /> }
 }
 
 const getStatusLabel = (status: AppStatus) => {
@@ -213,7 +214,7 @@ const renderStatusChip = (app: Application, choiceFilter: ChoiceConfirmationFilt
         size="small"
         sx={{ minWidth: 100 }}
       />
-      
+
       {/* Show reason below the chip if status is pending */}
       {isPending && hasReason && (
         <Typography
@@ -243,7 +244,7 @@ const normalizeStatus = (status: string): AppStatus => {
   if (s === "direct_entry") return "direct_entry"
   if (s === "under_review") return "under_review"
   if (s === "pending_approval") return "pending_approval"
-  if(s === "pending") return "pending"
+  if (s === "pending") return "pending"
   if (s === "rejected") return "rejected"
   if (s === "revoked") return "revoked"
   return "submitted"
@@ -313,6 +314,7 @@ export default function ApplicationList() {
   const [dateFrom, setDateFrom] = useState<string>(initialFilters?.dateFrom ?? "")
   const [dateTo, setDateTo] = useState<string>(initialFilters?.dateTo ?? "")
   const [campuses, setCampuses] = useState<Campus[]>([])
+  const [loadExport, setLoadExport] = useState(false)
 
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -538,22 +540,22 @@ export default function ApplicationList() {
     }
   }
 
-const location = useLocation();
+  const location = useLocation();
 
-// Restore scroll position when returning from detail view
-useEffect(() => {
-  const state = location.state as { scrollY?: number } | null;
+  // Restore scroll position when returning from detail view
+  useEffect(() => {
+    const state = location.state as { scrollY?: number } | null;
 
-  if (state?.scrollY !== undefined && state.scrollY > 0) {
-    // Small delay to allow table to render
-    setTimeout(() => {
-      window.scrollTo({
-        top: state.scrollY,
-        behavior: "instant",   // instant = no animation
-      });
-    }, 120);
-  }
-}, [location.state, applications]); // Re-run when data loads
+    if (state?.scrollY !== undefined && state.scrollY > 0) {
+      // Small delay to allow table to render
+      setTimeout(() => {
+        window.scrollTo({
+          top: state.scrollY,
+          behavior: "instant",   // instant = no animation
+        });
+      }, 120);
+    }
+  }, [location.state, applications]); // Re-run when data loads
 
   // Inline reject — opens the rejection dialog, then PATCHes when the user confirms
   const handleConfirmReject = async (reason: string) => {
@@ -617,20 +619,107 @@ useEffect(() => {
     setPage(0);
   };
 
+  // EXPORT APPLICANTS EXCEL - FULLY CORRECTED
+  const handleExportExcel = async () => {
+    try {
+      setLoadExport(true);
+
+      const params = new URLSearchParams();
+
+      // Use the same filters as your main table
+      if (debouncedSearch || searchTerm.trim()) {
+        params.append("search", (debouncedSearch || searchTerm).trim());
+      }
+
+      if (statusFilter && statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+
+      if (choiceConfirmationFilter && choiceConfirmationFilter !== "all") {
+        params.append("choice_confirmation", choiceConfirmationFilter);
+      }
+
+      if (academicLevelFilter && academicLevelFilter !== "all") {
+        params.append("academic_level", academicLevelFilter);
+      }
+
+      if (batchFilter && batchFilter !== "all") {
+        params.append("batch", batchFilter);
+      }
+
+      if (campusFilter && campusFilter !== "all") {
+        params.append("campus", campusFilter);
+      }
+
+      if (programFilter && programFilter !== "all") {
+        params.append("program", programFilter);
+      }
+
+      if (facultyFilter && facultyFilter !== "all") {
+        params.append("faculty", facultyFilter);
+      }
+
+      if (genderFilter && genderFilter !== "all") {
+        params.append("gender", genderFilter);
+      }
+
+      if (dateFrom) params.append("date_from", dateFrom);
+      if (dateTo) params.append("date_to", dateTo);
+
+      const url = `/api/admission_reports/export_applicants_report/?${params.toString()}`;
+
+      const response = await AxiosInstance.get(url, {
+        responseType: "blob"
+      });
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `applicants_report_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setToast({
+        open: true,
+        message: "Applicants exported successfully!",
+        severity: "success",
+      });
+
+    } catch (err: any) {
+      console.error("Export failed:", err);
+      const errorMsg = err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Failed to export applicants";
+      setToast({
+        open: true,
+        message: errorMsg,
+        severity: "error",
+      });
+    } finally {
+      setLoadExport(false);
+    }
+  };
+
   const renderActions = (app: Application) => {
     const status = (app.status || "").toLowerCase()
 
     const handleView = () => {
-    // Save current scroll position before navigating
-    const currentScrollY = window.scrollY;
-    
-    navigate(`/admin/application_review/${app.id}`, {
-      state: { 
-        returnTo: "/admin/application_list",
-        scrollY: currentScrollY   // ← This is the key
-      }
-    });
-  };
+      // Save current scroll position before navigating
+      const currentScrollY = window.scrollY;
+
+      navigate(`/admin/application_review/${app.id}`, {
+        state: {
+          returnTo: "/admin/application_list",
+          scrollY: currentScrollY   // ← This is the key
+        }
+      });
+    };
 
     const approveBtn = (
       <Button
@@ -683,21 +772,21 @@ useEffect(() => {
     // )
 
     const viewBtn = (
-    <Button
-      size="small"
-      variant="outlined"
-      startIcon={<VisibilityIcon />}
-      onClick={handleView}          
-      sx={{ 
-        textTransform: "none", 
-        borderColor: "#1976d2", 
-        color: "#1976d2", 
-        fontSize: "0.75rem" 
-      }}
-    >
-      View
-    </Button>
-  );
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<VisibilityIcon />}
+        onClick={handleView}
+        sx={{
+          textTransform: "none",
+          borderColor: "#1976d2",
+          color: "#1976d2",
+          fontSize: "0.75rem"
+        }}
+      >
+        View
+      </Button>
+    );
 
     // Reviewer queue: submitted / under review → Approve + Reject + View
     if (status === "submitted" || status === "under_review") {
@@ -733,6 +822,8 @@ useEffect(() => {
           <Typography variant="h4" sx={{ color: "#0D0060", fontWeight: "bold" }}>Applications</Typography>
           <Typography variant="body2" color="text.secondary">Manage and review all student applications</Typography>
         </Box>
+
+        <Box sx={{display:"flex", gap:2}}>
         <Button
           variant="contained"
           startIcon={<CampaignIcon />}
@@ -741,6 +832,22 @@ useEffect(() => {
         >
           {selected.length > 0 ? `Send to ${selected.length} selected` : "Send Communication"}
         </Button>
+
+        <Button
+          variant="contained"
+          startIcon={loadExport ? <CircularProgress size={20} color="inherit" /> : <TableChartIcon />}
+          onClick={handleExportExcel}
+          disabled={loadExport}
+          sx={{
+            backgroundColor: '#217346', // Excel green
+            '&:hover': { backgroundColor: '#1e6b3f' },
+            textTransform: 'none',
+            fontWeight: 600
+          }}
+        >
+          {loadExport ? "Exporting..." : "Export to Excel"}
+        </Button>
+        </Box>
       </Box>
 
       {/* Stats Cards */}
@@ -749,7 +856,7 @@ useEffect(() => {
         {[
           {
             label: "Total",
-            value: totalCount,                    
+            value: totalCount,
             filter: "all",
             kind: "status" as const
           },
@@ -859,13 +966,7 @@ useEffect(() => {
           )}
         </Alert>
       )}
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 960 }}>
-        The choice summary cards use the same search, status, batch, campus, and date filters as the table
-        (excluding the &quot;Programme choices&quot; dropdown). If a number looks wrong, click Clear Filters or
-        widen the date range. Purple chip = e.g. &quot;Approved · Choices confirmed&quot; after the applicant confirms in the portal.
-        Teal chip = e.g. &quot;Submitted · Choices for review&quot; for the migration cohort (not the same as blue Submitted alone).
-      </Typography>
-
+  
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
         <Grid container spacing={2} alignItems="center">
@@ -1116,7 +1217,7 @@ useEffect(() => {
           <TablePagination
             rowsPerPageOptions={[25, 50, 100, 200]}
             component="div"
-            count={totalCount}        
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
