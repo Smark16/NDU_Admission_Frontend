@@ -686,7 +686,7 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
                 </FormControl>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Year" type="number" value={qual.year} onChange={(e) => handleAdditionalQualChange(index, 'year', e.target.value)} size="small" />
+                <TextField fullWidth label="Year e.g(2022/2025, 2022-2025)" type="text" value={qual.year} onChange={(e) => handleAdditionalQualChange(index, 'year', e.target.value)} size="small" />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Class" value={qual.class_of_award} onChange={(e) => handleAdditionalQualChange(index, 'class_of_award', e.target.value)} size="small" />
