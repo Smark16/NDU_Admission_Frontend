@@ -17,6 +17,11 @@ import {
   Alert,
   Divider,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  DialogActions,
 } from "@mui/material"
 import {
   FileDownload as FileDownloadIcon,
@@ -28,6 +33,7 @@ import {
   Description as DescriptionIcon,
   Block as RevokeIcon,
   Restore as RestoreIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material"
 import PassportPhotoSection from './passport'
 import EducationalBackgroundSection from './education-background'
@@ -47,6 +53,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
   const [isLoading, setIsLoading] = useState(false)
   const [docLoading, setDocLoading] = useState(false)
   const [selectedID, setSelectedID] = useState<number | null>(null)
+  // const [currentStatus, setCurrentStatus] = useState(application?.status || "submitted")
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [openEditProfile, setOpenEditProfile] = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, string>>({})
   const navigate = useNavigate()
   const AxiosInstance = useAxios()
 
@@ -55,6 +65,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     type: "success" | "error" | "info"
   } | null>(null)
 
+  // useEffect(() => {
+  //   setCurrentStatus(application?.status || "submitted")
+  // }, [application?.status])
 
   // === NOTIFICATION HELPER ===
   const showNotification = (message: string, type: "success" | "error" | "info") => {
@@ -143,7 +156,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     }
   }
 
-  const downloadDocument = async (url: string, filename: string, seletedId:number) => {
+  const downloadDocument = async (url: string, filename: string, seletedId: number) => {
     setSelectedID(seletedId)
     try {
       setDocLoading(true)
@@ -165,7 +178,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
     } catch (error) {
       console.error("Failed to download document:", error);
       showNotification("Failed to download document:", "error")
-    }finally{
+    } finally {
       setDocLoading(false)
     }
   };
@@ -191,6 +204,21 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
       setIsLoading(false)
     }
   }
+
+   const handleEditProfile = async () => {
+    setSavingProfile(true)
+    try {
+      await AxiosInstance.patch(`/api/admissions/edit_application_profile/${application.id}`, editForm)
+      showNotification("Profile updated successfully.", "success")
+      setOpenEditProfile(false)
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to update profile.", "error")
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -321,36 +349,36 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     {application.batch}
                   </Typography>
                 </Grid>
-                 {application.address && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    Address
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.address}
-                  </Typography>
-                </Grid>
+                {application.address && (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      Address
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {application.address}
+                    </Typography>
+                  </Grid>
                 )}
 
                 {application.olevel_school ? (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    O-Level School
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.olevel_school} ({application.olevel_year})
-                  </Typography>
-                </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      O-Level School
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {application.olevel_school} ({application.olevel_year})
+                    </Typography>
+                  </Grid>
                 ) : (
                   <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    O-Level School
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color:"#c9672e" }}>
-                    The Above Student never Went through Olevel, 
-                    Please find there Additional Qualifications Below if provided
-                  </Typography>
-                </Grid>
+                    <Typography variant="caption" color="textSecondary">
+                      O-Level School
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#c9672e" }}>
+                      The Above Student never Went through Olevel,
+                      Please find there Additional Qualifications Below if provided
+                    </Typography>
+                  </Grid>
                 )}
 
                 {application.alevel_school ? (
@@ -367,10 +395,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                     <Typography variant="caption" color="textSecondary">
                       A-Level School
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color:"#e95656" }}>
-                    The Above Student never Went through Alevel, 
-                    Please find there Additional Qualifications Below if provided
-                  </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#e95656" }}>
+                      The Above Student never Went through Alevel,
+                      Please find there Additional Qualifications Below if provided
+                    </Typography>
                   </Grid>
                 )}
               </Grid>
@@ -499,6 +527,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
                 </Typography>
               </Box>
 
+              <Box>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<EditIcon />}
+                  onClick={() => {
+                    setEditForm({
+                      first_name: application.first_name || "",
+                      last_name: application.last_name || "",
+                      middle_name: application.middle_name || "",
+                      date_of_birth: application.date_of_birth || "",
+                      gender: application.gender || "",
+                      nationality: application.nationality || "",
+                      phone: application.phone || "",
+                      email: application.email || "",
+                      address: application.address || "",
+                      disabled: application.disabled || "",
+                      next_of_kin_name: application.next_of_kin_name || "",
+                      next_of_kin_contact: application.next_of_kin_contact || "",
+                      next_of_kin_relationship: application.next_of_kin_relationship || "",
+                      nin: application.nin || "",
+                      passport_number: application.passport_number || "",
+                    })
+                    setOpenEditProfile(true)
+                  }}
+                  sx={{ textTransform: "none", borderColor: "#1565c0", color: "#1565c0" }}
+                >
+                  Edit Profile
+                </Button>
+              </Box>
+
               {application.reviewed_by && (
                 <>
                   <Divider />
@@ -593,6 +652,57 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ application, docu
           </Card>
         </Grid>
       </Grid>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={openEditProfile} onClose={() => setOpenEditProfile(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ background: "#1565c0", color: "#fff" }}>
+          Edit Profile — {application.first_name} {application.last_name}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            Correct any personal details below. Only changed fields will be saved.
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {[
+              { key: "first_name", label: "First Name" },
+              { key: "last_name", label: "Last Name" },
+              { key: "middle_name", label: "Middle Name" },
+              { key: "date_of_birth", label: "Date of Birth", type: "date" },
+              { key: "gender", label: "Gender" },
+              { key: "nationality", label: "Nationality" },
+              { key: "phone", label: "Phone" },
+              { key: "email", label: "Email" },
+              { key: "address", label: "Address" },
+              { key: "nin", label: "NIN" },
+              { key: "passport_number", label: "Passport Number" },
+              { key: "next_of_kin_name", label: "Next of Kin Name" },
+              { key: "next_of_kin_contact", label: "Next of Kin Contact" },
+              { key: "next_of_kin_relationship", label: "Next of Kin Relationship" },
+            ].map(({ key, label, type }) => (
+              <TextField
+                key={key}
+                size="small"
+                label={label}
+                type={type || "text"}
+                value={editForm[key] || ""}
+                onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))}
+                slotProps={type === "date" ? { inputLabel: { shrink: true } } : undefined}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditProfile(false)} disabled={savingProfile}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleEditProfile}
+            disabled={savingProfile}
+            sx={{ bgcolor: "#1565c0" }}
+          >
+            {savingProfile ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }
