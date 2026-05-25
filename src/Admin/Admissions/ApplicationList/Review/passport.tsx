@@ -40,7 +40,7 @@ export default function PassportPhotoSection({ application }: PassportPhotoSecti
   }
 };
   return (
-    <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 } }}>
+    <Card sx={{ boxShadow: 1, "&:hover": { boxShadow: 3 }, mt:2 }}>
       <CardHeader
         avatar={<ImageIcon sx={{ color: "primary.main" }} />}
         title={

@@ -13,7 +13,7 @@ import {
   Button,
   Chip,
   Avatar,
-  Paper,
+  // Paper,
   Alert,
   Divider,
   CircularProgress,
@@ -24,17 +24,19 @@ import {
   FormControlLabel,
   Radio,
   MenuItem,
+  Checkbox,
 } from "@mui/material"
 import {
   FileDownload as FileDownloadIcon,
-  OpenInNew as OpenInNewIcon,
+  // OpenInNew as OpenInNewIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Person as PersonIcon,
   School as SchoolIcon,
-  Description as DescriptionIcon,
+  // Description as DescriptionIcon,
   SwapHoriz as SwapHorizIcon,
   Edit as EditIcon,
+  Add as AddIcon,
   HourglassEmpty as PendingIcon,
 } from "@mui/icons-material"
 import {
@@ -51,6 +53,7 @@ import AdminProgramChoicePicker, {
   type AdminProgramOption,
   type ProgramChoiceSeed,
 } from "../../../../ReUsables/AdminProgramChoicePicker"
+import DocumentsSection from './documents';   // ← Add this import
 // import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 
 function resolveProgramIdsFromChoices(
@@ -147,14 +150,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [isPending, setIsPending] = useState(false)
-  const [docLoading, setDocLoading] = useState(false)
-  const [selectedID, setSelectedID] = useState<number | null>(null)
+  // const [docLoading, setDocLoading] = useState(false)
+  // const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
   const [openReject, setOpenReject] = useState(false)
   const [openEditProfile, setOpenEditProfile] = useState(false)
 
   // custom reasons
-  const [openPendingDialog, setOpenPendingDialog] = useState(false)  
+  const [openPendingDialog, setOpenPendingDialog] = useState(false)
   const [pendingReason, setPendingReason] = useState<"incomplete_results" | "does_not_qualify" | "other">("incomplete_results")
   const [customReason, setCustomReason] = useState("")
 
@@ -187,6 +190,70 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       : null
   )
   const [currentStatus, setCurrentStatus] = useState(application?.status || "submitted")
+
+  // === New State for Setup Modal ===
+  const [openSetupModal, setOpenSetupModal] = useState(false)
+  const [isSavingSetup, setIsSavingSetup] = useState(false)
+
+  const [setupForm, setSetupForm] = useState({
+    has_olevel: false,
+    olevel_school: "",
+    olevel_index_number: "",
+    olevel_year: "",
+
+    has_alevel: false,
+    alevel_school: "",
+    alevel_index_number: "",
+    alevel_year: "",
+    alevel_combination: "",
+  })
+
+  // Load setup form from application
+    useEffect(() => {
+      if (application) {
+        setSetupForm({
+          has_olevel: application.has_olevel || false,
+          olevel_school: application.olevel_school || "",
+          olevel_index_number: application.olevel_index_number || "",
+          olevel_year: application.olevel_year || "",
+  
+          has_alevel: application.has_alevel || false,
+          alevel_school: application.alevel_school || "",
+          alevel_index_number: application.alevel_index_number || "",
+          alevel_year: application.alevel_year || "",
+          alevel_combination: application.alevel_combination || "",
+        });
+      }
+    }, [application]);
+
+  const handleOpenSetup = () => setOpenSetupModal(true)
+
+  const handleSaveSetup = async () => {
+    if (!application?.id) return
+
+    setIsSavingSetup(true)
+    try {
+      await AxiosInstance.post(`/api/admissions/admin_update_education_setup/${application.id}/`, {
+        has_olevel: setupForm.has_olevel,
+        olevel_school: setupForm.olevel_school,
+        olevel_index_number: setupForm.olevel_index_number,
+        olevel_year: setupForm.olevel_year,
+
+        has_alevel: setupForm.has_alevel,
+        alevel_school: setupForm.alevel_school,
+        alevel_index_number: setupForm.alevel_index_number,
+        alevel_year: setupForm.alevel_year,
+        alevel_combination: setupForm.alevel_combination,
+      })
+
+      setOpenSetupModal(false)
+      window.location.reload() // Refresh to show updated info
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || "Failed to save education setup")
+    } finally {
+      setIsSavingSetup(false)
+    }
+  }
 
   useEffect(() => {
     setCurrentStatus(application?.status || "submitted")
@@ -261,21 +328,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     }
   };
 
-  // const handlePendingResults = async () => {
-  //   try {
-  //     setIsPending(true);
-  //     await AxiosInstance.patch(`/api/admissions/change_applicatio_status/${application.id}`, { status: "pending" });
-  //     setCurrentStatus("pending")
-  //     window.dispatchEvent(new CustomEvent('applicationStatusChanged', { detail: { id: application.id, status: "pending" } }))
-  //     showNotification("Application is Pending due to incomplete results", "success");
-  //   } catch (err: any) {
-  //     showNotification(err?.response?.data?.detail || "Failed to change application status", "error");
-  //   } finally {
-  //     setIsPending(true);
-  //     window.scrollTo({ top: 0, behavior: "smooth" });
-  //   }
-  // };
-   // ==================== PENDING REASONS HANDLER ====================
+  // ==================== PENDING REASONS HANDLER ====================
   const handlePending = async () => {
     if (!pendingReason) return
 
@@ -299,8 +352,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       })
 
       setCurrentStatus("pending")
-      window.dispatchEvent(new CustomEvent('applicationStatusChanged', { 
-        detail: { id: application.id, status: "pending" } 
+      window.dispatchEvent(new CustomEvent('applicationStatusChanged', {
+        detail: { id: application.id, status: "pending" }
       }))
 
       showNotification("Application marked as Pending with reason.", "success")
@@ -310,52 +363,52 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       showNotification(err?.response?.data?.detail || "Failed to mark as pending", "error")
     } finally {
       setIsPending(false)
-       window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
   const handleReject = async (rejection_reason: string) => {
-  if (!rejection_reason?.trim()) {
-    showNotification("Rejection reason is required", "error");
-    return;
-  }
+    if (!rejection_reason?.trim()) {
+      showNotification("Rejection reason is required", "error");
+      return;
+    }
 
-  try {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    const payload = {
-      rejection_reason: rejection_reason.trim(),
-    };
+      const payload = {
+        rejection_reason: rejection_reason.trim(),
+      };
 
-    await AxiosInstance.patch(
-      `/api/admissions/reject_application/${application.id}`,
-      payload
-    );
+      await AxiosInstance.patch(
+        `/api/admissions/reject_application/${application.id}`,
+        payload
+      );
 
-    setCurrentStatus("rejected")
-    setIsLoading(false);
-    showNotification("Application has been successfully rejected", "success");
+      setCurrentStatus("rejected")
+      setIsLoading(false);
+      showNotification("Application has been successfully rejected", "success");
 
-    // Optional: Refresh or navigate after success
-    setTimeout(() => {
-      navigate(returnTo);
-    }, 800);
+      // Optional: Refresh or navigate after success
+      setTimeout(() => {
+        navigate(returnTo);
+      }, 800);
 
-  } catch (err: any) {
-    setIsLoading(false);
-    
-    console.error("Rejection error:", err);
-    
-    const errorMessage = 
-      err?.response?.data?.detail || 
-      err?.response?.data?.rejection_reason?.[0] ||
-      err?.response?.data?.message ||
-      "Failed to reject application. Please try again.";
+    } catch (err: any) {
+      setIsLoading(false);
 
-    showNotification(errorMessage, "error");
-  }
-};
- 
+      console.error("Rejection error:", err);
+
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.rejection_reason?.[0] ||
+        err?.response?.data?.message ||
+        "Failed to reject application. Please try again.";
+
+      showNotification(errorMessage, "error");
+    }
+  };
+
   // download student profile
   const handleDownloadProfile = async () => {
     try {
@@ -378,32 +431,32 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     }
   };
 
-  const downloadDocument = async (url: string, filename: string, seletedId:number) => {
-    setSelectedID(seletedId)
-    try {
-      setDocLoading(true)
-      const response = await fetch(url, { mode: "cors" });
-      if (!response.ok) throw new Error("Network response was not ok");
+  // const downloadDocument = async (url: string, filename: string, seletedId: number) => {
+  //   setSelectedID(seletedId)
+  //   try {
+  //     setDocLoading(true)
+  //     const response = await fetch(url, { mode: "cors" });
+  //     if (!response.ok) throw new Error("Network response was not ok");
 
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+  //     const blob = await response.blob();
+  //     const blobUrl = window.URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  //     const link = document.createElement("a");
+  //     link.href = blobUrl;
+  //     link.download = filename;
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
 
-      // Clean up
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Failed to download document:", error);
-      showNotification("Failed to download document:", "error")
-    }finally{
-      setDocLoading(false)
-    }
-  };
+  //     // Clean up
+  //     window.URL.revokeObjectURL(blobUrl);
+  //   } catch (error) {
+  //     console.error("Failed to download document:", error);
+  //     showNotification("Failed to download document:", "error")
+  //   } finally {
+  //     setDocLoading(false)
+  //   }
+  // };
 
   const handleEditProfile = async () => {
     setSavingProfile(true)
@@ -492,8 +545,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             code: p.code,
             campus_ids: Array.isArray(p.campuses)
               ? p.campuses
-                  .map((c: any) => Number(typeof c === "object" ? c.id : c))
-                  .filter((x: number) => Number.isFinite(x))
+                .map((c: any) => Number(typeof c === "object" ? c.id : c))
+                .filter((x: number) => Number.isFinite(x))
               : [],
             academic_level_id:
               p.academic_level_id != null && Number.isFinite(Number(p.academic_level_id))
@@ -544,7 +597,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const academicLevelHint =
     firstSelectedProgram?.academic_level_id != null &&
-    Number(firstSelectedProgram.academic_level_id) !== Number(application?.academic_level_id ?? 0)
+      Number(firstSelectedProgram.academic_level_id) !== Number(application?.academic_level_id ?? 0)
       ? `Academic level will update to ${firstSelectedProgram.academic_level} on save`
       : undefined
 
@@ -553,6 +606,88 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
     return value.toLocaleString();
   };
+
+  // === Academic Information Section (Updated Logic) ===
+  const renderAcademicInfo = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardHeader 
+        avatar={<SchoolIcon />} 
+        title="Academic Information" 
+        titleTypographyProps={{ variant: "h6" }} 
+      />
+      <Divider />
+      <CardContent>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">Batch</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {application.batch}
+            </Typography>
+          </Grid>
+
+          {application.address && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" color="textSecondary">Address</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {application.address}
+              </Typography>
+            </Grid>
+          )}
+
+          {/* ==================== O-LEVEL ==================== */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">O-Level</Typography>
+            {application.olevel_school ? (
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {application.olevel_school} ({application.olevel_year})
+                {application.olevel_index_number && ` • Index: ${application.olevel_index_number}`}
+              </Typography>
+            ) : (
+              <Box>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  No O-Level details provided
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenSetup}
+                >
+                  Setup O-Level
+                </Button>
+              </Box>
+            )}
+          </Grid>
+
+          {/* ==================== A-LEVEL ==================== */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">A-Level</Typography>
+            {application.alevel_school ? (
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {application.alevel_school} ({application.alevel_year})
+                {application.alevel_combination && ` • ${application.alevel_combination}`}
+              </Typography>
+            ) : (
+              <Box>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  No A-Level details provided
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenSetup}
+                >
+                  Setup A-Level
+                </Button>
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  )
+
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -692,75 +827,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           </Card>
 
           {/* Academic Information Section */}
-          <Card sx={{ mb: 3 }}>
-            <CardHeader avatar={<SchoolIcon />} title="Academic Information" titleTypographyProps={{ variant: "h6" }} />
-            <Divider />
-            <CardContent>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    Batch
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.batch}
-                  </Typography>
-                </Grid>
-
-                {application.address && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    Address
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.address}
-                  </Typography>
-                </Grid>
-                )}
-
-                {application.olevel_school ? (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    O-Level School
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {application.olevel_school} ({application.olevel_year})
-                  </Typography>
-                </Grid>
-                ) : (
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="textSecondary">
-                    O-Level School
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color:"#c9672e" }}>
-                    The Above Student never Went through Olevel, 
-                    Please find there Additional Qualifications Below if provided
-                  </Typography>
-                </Grid>
-                )}
-
-                {application.alevel_school ? (
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="caption" color="textSecondary">
-                      A-Level School
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {application.alevel_school} ({application.alevel_year})
-                    </Typography>
-                  </Grid>
-                ) : (
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="caption" color="textSecondary">
-                      A-Level School
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color:"#e95656" }}>
-                    The Above Student never Went through Alevel, 
-                    Please find there Additional Qualifications Below if provided
-                  </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </CardContent>
-          </Card>
+          {renderAcademicInfo()}
 
           {/* Academic Results Section */}
           <EducationalBackgroundSection
@@ -771,7 +838,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           />
 
           {/* Documents Section */}
-          <Card sx={{ mb: 3 }}>
+          {/* <DocumentsSection
+            documents={documents}
+            onDownload={downloadDocument}
+            docLoading={docLoading}
+            selectedID={selectedID}
+          /> */}
+          <DocumentsSection
+              documents={documents}
+              application={application}
+              onUpdate={() => window.location.reload()}
+            />
+          {/* <Card sx={{ mb: 3 }}>
             <CardHeader avatar={<DescriptionIcon />} title="Documents" titleTypographyProps={{ variant: "h6" }} />
             <Divider />
             <CardContent>
@@ -796,7 +874,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                         <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
 
                           {/* view */}
-                          <a
+                          {/* <a
                             href={`${import.meta.env.VITE_API_BASE_URL}${doc.file}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -814,7 +892,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           </a>
 
                           {/* download */}
-                          <CustomButton
+                          {/* <CustomButton
                             variant="outlined"
                             icon={<FileDownloadIcon />}
                             onClick={() => downloadDocument(`${import.meta.env.VITE_API_BASE_URL}${doc.file}`, doc.name, doc?.id)}
@@ -833,7 +911,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 <Typography color="textSecondary">No documents uploaded</Typography>
               )}
             </CardContent>
-          </Card>
+          </Card> */} 
 
           <PassportPhotoSection application={application} />
         </Grid>
@@ -926,7 +1004,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
               {application.is_revoked && (
                 <>
-                <Box>
+                  <Box>
                     <Typography variant="caption" color="textSecondary">
                       Revoked By
                     </Typography>
@@ -934,8 +1012,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       {application.revoked_by}
                     </Typography>
                   </Box>
-                   
-                    <Divider />
+
+                  <Divider />
 
                   <Box>
                     <Typography variant="caption" color="textSecondary">
@@ -945,7 +1023,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       {application.revocation_reason}
                     </Typography>
                   </Box>
-                  </>
+                </>
               )}
 
               <Divider />
@@ -1071,25 +1149,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       >
                         Reject
                       </Button>
-                      {/* <Button
+                     
+                      <Button
                         variant="outlined"
-                        size="small"
-                        startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
-                        disabled={isPending}
-                        sx={{ textTransform: "none", borderColor: "#e67214", color: "#f17f14" }}
-                        onClick={handlePendingResults}
+                        fullWidth
+                        startIcon={<PendingIcon />}
+                        onClick={() => setOpenPendingDialog(true)}
+                        sx={{ borderColor: "#f57c00", color: "#f57c00" }}
                       >
-                        Pending
-                      </Button> */}
-                       <Button
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<PendingIcon />}
-                      onClick={() => setOpenPendingDialog(true)}
-                      sx={{ borderColor: "#f57c00", color: "#f57c00" }}
-                    >
-                      Mark as Pending
-                    </Button>
+                        Mark as Pending
+                      </Button>
 
                     </>
                   )}
@@ -1116,25 +1185,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       >
                         Reject
                       </Button>
-                      {/* <Button
+                     
+                      <Button
                         variant="outlined"
-                        size="small"
-                        startIcon={isPending ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <HourglassEmptyIcon />}
-                        disabled={isPending}
-                        sx={{ textTransform: "none", borderColor: "#e67214", color: "#f17f14" }}
-                        onClick={handlePendingResults}
+                        fullWidth
+                        startIcon={<PendingIcon />}
+                        onClick={() => setOpenPendingDialog(true)}
+                        sx={{ borderColor: "#f57c00", color: "#f57c00" }}
                       >
-                        Pending
-                      </Button> */}
-                       <Button
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<PendingIcon />}
-                      onClick={() => setOpenPendingDialog(true)}
-                      sx={{ borderColor: "#f57c00", color: "#f57c00" }}
-                    >
-                      Mark as Pending
-                    </Button>
+                        Mark as Pending
+                      </Button>
 
                     </>
                   )}
@@ -1203,6 +1263,82 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
             startIcon={isPending ? <CircularProgress size={18} /> : null}
           >
             {isPending ? "Processing..." : "Confirm Pending"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+       {/* ==================== SETUP MODAL ==================== */}
+      <Dialog open={openSetupModal} onClose={() => setOpenSetupModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Setup Education Details</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Fill in the examination details for this applicant.
+          </Alert>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={setupForm.has_olevel}
+                onChange={(e) => setSetupForm(prev => ({ ...prev, has_olevel: e.target.checked }))}
+              />
+            }
+            label="Has O-Level (UCE)"
+          />
+
+          {setupForm.has_olevel && (
+            <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                label="O-Level School"
+                fullWidth
+                value={setupForm.olevel_school}
+                onChange={(e) => setSetupForm(p => ({ ...p, olevel_school: e.target.value }))}
+              />
+              <TextField
+                label="Index Number"
+                fullWidth
+                value={setupForm.olevel_index_number}
+                onChange={(e) => setSetupForm(p => ({ ...p, olevel_index_number: e.target.value }))}
+              />
+              <TextField
+                label="Year"
+                type="number"
+                fullWidth
+                value={setupForm.olevel_year}
+                onChange={(e) => setSetupForm(p => ({ ...p, olevel_year: e.target.value }))}
+              />
+            </Box>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={setupForm.has_alevel}
+                onChange={(e) => setSetupForm(prev => ({ ...prev, has_alevel: e.target.checked }))}
+              />
+            }
+            label="Has A-Level (UACE)"
+          />
+
+          {setupForm.has_alevel && (
+            <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField label="A-Level School" fullWidth value={setupForm.alevel_school} onChange={e => setSetupForm(p => ({...p, alevel_school: e.target.value}))} />
+              <TextField label="Index Number" fullWidth value={setupForm.alevel_index_number} onChange={e => setSetupForm(p => ({...p, alevel_index_number: e.target.value}))} />
+              <TextField label="Year" type="number" fullWidth value={setupForm.alevel_year} onChange={e => setSetupForm(p => ({...p, alevel_year: e.target.value}))} />
+              <TextField label="Combination (e.g. PCM, PCB)" fullWidth value={setupForm.alevel_combination} onChange={e => setSetupForm(p => ({...p, alevel_combination: e.target.value}))} />
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenSetupModal(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveSetup} 
+            disabled={isSavingSetup}
+          >
+            {isSavingSetup ? "Saving..." : "Save Details"}
           </Button>
         </DialogActions>
       </Dialog>

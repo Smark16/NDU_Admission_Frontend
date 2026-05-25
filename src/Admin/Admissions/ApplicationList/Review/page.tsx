@@ -23,11 +23,17 @@ interface Application {
 //  program: { name: string; code: string };
   batch: string;
   // campus: { name: string };
-
+  
+  has_olevel: boolean;
   olevel_school: string;
   olevel_year: number;
+  olevel_index_number: string;
+
+  has_alevel: boolean;
   alevel_school: string;
   alevel_year: number;
+  alevel_combination: string;
+  alevel_index_number: string;
 
   address: string;
   status: string;
