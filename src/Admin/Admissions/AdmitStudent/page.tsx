@@ -403,42 +403,6 @@ const handleGenerateRegNo = async () => {
     }, 1000)
   }
 
-  // const handleSendLetter = async () => {
-  //   try {
-  //     setIsLoading(true)
-  //     setShowProgress(true)
-  //     setProgress(0)
-  //     setStatus("")
-
-  //     const response = await AxiosInstance.post(`/api/offer_letter/send_letter/${application?.id}`, { start_date: startDate })
-  //     console.log(response.data)
-  //     setIsLoading(false)
-  //      setSnackbar({
-  //       open: true,
-  //       message: `${response.data?.detail}`,
-  //       type: "success",
-  //     })
-
-  //   } catch (err:any) {
-  //     setShowProgress(false)
-  //     console.log(err)
-  //     if(err.response?.data.detail){
-  //        setSnackbar({
-  //       open: true,
-  //       message: `${err.response?.data.detail}`,
-  //       type: "error",
-  //     })
-  //     }else{
-  //       setSnackbar({
-  //        open: true,
-  //        message: "Failed to send offer letter to student",
-  //        type: "error",
-  //      })
-  //     }
-  //     setIsLoading(false)
-  //   }
-  // }
-
   if(loadApplication){
     return ( 
       <Box
@@ -696,22 +660,6 @@ const handleGenerateRegNo = async () => {
               Select your preferred study mode
             </Typography>
           </Box>
-
-          {/* <FormSection>
-           {/* <CustomButton onClick={handleGeneratePayCode} text=" Generate pay_code"/> */}
-            {/* <TextField
-              fullWidth
-              label="Student Number"
-              name="student_id"
-              value={formData.student_id}
-              onChange={handleInputChange}
-              placeholder="Enter unique student ID"
-              variant="outlined"
-              inputProps={{ maxLength: 50 }}
-              helperText="This will be the student's unique identification number"
-              sx={{ mb: 2 }}
-            /> */}
-          {/* </FormSection> */} 
 
           <FormSection>
             <CustomButton onClick={handleGenerateRegNo} text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}/>

@@ -405,7 +405,7 @@ export default function AdmittedStudents() {
     return `${apiBaseUrl || window.location.origin}${normalized}`;
   };
 
-  // EXPORT ADMITTED STUDENTS - CORRECTED
+// EXPORT ADMITTED STUDENTS - CORRECTED
 const handleExportExcel = async () => {
   try {
     setLoadExport(true);

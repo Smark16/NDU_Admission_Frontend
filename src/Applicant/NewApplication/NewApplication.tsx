@@ -330,7 +330,7 @@ export default function NewApplicationForm() {
           const hasIncompleteQual = formData.additionalQualifications.some((qual: any) =>
             !qual.institution?.trim() ||
             !qual.type?.trim() ||
-            (!qual.year || isNaN(Number(qual.year)) || Number(qual.year) < 0) ||
+            (!qual.year?.trim()) ||
             !qual.class_of_award?.trim()
           );
 
