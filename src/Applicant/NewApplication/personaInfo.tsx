@@ -107,7 +107,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth
-              label="First Name"
+              label="Surname Name"
               name="firstName"
               value={formData.firstName}
               onChange={handleInputChange}

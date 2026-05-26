@@ -353,7 +353,7 @@ export default function Register() {
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
-                  label="First Name"
+                  label="Surname Name"
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}

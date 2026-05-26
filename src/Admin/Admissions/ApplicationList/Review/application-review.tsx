@@ -801,6 +801,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     {application.disabled}
                   </Typography>
                 </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" color="textSecondary">
+                   Next of Kin contact
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {application?.next_of_kin_contact}
+                  </Typography>
+                </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="caption" color="textSecondary">
                     Program Choice(s)
