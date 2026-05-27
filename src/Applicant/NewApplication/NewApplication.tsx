@@ -262,9 +262,9 @@ export default function NewApplicationForm() {
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
 
         if (!formData.nextOfKinContact.trim()) {
-            errors.nextOfKinContact = "next of kin contact is required";
-          } else if (formData.nextOfKinContact.length > 25) {
-            errors.nextOfKinContact = "Contact cannot exceed 25 characters";
+          errors.nextOfKinContact = "next of kin contact is required";
+        } else if (formData.nextOfKinContact.length > 25) {
+          errors.nextOfKinContact = "Contact cannot exceed 25 characters";
         }
 
         if (!formData.nextOfKinRelationship.trim()) errors.nextOfKinRelationship = "next of kin relationship is required"
@@ -293,12 +293,12 @@ export default function NewApplicationForm() {
         const hasALevel = !!formData.hasALevel;
 
         if (hasOLevel) {
-          if (!formData.oLevelYear){
+          if (!formData.oLevelYear) {
             errors.oLevelYear = "O-Level year is required";
-          } else if(isNaN(Number(formData.oLevelYear)) || Number(formData.oLevelYear) < 0) {
+          } else if (isNaN(Number(formData.oLevelYear)) || Number(formData.oLevelYear) < 0) {
             errors.oLevelYear = "O-Level year must be a valid positive number";
           }
-            
+
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
           if (formData.oLevelSubjects.length < 8) {
@@ -307,9 +307,9 @@ export default function NewApplicationForm() {
         }
 
         if (hasALevel) {
-          if (!formData.aLevelYear){
+          if (!formData.aLevelYear) {
             errors.aLevelYear = "A-Level year required";
-          }else if(isNaN(Number(formData.aLevelYear)) || Number(formData.aLevelYear) < 0) {
+          } else if (isNaN(Number(formData.aLevelYear)) || Number(formData.aLevelYear) < 0) {
             errors.aLevelYear = "A-Level year must be a valid positive number";
           }
 
@@ -637,8 +637,8 @@ export default function NewApplicationForm() {
         // ====================== PROGRAMS - PRESERVE ORDER ======================
         const validPrograms = Array.isArray(formData.programs)
           ? formData.programs
-            .map(id => Number(id))                    
-            .filter(id => !isNaN(id) && id > 0)       
+            .map(id => Number(id))
+            .filter(id => !isNaN(id) && id > 0)
           : [];
 
         validPrograms.forEach(id => {
@@ -664,7 +664,7 @@ export default function NewApplicationForm() {
         draftPayload.append("hasAlevel", formData.hasALevel ? "true" : "false");
         // draftPayload.append("application_fee_paid", formData.application_fee_paid ? "true" : "false");
         draftPayload.append("application_fee_paid", finalPaid ? "true" : "false");
-        
+
         draftPayload.append("externalReference", finalRef || "");
         // draftPayload.append("externalReference", formData.externalReference || "");
         draftPayload.append("status", "draft");
@@ -1409,97 +1409,128 @@ export default function NewApplicationForm() {
         onClose={() => setPaymentModalOpen(false)}
         amountPaid={selectedFee?.amount ?? 0}
         // onPaymentSuccess={async (externalRef?: string) => {
+        //   const newPaidState = {
+        //     application_fee_paid: true,
+        //     externalReference: externalRef || "",
+        //   };
+
+        //   // Update state
+        //   setFormData(prev => ({ ...prev, ...newPaidState }));
+
+        //   showNotification("Payment successful! Saving progress...", "success");
+
         //   try {
-        //     // 1. Immediately update UI state
-        //     setFormData((prev) => ({
-        //       ...prev,
-        //       application_fee_paid: true,
-        //       externalReference: externalRef || "",
-        //     }));
-
-        //     showNotification("Payment successful! Saving your progress...", "success");
-
-        //     // 2. FORCE save draft with payment info (CRITICAL)
+        //     // Wait for state + draft save
         //     await saveDraft(false, 3, {
         //       externalReference: externalRef || "",
         //       forcePaid: true,
-        //     });   // This must complete before proceeding
+        //     });
 
-        //     // 3. Close modal
-        //     setTimeout(() => {
-        //       setPaymentModalOpen(false);
-        //     }, 1200);
+        //     setPaymentModalOpen(false);
 
-        //     // 4. Submit application AFTER draft is saved
+        //     // Submit immediately after draft succeeds (no arbitrary timeout)
+        //     await handleSubmit({
+        //       externalReference: externalRef || "",
+        //       forcePaid: true,
+        //     });
+
+        //   } catch (error) {
+        //     console.error("Post-payment save failed:", error);
+
+        //     // Fallback: still try to submit with latest known values
+        //     setFormData(prev => ({ ...prev, ...newPaidState }));
+
+        //     showNotification("Payment received. Submitting application...", "success");
+
+        //     // Small delay only as last resort
         //     setTimeout(() => {
         //       handleSubmit({
         //         externalReference: externalRef || "",
-        //         forcePaid: true
+        //         forcePaid: true,
         //       });
-        //     }, 800);
+        //     }, 300);
+        //   }
+        // }}
 
-        //   } catch (error) {
-        //     console.error("Failed to save draft after payment:", error);
+        // onPaymentSuccess={async (externalRef?: string) => {
+        //   showNotification("Payment successful! Refreshing your draft...", "success");
 
-        //     // Still try to submit even if draft save fails
-        //     setFormData((prev) => ({
+        //   try {
+        //     // Reload latest draft from backend (Source of Truth)
+        //     const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+
+        //     if (data?.draft_exists && data?.data) {
+        //       const draft = data.data;
+
+        //       setFormData(prev => ({
+        //         ...prev,
+        //         application_fee_paid: draft.application_fee_paid || true,
+        //         externalReference: draft.application_reference || externalRef || "",
+        //         // ... other fields you want to sync
+        //       }));
+
+        //       showNotification("Draft updated with payment confirmation", "success");
+        //     }
+        //   } catch (err) {
+        //     // Fallback: just set local state
+        //     setFormData(prev => ({
         //       ...prev,
         //       application_fee_paid: true,
         //       externalReference: externalRef || "",
         //     }));
-
-        //     showNotification("Payment received. Submitting application...", "success");
-
-        //     setTimeout(() => {
-        //       handleSubmit({
-        //         externalReference: externalRef || "",
-        //         forcePaid: true
-        //       });
-        //     }, 1000);
         //   }
+
+        //   setPaymentModalOpen(false);
+
+        //   // Optional: Auto move to review step
+        //   // setActiveStep(4);
         // }}
+
         onPaymentSuccess={async (externalRef?: string) => {
-          const newPaidState = {
+          showNotification("Payment successful! Submitting your application...", "success");
+
+          // Update UI immediately
+          setFormData(prev => ({
+            ...prev,
             application_fee_paid: true,
             externalReference: externalRef || "",
-          };
+          }));
 
-          // Update state
-          setFormData(prev => ({ ...prev, ...newPaidState }));
+          setPaymentModalOpen(false);
 
-          showNotification("Payment successful! Saving progress...", "success");
+          // Give user a moment to see the success message
+          setTimeout(async () => {
+            try {
+              // Refresh latest data from backend
+              const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
 
-          try {
-            // Wait for state + draft save
-            await saveDraft(false, 3, {
-              externalReference: externalRef || "",
-              forcePaid: true,
-            });
+              console.log('paid', data?.data.application_fee_paid, 'ref', data?.data.application_reference)
+              
+              if (data?.draft_exists && data?.data) {
+                const draft = data.data;
+                setFormData(prev => ({
+                  ...prev,
+                  application_fee_paid: draft.application_fee_paid || true,
+                  externalReference: draft.application_reference || externalRef || "",
+                }));
+              }
 
-            setPaymentModalOpen(false);
-
-            // Submit immediately after draft succeeds (no arbitrary timeout)
-            await handleSubmit({
-              externalReference: externalRef || "",
-              forcePaid: true,
-            });
-
-          } catch (error) {
-            console.error("Post-payment save failed:", error);
-            
-            // Fallback: still try to submit with latest known values
-            setFormData(prev => ({ ...prev, ...newPaidState }));
-            
-            showNotification("Payment received. Submitting application...", "success");
-            
-            // Small delay only as last resort
-            setTimeout(() => {
-              handleSubmit({
+              // Auto Submit
+              await handleSubmit({
                 externalReference: externalRef || "",
                 forcePaid: true,
               });
-            }, 300);
-          }
+
+            } catch (error) {
+              console.error("Auto-submit failed:", error);
+
+              showNotification(
+                "Payment was successful, but automatic submission failed. Please submit manually.",
+                "success"
+              );
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }, 1500);
         }}
         onPaymentFailed={clearPaymentState}
       />

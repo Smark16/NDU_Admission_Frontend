@@ -63,7 +63,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
    const [isCancelled, setIsCancelled] = useState(false)
    const [cancelledMsg, setCancelledMsg] = useState<string | null>(null)
 
-  const [extRef, setExtRef] = useState<string | null>(null);
+  // const [extRef, setExtRef] = useState<string | null>(null);
  const [pollInterval, setPollInterval] = useState<number | null>(null);
 
   const handleClose = () => {
@@ -83,22 +83,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
-  const hasCalledSuccess = useRef(false);
+  // const hasCalledSuccess = useRef(false);
 
-useEffect(() => {
-  if (status === 'success' && onPaymentSuccess && !hasCalledSuccess.current) {
-    hasCalledSuccess.current = true;        // Prevent running again
+// useEffect(() => {
+//   if (status === 'success' && onPaymentSuccess && !hasCalledSuccess.current) {
+//     hasCalledSuccess.current = true;       
 
-    onPaymentSuccess(extRef || undefined);
-
-    // Optional: Auto-close modal after showing success for a short time
-    // const timer = setTimeout(() => {
-    //   handleClose();
-    // }, 1800);
-
-    // return () => clearTimeout(timer);
-  }
-}, [status, onPaymentSuccess, extRef]); 
+//     onPaymentSuccess(extRef || undefined);
+//   }
+// }, [status, onPaymentSuccess, extRef]); 
 
 // Clean up polling on unmount/close
 useEffect(() => {
@@ -125,6 +118,26 @@ useEffect(() => {
     }finally{
       setIsCancelled(false)
       setCancelledMsg(null)
+    }
+  };
+
+// load data from backend
+const handlePaymentSuccess = async (externalRef?: string) => {
+    setStatus('success');
+    setSuccessMessage('Payment confirmed! Updating your application...');
+
+    try {
+      // IMPORTANT: Reload fresh data from backend
+      const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+      
+      if (data?.draft_exists && data?.data) {
+        // You can notify parent to reload draft if needed
+        onPaymentSuccess?.(externalRef);
+      }
+    } catch (err) {
+      console.error("Failed to refresh draft after payment");
+      // Still notify parent so they can proceed
+      onPaymentSuccess?.(externalRef);
     }
   };
 
@@ -181,16 +194,19 @@ const handlePayment = async () => {
             statusData.receiptNumber ||
             'N/A'
           );
-          setExtRef(data.external_reference);
+          // setExtRef(data.external_reference);
           
           setSuccessMessage('Payment confirmed successfully!');
           setStatus('success');
           
           // success callback
-          if (!hasNotifiedSuccessRef.current) {
-            hasNotifiedSuccessRef.current = true;
-            onPaymentSuccess?.(data.external_reference);
-          }
+          // if (!hasNotifiedSuccessRef.current) {
+          //   hasNotifiedSuccessRef.current = true;
+          //   onPaymentSuccess?.(data.external_reference);
+          // }
+
+           // Call the improved handler
+          handlePaymentSuccess(data.external_reference);
 
           return;
         }
@@ -198,7 +214,7 @@ const handlePayment = async () => {
         // ✅ FAILED / CANCELLED
         if (statusData.status === 'FAILED') {
           clearInterval(interval);
-          setExtRef(null);
+          // setExtRef(null);
            // Clear the failed payment state
            onPaymentFailed?.();    
 
