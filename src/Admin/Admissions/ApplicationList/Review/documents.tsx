@@ -343,7 +343,6 @@ export default function DocumentsSection({
                       borderColor: "primary.main",
                       backgroundColor: "action.hover",
                     },
-                    mt:1
                   }}
                 >
                   <Box sx={{ display: "block", alignItems: "flex-start", gap: 2.5 }}>

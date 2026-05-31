@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, useContext } from "react";
+import { useEffect, useState, useMemo, useContext, useCallback } from "react";
+// import debounce from "lodash/debounce";   // ← Add this
 import {
   Box,
   Card,
@@ -71,7 +72,7 @@ interface Admitted {
   reg_no: string;
   faculty: string;
   admission_date: string;
-  is_registered_with_schoolpay:boolean;
+  is_registered_with_schoolpay: boolean;
   status: string;
   is_admitted: boolean;
   is_registered: boolean;
@@ -137,11 +138,14 @@ export default function AdmittedStudents() {
   const [batchFilter, setBatchFilter] = useState(initialFilters?.batchFilter ?? "all");
   const [dateFrom, setDateFrom] = useState(initialFilters?.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(initialFilters?.dateTo ?? "");
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [admittedStudents, setAdmittedStudents] = useState<Admitted[]>([]);
+  const [totalCount, setTotalCount] = useState(0);        // ← New
   const [loading, setLoading] = useState(true);
-  const [loadExport, setLoadExport] = useState(false)
+  const [loadExport, setLoadExport] = useState(false);
 
   const [revokeReason, setRevokeReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -152,11 +156,9 @@ export default function AdmittedStudents() {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
 
-  // Communication
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([]);
   const [commDialogOpen, setCommDialogOpen] = useState(false);
 
-  // Column view per row (mobile)
   const [columnViewIndex, setColumnViewIndex] = useState<Record<number, number>>({});
 
   const [snackbar, setSnackbar] = useState<{
@@ -168,39 +170,147 @@ export default function AdmittedStudents() {
     message: "",
     severity: "info",
   });
+  const showToast = (message: string, severity: "success" | "error" | "info" = "info") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
 
   // Fetch data
-  useEffect(() => {
-    const fetchAdmissions = async () => {
-      try {
-        setLoading(true);
-        const { data } = await AxiosInstance.get("/api/admissions/list_admitted_students");
-        setAdmittedStudents(data);
-      } catch (err) {
-        console.error("Failed to fetch admitted students:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Build query params for backend
+  const buildQueryParams = useCallback(() => {
+    const params = new URLSearchParams();
+    params.append("page", String(page + 1));
+    params.append("page_size", String(rowsPerPage));
 
-    fetchAdmissions();
-  }, [AxiosInstance]);
+    const normalizedSearch = debouncedSearch
+    .trim()
+    .replace(/\s+/g, " ");
+
+    // if (debouncedSearch.trim()) {
+    //   params.append("search", debouncedSearch.trim());
+    // }
+    params.append("search", normalizedSearch);
+
+    if (batchFilter && batchFilter !== "all") params.append("batch", batchFilter);
+    if (campusFilter && campusFilter !== "all") params.append("campus", campusFilter);
+    if (facultyFilter && facultyFilter !== "all") params.append("faculty", facultyFilter);
+    if (programFilter && programFilter !== "all") params.append("program", programFilter);
+
+    if (registrationFilter !== "all") {
+      params.append("is_registered", registrationFilter === "registered" ? "true" : "false");
+    }
+    if (approvalFilter !== "all") {
+      params.append("is_approved", approvalFilter === "approved" ? "true" : "false");
+    }
+    if (dateFrom) params.append("date_from", dateFrom);
+    if (dateTo) params.append("date_to", dateTo);
+
+    return params.toString();
+  }, [page, rowsPerPage, searchTerm, registrationFilter, approvalFilter,
+    campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+
+  // Fetch data from server
+  const fetchAdmittedStudents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const query = buildQueryParams();
+      const { data } = await AxiosInstance.get(`/api/admissions/list_admitted_students/?${query}`);
+
+      setAdmittedStudents(data.results || data);
+      setTotalCount(data.count || data.length || 0);
+    } catch (err: any) {
+      console.error("Failed to fetch admitted students:", err);
+      showToast("Failed to load admitted students", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [AxiosInstance, buildQueryParams, showToast]);
+
+  // Debounced version
+  // const debouncedFetch = useMemo(
+  //   () => debounce(fetchAdmittedStudents, 500),
+  //   [fetchAdmittedStudents]
+  // );
+
+  // Trigger fetch when any filter or pagination changes
+  // useEffect(() => {
+  //   debouncedFetch();
+
+  //   // Cleanup
+  //   return () => {
+  //     debouncedFetch.cancel();
+  //   };
+  // }, [
+  //   debouncedFetch,
+  //   page,           // Important for pagination
+  //   rowsPerPage
+  // ]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    fetchAdmittedStudents();
+}, [
+    page,
+    rowsPerPage,
+    debouncedSearch,
+    registrationFilter,
+    approvalFilter,
+    campusFilter,
+    facultyFilter,
+    programFilter,
+    batchFilter,
+    dateFrom,
+    dateTo
+]);
+
+  // Persist filters to localStorage
+  useEffect(() => {
     const payload: PersistedAdmittedFilters = {
-      searchTerm,
-      registrationFilter,
-      approvalFilter,
-      campusFilter,
-      facultyFilter,
-      programFilter,
-      batchFilter,
-      dateFrom,
-      dateTo,
+      searchTerm, registrationFilter, approvalFilter, campusFilter,
+      facultyFilter, programFilter, batchFilter, dateFrom, dateTo,
     };
-    window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+    }
   }, [searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+  // useEffect(() => {
+  //   const fetchAdmissions = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const { data } = await AxiosInstance.get("/api/admissions/list_admitted_students");
+  //       setAdmittedStudents(data);
+  //     } catch (err) {
+  //       console.error("Failed to fetch admitted students:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchAdmissions();
+  // }, [AxiosInstance]);
+
+  // useEffect(() => {
+  //   if (typeof window === "undefined") return;
+  //   const payload: PersistedAdmittedFilters = {
+  //     searchTerm,
+  //     registrationFilter,
+  //     approvalFilter,
+  //     campusFilter,
+  //     facultyFilter,
+  //     programFilter,
+  //     batchFilter,
+  //     dateFrom,
+  //     dateTo,
+  //   };
+  //   window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
+  // }, [searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
 
   const allCampuses = useMemo(
     () => [...new Set(admittedStudents.map((s) => (s.campus || "").trim()).filter(Boolean))],
@@ -219,16 +329,13 @@ export default function AdmittedStudents() {
     [admittedStudents]
   );
 
-  const showToast = (message: string, severity: "success" | "error" | "info" = "info") => {
-    setSnackbar({ open: true, message, severity });
-  };
 
   const setStudentActionLoading = (studentId: number, isLoading: boolean) => {
     setLetterActionLoading((prev) => ({ ...prev, [studentId]: isLoading }));
   };
 
   const setSchoolPayActionLoading = (studentId: number, isLoading: boolean) => {
-  setSchoolPayLoading((prev) => ({ ...prev, [studentId]: isLoading }));
+    setSchoolPayLoading((prev) => ({ ...prev, [studentId]: isLoading }));
   };
 
   // Handlers
@@ -293,44 +400,63 @@ export default function AdmittedStudents() {
   };
 
   // Filters
-  const filteredStudents = useMemo(() => {
-    return admittedStudents.filter((student) => {
-      const matchesSearch =
-        (student.student_id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.program.toLowerCase().includes(searchTerm.toLowerCase());
+  // const filteredStudents = useMemo(() => {
+  //   return admittedStudents.filter((student) => {
+  //     const matchesSearch =
+  //       (student.student_id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //       student.program.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesRegistration =
-        registrationFilter === "all" ||
-        (registrationFilter === "registered" && student.is_registered) ||
-        (registrationFilter === "not-registered" && !student.is_registered);
+  //     const matchesRegistration =
+  //       registrationFilter === "all" ||
+  //       (registrationFilter === "registered" && student.is_registered) ||
+  //       (registrationFilter === "not-registered" && !student.is_registered);
 
-      const matchesApproval =
-        approvalFilter === "all" ||
-        (approvalFilter === "pending" && !student.is_approved) ||
-        (approvalFilter === "approved" && student.is_approved);
-      const matchesCampus = campusFilter === "all" || student.campus === campusFilter;
-      const matchesFaculty = facultyFilter === "all" || student.faculty === facultyFilter;
-      const matchesProgram = programFilter === "all" || student.program === programFilter;
-      const matchesBatch = batchFilter === "all" || student.batch === batchFilter;
+  //     const matchesApproval =
+  //       approvalFilter === "all" ||
+  //       (approvalFilter === "pending" && !student.is_approved) ||
+  //       (approvalFilter === "approved" && student.is_approved);
+  //     const matchesCampus = campusFilter === "all" || student.campus === campusFilter;
+  //     const matchesFaculty = facultyFilter === "all" || student.faculty === facultyFilter;
+  //     const matchesProgram = programFilter === "all" || student.program === programFilter;
+  //     const matchesBatch = batchFilter === "all" || student.batch === batchFilter;
 
-      const admittedDate = student.admission_date ? new Date(student.admission_date) : null;
-      const matchesDateFrom = !dateFrom || (admittedDate ? admittedDate >= new Date(`${dateFrom}T00:00:00`) : false);
-      const matchesDateTo = !dateTo || (admittedDate ? admittedDate <= new Date(`${dateTo}T23:59:59.999`) : false);
+  //     const admittedDate = student.admission_date ? new Date(student.admission_date) : null;
+  //     const matchesDateFrom = !dateFrom || (admittedDate ? admittedDate >= new Date(`${dateFrom}T00:00:00`) : false);
+  //     const matchesDateTo = !dateTo || (admittedDate ? admittedDate <= new Date(`${dateTo}T23:59:59.999`) : false);
 
-      return (
-        matchesSearch &&
-        matchesRegistration &&
-        matchesApproval &&
-        matchesCampus &&
-        matchesFaculty &&
-        matchesProgram &&
-        matchesBatch &&
-        matchesDateFrom &&
-        matchesDateTo
-      );
-    });
-  }, [admittedStudents, searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+  //     return (
+  //       matchesSearch &&
+  //       matchesRegistration &&
+  //       matchesApproval &&
+  //       matchesCampus &&
+  //       matchesFaculty &&
+  //       matchesProgram &&
+  //       matchesBatch &&
+  //       matchesDateFrom &&
+  //       matchesDateTo
+  //     );
+  //   });
+  // }, [admittedStudents, searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
+
+  // const clearFilters = () => {
+  //   setSearchTerm("");
+  //   setRegistrationFilter("all");
+  //   setApprovalFilter("all");
+  //   setCampusFilter("all");
+  //   setFacultyFilter("all");
+  //   setProgramFilter("all");
+  //   setBatchFilter("all");
+  //   setDateFrom("");
+  //   setDateTo("");
+  //   setPage(0);
+  //   if (typeof window !== "undefined") window.localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
+  // };
+
+  // const paginatedStudents = filteredStudents.slice(
+  //   page * rowsPerPage,
+  //   page * rowsPerPage + rowsPerPage
+  // );
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -343,13 +469,8 @@ export default function AdmittedStudents() {
     setDateFrom("");
     setDateTo("");
     setPage(0);
-    if (typeof window !== "undefined") window.localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
+    localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
   };
-
-  const paginatedStudents = filteredStudents.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
 
@@ -357,6 +478,13 @@ export default function AdmittedStudents() {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
+  // const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
+
+  // const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   setRowsPerPage(parseInt(event.target.value, 10));
+  //   setPage(0);
+  // };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -369,13 +497,13 @@ export default function AdmittedStudents() {
   // Column groups for mobile horizontal scrolling
   const columnGroups = isMobile
     ? [
-        ["student_id", "reg_no", "name", "status", "admission"],
-        ["program", "faculty", "campus", "batch", "admission_date"],
-      ]
+      ["student_id", "reg_no", "name", "status", "admission"],
+      ["program", "faculty", "campus", "batch", "admission_date"],
+    ]
     : [
-        ["student_id", "reg_no", "name", "program", "faculty", "status", "admission"],
-        ["campus", "batch", "admission_date"],
-      ];
+      ["student_id", "reg_no", "name", "program", "faculty", "status", "admission"],
+      ["campus", "batch", "admission_date"],
+    ];
 
   const getVisibleColumns = (studentId: number) => {
     const index = columnViewIndex[studentId] ?? 0;
@@ -405,69 +533,69 @@ export default function AdmittedStudents() {
     return `${apiBaseUrl || window.location.origin}${normalized}`;
   };
 
-// EXPORT ADMITTED STUDENTS - CORRECTED
-const handleExportExcel = async () => {
-  try {
-    setLoadExport(true);
+  // EXPORT ADMITTED STUDENTS - CORRECTED
+  const handleExportExcel = async () => {
+    try {
+      setLoadExport(true);
 
-    const params = new URLSearchParams();
+      const params = new URLSearchParams();
 
-    // Add your current filters to match backend expectations
-    if (batchFilter && batchFilter !== "all") {
-      params.append("batch", batchFilter);
-    }
+      // Add your current filters to match backend expectations
+      if (batchFilter && batchFilter !== "all") {
+        params.append("batch", batchFilter);
+      }
 
-    if (campusFilter && campusFilter !== "all") {
+      if (campusFilter && campusFilter !== "all") {
         params.append("campus", campusFilter);
+      }
+
+      if (facultyFilter && facultyFilter !== "all") {
+        params.append("faculty", facultyFilter);
+      }
+
+      if (programFilter && programFilter !== "all") {
+        params.append("program", programFilter);
+      }
+
+      if (registrationFilter !== "all") {
+        params.append("is_registered", registrationFilter === "registered" ? "true" : "false");
+      }
+
+      // You can add academic year if you have it in state
+      // params.append("academic_year", currentAcademicYear || "");
+
+      const url = `/api/admission_reports/export_admitted_students/?${params.toString()}`;
+
+      const response = await AxiosInstance.get(url, {
+        responseType: "blob"
+      });
+
+      // Create download link
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `admitted_students_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      showToast("Admitted Students exported successfully!", "success");
+
+    } catch (err: any) {
+      console.error("Export failed:", err);
+      const errorMsg = err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Failed to export Excel file";
+      showToast(errorMsg, "error");
+    } finally {
+      setLoadExport(false);
     }
-
-    if (facultyFilter && facultyFilter !== "all") {
-      params.append("faculty", facultyFilter);
-    }
-
-    if (programFilter && programFilter !== "all") {
-      params.append("program", programFilter);
-    }
-
-    if (registrationFilter !== "all") {
-      params.append("is_registered", registrationFilter === "registered" ? "true" : "false");
-    }
-
-    // You can add academic year if you have it in state
-    // params.append("academic_year", currentAcademicYear || "");
-
-    const url = `/api/admission_reports/export_admitted_students/?${params.toString()}`;
-
-    const response = await AxiosInstance.get(url, { 
-      responseType: "blob" 
-    });
-
-    // Create download link
-    const blob = new Blob([response.data], { 
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
-    });
-
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `admitted_students_${new Date().toISOString().split("T")[0]}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
-
-    showToast("Admitted Students exported successfully!", "success");
-
-  } catch (err: any) {
-    console.error("Export failed:", err);
-    const errorMsg = err?.response?.data?.detail || 
-                    err?.response?.data?.error || 
-                    "Failed to export Excel file";
-    showToast(errorMsg, "error");
-  } finally {
-    setLoadExport(false);
-  }
-};
+  };
 
   const handleGenerateOfferLetter = async (student: Admitted) => {
     setStudentActionLoading(student.id, true);
@@ -496,41 +624,41 @@ const handleExportExcel = async () => {
   };
 
   const handleGenerateSchoolPayCode = async (student: Admitted) => {
-  setSchoolPayActionLoading(student.id, true);
+    setSchoolPayActionLoading(student.id, true);
 
-  try {
-    const { data } = await AxiosInstance.post(
-      `/api/payments/register_with_schoolpay/${student.id}/`
-    );
+    try {
+      const { data } = await AxiosInstance.post(
+        `/api/payments/register_with_schoolpay/${student.id}/`
+      );
 
-    setAdmittedStudents((prev) =>
-      prev.map((s) =>
-        s.id === student.id
-          ? {
+      setAdmittedStudents((prev) =>
+        prev.map((s) =>
+          s.id === student.id
+            ? {
               ...s,
               is_registered_with_schoolpay: true,
               schoolpay_code: data.schoolpay_code,
               student_id: data.schoolpay_code || s.student_id,
             }
-          : s
-      )
-    );
+            : s
+        )
+      );
 
-    showToast(
-      data.detail || "SchoolPay code generated successfully.",
-      "success"
-    );
-  } catch (err: any) {
-    const errorMessage =
-      err?.response?.data?.details ||
-      err?.response?.data?.error ||
-      "Failed to generate SchoolPay code.";
+      showToast(
+        data.detail || "SchoolPay code generated successfully.",
+        "success"
+      );
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.details ||
+        err?.response?.data?.error ||
+        "Failed to generate SchoolPay code.";
 
-    showToast(errorMessage, "error");
-  } finally {
-    setSchoolPayActionLoading(student.id, false);
-  }
-};
+      showToast(errorMessage, "error");
+    } finally {
+      setSchoolPayActionLoading(student.id, false);
+    }
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -543,34 +671,34 @@ const handleExportExcel = async () => {
               Admitted Students
             </Typography>
           </Stack>
-          
-          <Box sx={{display:"flex", gap:2}}>
-          <Button
-            variant="contained"
-            startIcon={<CampaignIcon />}
-            onClick={() => setCommDialogOpen(true)}
-            sx={{ bgcolor: "#0D0060", "&:hover": { bgcolor: "#0a004a" }, textTransform: "none", fontWeight: 700 }}
-          >
-            {selectedAppIds.length > 0 ? `Send to ${selectedAppIds.length}` : "Send Communication"}
-          </Button>
 
-          <Button
-            variant="contained"
-            startIcon={loadExport ? <CircularProgress size={20} color="inherit" /> : <TableChartIcon />}
-            onClick={handleExportExcel}
-            disabled={loadExport}
-            sx={{ 
-              backgroundColor: '#217346', // Excel green
-              '&:hover': { backgroundColor: '#1e6b3f' },
-              textTransform: 'none',
-              fontWeight: 600
-            }}
-          >
-            {loadExport ? "Exporting..." : "Export to Excel"}
-          </Button>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<CampaignIcon />}
+              onClick={() => setCommDialogOpen(true)}
+              sx={{ bgcolor: "#0D0060", "&:hover": { bgcolor: "#0a004a" }, textTransform: "none", fontWeight: 700 }}
+            >
+              {selectedAppIds.length > 0 ? `Send to ${selectedAppIds.length}` : "Send Communication"}
+            </Button>
+
+            <Button
+              variant="contained"
+              startIcon={loadExport ? <CircularProgress size={20} color="inherit" /> : <TableChartIcon />}
+              onClick={handleExportExcel}
+              disabled={loadExport}
+              sx={{
+                backgroundColor: '#217346', // Excel green
+                '&:hover': { backgroundColor: '#1e6b3f' },
+                textTransform: 'none',
+                fontWeight: 600
+              }}
+            >
+              {loadExport ? "Exporting..." : "Export to Excel"}
+            </Button>
           </Box>
 
-          
+
         </Stack>
 
         {/* Filters */}
@@ -761,7 +889,7 @@ const handleExportExcel = async () => {
               Loading admitted students...
             </Typography>
           </Box>
-        ) : filteredStudents.length > 0 ? (
+        ) : admittedStudents.length > 0 ? (
           <>
             <TableContainer>
               <Table>
@@ -771,15 +899,15 @@ const handleExportExcel = async () => {
                       <Checkbox
                         sx={{ color: "white", "&.Mui-checked": { color: "white" } }}
                         indeterminate={
-                          paginatedStudents.some((s) => selectedAppIds.includes(s.application)) &&
-                          !paginatedStudents.every((s) => selectedAppIds.includes(s.application))
+                          admittedStudents.some((s) => selectedAppIds.includes(s.application)) &&
+                          !admittedStudents.every((s) => selectedAppIds.includes(s.application))
                         }
                         checked={
-                          paginatedStudents.length > 0 &&
-                          paginatedStudents.every((s) => selectedAppIds.includes(s.application))
+                          admittedStudents.length > 0 &&
+                          admittedStudents.every((s) => selectedAppIds.includes(s.application))
                         }
                         onChange={() => {
-                          const ids = paginatedStudents.map((s) => s.application);
+                          const ids = admittedStudents.map((s) => s.application);
                           const allSelected = ids.every((id) => selectedAppIds.includes(id));
                           setSelectedAppIds((prev) =>
                             allSelected ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]
@@ -820,7 +948,7 @@ const handleExportExcel = async () => {
                 </TableHead>
 
                 <TableBody>
-                  {paginatedStudents.map((student) => {
+                  {admittedStudents.map((student) => {
                     const visibleColumns = getVisibleColumns(student.id);
                     const viewIndex = columnViewIndex[student.id] ?? 0;
 
@@ -972,9 +1100,9 @@ const handleExportExcel = async () => {
             </TableContainer>
 
             <TablePagination
-              rowsPerPageOptions={[10, 25, 50]}
+              rowsPerPageOptions={[10, 25, 50, 100]}
               component="div"
-              count={filteredStudents.length}
+              count={totalCount}
               rowsPerPage={rowsPerPage}
               page={page}
               onPageChange={handleChangePage}

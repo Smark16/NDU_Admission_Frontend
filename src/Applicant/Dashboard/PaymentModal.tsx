@@ -122,24 +122,24 @@ useEffect(() => {
   };
 
 // load data from backend
-const handlePaymentSuccess = async (externalRef?: string) => {
-    setStatus('success');
-    setSuccessMessage('Payment confirmed! Updating your application...');
+// const handlePaymentSuccess = async (externalRef?: string) => {
+//     setStatus('success');
+//     setSuccessMessage('Payment confirmed! Updating your application...');
 
-    try {
-      // IMPORTANT: Reload fresh data from backend
-      const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
+//     try {
+//       // IMPORTANT: Reload fresh data from backend
+//       const { data } = await AxiosInstance.get("/api/drafts/get_draft_info/");
       
-      if (data?.draft_exists && data?.data) {
-        // You can notify parent to reload draft if needed
-        onPaymentSuccess?.(externalRef);
-      }
-    } catch (err) {
-      console.error("Failed to refresh draft after payment");
-      // Still notify parent so they can proceed
-      onPaymentSuccess?.(externalRef);
-    }
-  };
+//       if (data?.draft_exists && data?.data) {
+//         // You can notify parent to reload draft if needed
+//         onPaymentSuccess?.(externalRef);
+//       }
+//     } catch (err) {
+//       console.error("Failed to refresh draft after payment");
+//       // Still notify parent so they can proceed
+//       onPaymentSuccess?.(externalRef);
+//     }
+//   };
 
 const handlePayment = async () => {
   // ✅ Validate phone
@@ -206,7 +206,8 @@ const handlePayment = async () => {
           // }
 
            // Call the improved handler
-          handlePaymentSuccess(data.external_reference);
+          // handlePaymentSuccess(data.external_reference);
+          onPaymentSuccess?.(statusData.external_reference);
 
           return;
         }
