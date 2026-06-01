@@ -187,9 +187,6 @@ export default function AdmittedStudents() {
     .trim()
     .replace(/\s+/g, " ");
 
-    // if (debouncedSearch.trim()) {
-    //   params.append("search", debouncedSearch.trim());
-    // }
     params.append("search", normalizedSearch);
 
     if (batchFilter && batchFilter !== "all") params.append("batch", batchFilter);
@@ -227,25 +224,6 @@ export default function AdmittedStudents() {
     }
   }, [AxiosInstance, buildQueryParams, showToast]);
 
-  // Debounced version
-  // const debouncedFetch = useMemo(
-  //   () => debounce(fetchAdmittedStudents, 500),
-  //   [fetchAdmittedStudents]
-  // );
-
-  // Trigger fetch when any filter or pagination changes
-  // useEffect(() => {
-  //   debouncedFetch();
-
-  //   // Cleanup
-  //   return () => {
-  //     debouncedFetch.cancel();
-  //   };
-  // }, [
-  //   debouncedFetch,
-  //   page,           // Important for pagination
-  //   rowsPerPage
-  // ]);
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -280,38 +258,7 @@ export default function AdmittedStudents() {
       window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
     }
   }, [searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
-  // useEffect(() => {
-  //   const fetchAdmissions = async () => {
-  //     try {
-  //       setLoading(true);
-  //       const { data } = await AxiosInstance.get("/api/admissions/list_admitted_students");
-  //       setAdmittedStudents(data);
-  //     } catch (err) {
-  //       console.error("Failed to fetch admitted students:", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchAdmissions();
-  // }, [AxiosInstance]);
-
-  // useEffect(() => {
-  //   if (typeof window === "undefined") return;
-  //   const payload: PersistedAdmittedFilters = {
-  //     searchTerm,
-  //     registrationFilter,
-  //     approvalFilter,
-  //     campusFilter,
-  //     facultyFilter,
-  //     programFilter,
-  //     batchFilter,
-  //     dateFrom,
-  //     dateTo,
-  //   };
-  //   window.localStorage.setItem(ADMITTED_FILTERS_STORAGE_KEY, JSON.stringify(payload));
-  // }, [searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
-
+  
   const allCampuses = useMemo(
     () => [...new Set(admittedStudents.map((s) => (s.campus || "").trim()).filter(Boolean))],
     [admittedStudents]
@@ -328,7 +275,6 @@ export default function AdmittedStudents() {
     () => [...new Set(admittedStudents.map((s) => (s.batch || "").trim()).filter(Boolean))],
     [admittedStudents]
   );
-
 
   const setStudentActionLoading = (studentId: number, isLoading: boolean) => {
     setLetterActionLoading((prev) => ({ ...prev, [studentId]: isLoading }));
@@ -399,67 +345,9 @@ export default function AdmittedStudents() {
     }
   };
 
-  // Filters
-  // const filteredStudents = useMemo(() => {
-  //   return admittedStudents.filter((student) => {
-  //     const matchesSearch =
-  //       (student.student_id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //       student.program.toLowerCase().includes(searchTerm.toLowerCase());
-
-  //     const matchesRegistration =
-  //       registrationFilter === "all" ||
-  //       (registrationFilter === "registered" && student.is_registered) ||
-  //       (registrationFilter === "not-registered" && !student.is_registered);
-
-  //     const matchesApproval =
-  //       approvalFilter === "all" ||
-  //       (approvalFilter === "pending" && !student.is_approved) ||
-  //       (approvalFilter === "approved" && student.is_approved);
-  //     const matchesCampus = campusFilter === "all" || student.campus === campusFilter;
-  //     const matchesFaculty = facultyFilter === "all" || student.faculty === facultyFilter;
-  //     const matchesProgram = programFilter === "all" || student.program === programFilter;
-  //     const matchesBatch = batchFilter === "all" || student.batch === batchFilter;
-
-  //     const admittedDate = student.admission_date ? new Date(student.admission_date) : null;
-  //     const matchesDateFrom = !dateFrom || (admittedDate ? admittedDate >= new Date(`${dateFrom}T00:00:00`) : false);
-  //     const matchesDateTo = !dateTo || (admittedDate ? admittedDate <= new Date(`${dateTo}T23:59:59.999`) : false);
-
-  //     return (
-  //       matchesSearch &&
-  //       matchesRegistration &&
-  //       matchesApproval &&
-  //       matchesCampus &&
-  //       matchesFaculty &&
-  //       matchesProgram &&
-  //       matchesBatch &&
-  //       matchesDateFrom &&
-  //       matchesDateTo
-  //     );
-  //   });
-  // }, [admittedStudents, searchTerm, registrationFilter, approvalFilter, campusFilter, facultyFilter, programFilter, batchFilter, dateFrom, dateTo]);
-
-  // const clearFilters = () => {
-  //   setSearchTerm("");
-  //   setRegistrationFilter("all");
-  //   setApprovalFilter("all");
-  //   setCampusFilter("all");
-  //   setFacultyFilter("all");
-  //   setProgramFilter("all");
-  //   setBatchFilter("all");
-  //   setDateFrom("");
-  //   setDateTo("");
-  //   setPage(0);
-  //   if (typeof window !== "undefined") window.localStorage.removeItem(ADMITTED_FILTERS_STORAGE_KEY);
-  // };
-
-  // const paginatedStudents = filteredStudents.slice(
-  //   page * rowsPerPage,
-  //   page * rowsPerPage + rowsPerPage
-  // );
-
   const clearFilters = () => {
     setSearchTerm("");
+    setDebouncedSearch("");
     setRegistrationFilter("all");
     setApprovalFilter("all");
     setCampusFilter("all");
