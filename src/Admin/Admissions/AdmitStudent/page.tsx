@@ -319,6 +319,7 @@ const handleGenerateRegNo = async () => {
     const res = await AxiosInstance.post("/api/admissions/generate-reg-no/", {
       campus: formData.campus ? Number(formData.campus) : formData.campus,
       program: formData.program ? Number(formData.program) : formData.program,
+      batch: admissionBatch?.id,
       study_mode: formData.study_mode,
     });
 
@@ -327,8 +328,15 @@ const handleGenerateRegNo = async () => {
     setFormData(prev => ({ ...prev, reg_no: regNo }));
 
     return regNo;
-  } catch (err) {
+  } catch (err:any) {
     console.error("Failed to generate reg no", err);
+    if (err.response?.data?.error) {
+        setSnackbar({
+        open: true,
+        message: `${err.response?.data.error}`,
+        type: "error",
+      })
+    }
   }finally{
     setIsGeneratingRegNo(false)
   }

@@ -44,6 +44,7 @@ interface FormData {
   min_years: number | undefined
   max_years: number | undefined
   is_active: boolean
+  is_hec:boolean
 }
 
 interface ManageProps {
@@ -198,6 +199,17 @@ const Manage: React.FC<ManageProps> = ({
             />
           }
           label="Active"
+          sx={{ mt: 2 }}
+        />
+
+        <FormControlLabel
+          control={
+            <Switch
+              checked={formData.is_hec}
+              onChange={(e) => onFormChange({ is_hec: e.target.checked })}
+            />
+          }
+          label="HEC PROGRAMME?"
           sx={{ mt: 2 }}
         />
       </DialogContent>

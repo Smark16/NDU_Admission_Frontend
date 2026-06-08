@@ -66,6 +66,7 @@ interface Program {
   min_years?: number;
   max_years?: number;
   is_active: boolean;
+  is_hec: boolean;
 }
 
 interface ProgramStats {
@@ -127,6 +128,7 @@ const ProgramManagement: React.FC = () => {
     min_years: undefined as number | undefined,
     max_years: undefined as number | undefined,
     is_active: true,
+    is_hec:false
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -240,6 +242,7 @@ const ProgramManagement: React.FC = () => {
         min_years: program.min_years,
         max_years: program.max_years,
         is_active: program.is_active,
+        is_hec:program.is_hec,
       });
     } else {
       setEditingId(null);
