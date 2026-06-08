@@ -32,6 +32,7 @@ interface Program {
   min_years?: number;        // Made optional with ?
   max_years?: number;        // Made optional with ?
   is_active: boolean;
+  is_hec:boolean;
 }
 
 interface ListProgramsProps {
