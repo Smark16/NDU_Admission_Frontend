@@ -296,15 +296,16 @@ export default function EditAdmittedStudentPage() {
     setSnackbar({ ...snackbar, open: false })
   }
 
-   // handle reg No generation
- const handleGenerateRegNo = async () => {
+ // handle reg No generation
+const handleGenerateRegNo = async () => {
   if (!application) return;
   
   setIsGeneratingRegNo(true)
   try {
-    const res = await AxiosInstance.post("api/admissions/generate-reg-no/", {
-      campus: formData.campus,
-      program: formData.program,
+    const res = await AxiosInstance.post("/api/admissions/generate-reg-no/", {
+      campus: formData.campus ? Number(formData.campus) : formData.campus,
+      program: formData.program ? Number(formData.program) : formData.program,
+      batch: admissionBatch?.id,
       study_mode: formData.study_mode,
     });
 
@@ -313,8 +314,15 @@ export default function EditAdmittedStudentPage() {
     setFormData(prev => ({ ...prev, reg_no: regNo }));
 
     return regNo;
-  } catch (err) {
+  } catch (err:any) {
     console.error("Failed to generate reg no", err);
+    if (err.response?.data?.error) {
+        setSnackbar({
+        open: true,
+        message: `${err.response?.data.error}`,
+        type: "error",
+      })
+    }
   }finally{
     setIsGeneratingRegNo(false)
   }
