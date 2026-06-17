@@ -68,6 +68,25 @@ const fieldSx = {
   "& .MuiInputLabel-root.Mui-focused": { color: NAVY },
 }
 
+function apiErrorMessages(data: unknown): string[] {
+  if (!data) return []
+  if (typeof data === "string") return [data]
+  if (typeof data !== "object") return []
+  const messages: string[] = []
+  for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
+    if (Array.isArray(val)) {
+      val.forEach((m) => {
+        if (typeof m === "string") {
+          messages.push(key === "non_field_errors" || key === "detail" ? m : `${key}: ${m}`)
+        }
+      })
+    } else if (typeof val === "string") {
+      messages.push(key === "non_field_errors" || key === "detail" ? val : `${key}: ${val}`)
+    }
+  }
+  return messages
+}
+
 export default function Register() {
   const [formData, setFormData] = useState<FormData>({
     first_name: "",
@@ -114,16 +133,23 @@ export default function Register() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
+    if (registerErrors.length) {
+      setRegisterErrors([])
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!validateForm()) return
+    if (!validateForm()) {
+      setRegisterErrors(["Please fill in all required fields correctly."])
+      return
+    }
+    setLoading(true)
+    setRegisterErrors([])
+    setSuccess(false)
     try {
-      setLoading(true)
-      const response = await api.post('/api/accounts/register', formData)
-      if (response.status === 201) {
-        setLoading(false)
+      const response = await api.post("/api/accounts/register", formData)
+      if (response.status === 200 || response.status === 201) {
         setSuccess(true)
         setFormData({
           first_name: "",
@@ -132,19 +158,29 @@ export default function Register() {
           phone: "",
           password: "",
           confirm_password: "",
-          is_applicant: false,
+          is_applicant: true,
         })
-        navigate('/')
+        window.setTimeout(() => navigate("/"), 1200)
+      } else {
+        setRegisterErrors([`Registration failed (${response.status}). Please try again.`])
       }
-    } catch (err: any) {
-      console.log(err)
-      if (err.response?.data.email) {
-        setRegisterErrors(err.response?.data.email)
-      } else if (err.response?.data.password) {
-        setRegisterErrors(err.response?.data.password)
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { data?: unknown; status?: number }
+        message?: string
       }
+      const messages = apiErrorMessages(axiosErr.response?.data)
+      if (messages.length) {
+        setRegisterErrors(messages)
+      } else if (!axiosErr.response) {
+        setRegisterErrors([
+          "Could not reach the server. Check your internet connection and try again.",
+        ])
+      } else {
+        setRegisterErrors(["Registration failed. Please try again."])
+      }
+    } finally {
       setLoading(false)
-      setSuccess(false)
     }
   }
 
