@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import {
   Container,
   TextField,
+  Autocomplete,
   TextareaAutosize,
   Button,
   Box,
@@ -59,7 +60,6 @@ interface Program {
   name: string
   code: string
   faculty: Faculty | string
-  campuses?: Campus[]
 }
 
 interface ProgramBatchOption {
@@ -106,31 +106,6 @@ interface AdmittedData {
   } | null
 }
 
-function programOfferedAtCampus(
-  program: Program,
-  campusId: number,
-  applicationCampusId?: number,
-  eligibleCampusIds?: number[]
-): boolean {
-  const offered = program.campuses
-  if (!offered?.length) {
-    if (eligibleCampusIds?.includes(campusId)) return true
-    return applicationCampusId != null ? campusId === applicationCampusId : true
-  }
-  return offered.some((c) => c.id === campusId)
-}
-
-function programsForCampus(
-  programs: Program[],
-  campusId: number,
-  applicationCampusId?: number,
-  eligibleCampusIds?: number[]
-): Program[] {
-  return programs.filter((p) =>
-    programOfferedAtCampus(p, campusId, applicationCampusId, eligibleCampusIds)
-  )
-}
-
 function extractUpdateError(err: any): string {
   const data = err?.response?.data
   if (!data) return "Update failed!"
@@ -150,28 +125,6 @@ function extractUpdateError(err: any): string {
   return "Update failed!"
 }
 
-function resolveCampusForProgram(
-  program: Program,
-  currentCampusId: string,
-  applicationCampus?: Campus
-): string {
-  const offered = program.campuses ?? []
-  if (!offered.length) {
-    return applicationCampus ? String(applicationCampus.id) : currentCampusId
-  }
-  if (offered.length === 1) {
-    return String(offered[0].id)
-  }
-  const currentNum = currentCampusId ? Number(currentCampusId) : null
-  if (currentNum && offered.some((c) => c.id === currentNum)) {
-    return currentCampusId
-  }
-  if (applicationCampus && offered.some((c) => c.id === applicationCampus.id)) {
-    return String(applicationCampus.id)
-  }
-  return String(offered[0].id)
-}
-
 export default function EditAdmittedStudentPage() {
   const { id } = useParams()
   const { admissionBatch } = useHook()
@@ -180,6 +133,7 @@ export default function EditAdmittedStudentPage() {
 
   const [application, setApplication] = useState<Application | null>(null)
   const [admittedData, setAdmittedData] = useState<AdmittedData | null>(null)
+  const [campuses, setCampuses] = useState<Campus[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadApplication, setLoadApplication] = useState(false)
   const [isGeneratingRegNo, setIsGeneratingRegNo] = useState(false)
@@ -204,42 +158,14 @@ export default function EditAdmittedStudentPage() {
     type: "success" as "success" | "error",
   })
 
-  const applicationPrograms = useMemo(() => {
-    if (!application?.programs?.length) return []
-    return Array.isArray(application.programs) ? application.programs : []
-  }, [application])
-
-  const applicationCampusId = application?.campus?.id
-
-  const eligibleCampuses = useMemo(() => {
-    const byId = new Map<number, Campus>()
-    if (application?.campus?.id) {
-      byId.set(application.campus.id, application.campus)
+  const fetchCampuses = async () => {
+    try {
+      const response = await AxiosInstance.get("/api/accounts/list_campus")
+      setCampuses(Array.isArray(response.data) ? response.data : [])
+    } catch (err) {
+      console.log(err)
     }
-    for (const program of applicationPrograms) {
-      for (const campus of program.campuses ?? []) {
-        byId.set(campus.id, campus)
-      }
-    }
-    if (admittedData?.admitted_campus?.id) {
-      byId.set(admittedData.admitted_campus.id, admittedData.admitted_campus)
-    }
-    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
-  }, [application, applicationPrograms, admittedData?.admitted_campus])
-
-  const eligibleCampusIds = useMemo(
-    () => eligibleCampuses.map((c) => c.id),
-    [eligibleCampuses]
-  )
-
-  const selectedCampusName = useMemo(() => {
-    const id = formData.campus ? Number(formData.campus) : null
-    if (!id) return ""
-    return eligibleCampuses.find((c) => c.id === id)?.name ?? ""
-  }, [formData.campus, eligibleCampuses])
-
-  const singleCampusChoice = eligibleCampuses.length <= 1
-  const singleProgramChoice = applicationPrograms.length <= 1
+  }
 
   const getAdmittedData = async () => {
     try {
@@ -274,10 +200,7 @@ export default function EditAdmittedStudentPage() {
     try {
       setLoadApplication(true)
       const response = await AxiosInstance.get(`/api/admissions/single_app/${admittedData.application}`)
-      const app = response.data
-      let programs = app.programs
-      if (!Array.isArray(programs)) programs = []
-      setApplication({ ...app, programs })
+      setApplication(response.data)
     } catch (err) {
       console.log("Failed to fetch application:", err)
     } finally {
@@ -286,6 +209,7 @@ export default function EditAdmittedStudentPage() {
   }
 
   useEffect(() => {
+    fetchCampuses()
     getAdmittedData()
   }, [id])
 
@@ -352,83 +276,42 @@ export default function EditAdmittedStudentPage() {
     }))
   }
 
-  const handleSelectChange = useCallback(
-    (event: SelectChangeEvent<string | number>) => {
-      const { name, value } = event.target
-      if (!name) return
-      const strVal = value === "" || value === undefined ? "" : String(value)
+  const handleSelectChange = (event: SelectChangeEvent<string | number>) => {
+    const { name, value } = event.target
+    if (!name) return
+    const strVal = value === "" || value === undefined ? "" : String(value)
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "campus" || name === "study_mode" || name === "intended_program_batch" ? strVal : value,
+    }))
+  }
 
-      if (name === "campus") {
-        setFormData((prev) => {
-          const campusId = Number(strVal)
-          const validPrograms = programsForCampus(
-            applicationPrograms,
-            campusId,
-            application?.campus?.id,
-            eligibleCampusIds
-          )
-          const stillValid = validPrograms.some((p) => String(p.id) === prev.program)
-          return {
-            ...prev,
-            campus: strVal,
-            program: stillValid
-              ? prev.program
-              : validPrograms[0]
-                ? String(validPrograms[0].id)
-                : "",
-            intended_program_batch: stillValid ? prev.intended_program_batch : "",
-          }
-        })
-        return
-      }
+  const handleProgramChange = (_event: React.SyntheticEvent, value: Program | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      program: value ? String(value.id) : "",
+      intended_program_batch: "",
+    }))
+  }
 
-      if (name === "program") {
-        setFormData((prev) => {
-          const program = applicationPrograms.find((p) => String(p.id) === strVal)
-          const campus = program
-            ? resolveCampusForProgram(program, prev.campus, application?.campus)
-            : prev.campus
-          return {
-            ...prev,
-            program: strVal,
-            campus,
-            intended_program_batch: "",
-          }
-        })
-        return
-      }
+  const programOptions = useMemo(() => {
+    const batchPrograms = admissionBatch?.programs || []
+    const admitted = admittedData?.admitted_program
+    if (!admitted?.id) return batchPrograms
+    if (batchPrograms.some((p: Program) => p.id === admitted.id)) return batchPrograms
+    return [admitted, ...batchPrograms]
+  }, [admissionBatch?.programs, admittedData?.admitted_program])
 
-      setFormData((prev) => ({
-        ...prev,
-        [name]: name === "study_mode" || name === "intended_program_batch" ? strVal : value,
-      }))
-    },
-    [applicationPrograms, application?.campus, eligibleCampusIds]
-  )
+  const selectedProgram = useMemo(() => {
+    if (!formData.program) return null
+    return programOptions.find((p: Program) => p.id === Number(formData.program)) ?? null
+  }, [formData.program, programOptions])
 
   const handleSubmitClick = () => {
     if (!formData.student_id.trim() || !formData.reg_no.trim()) {
       setSnackbar({
         open: true,
         message: "Student ID and Registration Number are required",
-        type: "error",
-      })
-      return
-    }
-    if (!formData.campus || !formData.program) {
-      setSnackbar({
-        open: true,
-        message: "Select a valid campus and programme from the applicant's choices.",
-        type: "error",
-      })
-      return
-    }
-    const campusId = Number(formData.campus)
-    const program = applicationPrograms.find((p) => String(p.id) === formData.program)
-    if (program && !programOfferedAtCampus(program, campusId, applicationCampusId, eligibleCampusIds)) {
-      setSnackbar({
-        open: true,
-        message: "Selected programme is not offered at the chosen campus.",
         type: "error",
       })
       return
@@ -567,82 +450,39 @@ export default function EditAdmittedStudentPage() {
             </Typography>
           </Alert>
 
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Campus and programme must stay aligned. You can change either one here, but only combinations
-            from this applicant&apos;s programme choices are allowed.
-          </Alert>
-
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Campus
-            </Typography>
-            {eligibleCampuses.length === 0 && applicationPrograms.length ? (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                No campus is linked to this applicant&apos;s programme choices. Fix the application first.
-              </Alert>
-            ) : null}
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="edit-campus-label">Campus</InputLabel>
-              <Select
-                labelId="edit-campus-label"
-                label="Campus"
-                name="campus"
-                value={formData.campus}
-                onChange={handleSelectChange}
-                disabled={!eligibleCampuses.length}
-              >
-                <MenuItem value="" disabled>
-                  Select campus
-                </MenuItem>
-                {eligibleCampuses.map((c) => (
-                  <MenuItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                    {application?.campus?.id === c.id ? " (application campus)" : ""}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              options={programOptions}
+              getOptionLabel={(option) => `${option.name} (${option.code})`}
+              value={selectedProgram}
+              onChange={handleProgramChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Assigned Program"
+                  placeholder="Search and select program from active batch"
+                  variant="outlined"
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box>
+                    <Typography variant="body1">{option.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.code} • Faculty:{" "}
+                      {typeof option.faculty === "string"
+                        ? option.faculty
+                        : option.faculty?.name || "N/A"}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value?.id}
+              noOptionsText="No programs available in this batch"
+              fullWidth
+            />
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              {singleCampusChoice
-                ? "Only one campus applies for this applicant's choices."
-                : "Pick a campus, or change programme below and campus will follow."}
-            </Typography>
-          </Box>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Programme
-            </Typography>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="edit-program-label">Programme</InputLabel>
-              <Select
-                labelId="edit-program-label"
-                label="Programme"
-                name="program"
-                value={formData.program}
-                onChange={handleSelectChange}
-                disabled={!applicationPrograms.length}
-              >
-                <MenuItem value="" disabled>
-                  Select programme
-                </MenuItem>
-                {applicationPrograms.map((program, index) => (
-                  <MenuItem key={program.id} value={String(program.id)}>
-                    {index === 0 ? "Primary choice: " : `Choice ${index + 1}: `}
-                    {program.name} ({program.code})
-                    {program.campuses?.length
-                      ? ` — ${program.campuses.map((c) => c.name).join(", ")}`
-                      : ""}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              {singleProgramChoice
-                ? "Only one programme on this application."
-                : selectedCampusName
-                  ? `All applicant choices shown. Current campus: ${selectedCampusName} — campus updates when you pick a programme at another location.`
-                  : "All programme choices from the application. Campus updates automatically when needed."}
+              Search for any program available in the current active batch/intake
             </Typography>
           </Box>
 
@@ -673,6 +513,29 @@ export default function EditAdmittedStudentPage() {
             </Typography>
           </Box>
 
+          <Box sx={{ mb: 3 }}>
+            <Select
+              fullWidth
+              name="campus"
+              value={formData.campus}
+              onChange={handleSelectChange}
+              displayEmpty
+              variant="outlined"
+            >
+              <MenuItem value="" disabled>
+                Select Campus
+              </MenuItem>
+              {campuses.map((c) => (
+                <MenuItem key={c.id} value={String(c.id)}>
+                  {admittedData?.admitted_campus?.id === c.id ? `Current: ${c.name}` : c.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+              Select campus for this student.
+            </Typography>
+          </Box>
+
           <Box>
             <FormControl fullWidth required>
               <InputLabel>Study Mode</InputLabel>
@@ -695,34 +558,36 @@ export default function EditAdmittedStudentPage() {
           </Box>
 
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-              Student identifiers
-            </Typography>
             <TextField
               fullWidth
-              label="Student / pay number"
+              label="Student Number"
               name="student_id"
               value={formData.student_id}
               onChange={handleInputChange}
+              placeholder="Enter unique student ID"
               variant="outlined"
               inputProps={{ maxLength: 50 }}
-              helperText="Assigned at admission. Edit only to correct a typo."
+              helperText="This will be the student's unique identification number"
               sx={{ mb: 2 }}
             />
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
             <CustomButton
               onClick={handleGenerateRegNo}
-              text={isGeneratingRegNo ? "Generating..." : "Generate new reg no"}
+              text={isGeneratingRegNo ? "Generating..." : "Generate reg_no"}
             />
             <TextField
               fullWidth
-              label="Registration number"
+              label="Reg No"
               name="reg_no"
               value={formData.reg_no}
               onChange={handleInputChange}
+              placeholder="Enter unique student Reg_no"
               variant="outlined"
               inputProps={{ maxLength: 50 }}
-              helperText="Uses campus, programme, and study mode above when you generate."
-              sx={{ mb: 2, mt: 1 }}
+              helperText="This will be the student's unique identification number"
+              sx={{ mb: 2 }}
             />
           </Box>
 
