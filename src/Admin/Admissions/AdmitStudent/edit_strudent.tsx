@@ -109,11 +109,13 @@ interface AdmittedData {
 function programOfferedAtCampus(
   program: Program,
   campusId: number,
-  applicationCampusId?: number
+  applicationCampusId?: number,
+  eligibleCampusIds?: number[]
 ): boolean {
   const offered = program.campuses
   if (!offered?.length) {
-    return applicationCampusId != null ? campusId === applicationCampusId : false
+    if (eligibleCampusIds?.includes(campusId)) return true
+    return applicationCampusId != null ? campusId === applicationCampusId : true
   }
   return offered.some((c) => c.id === campusId)
 }
@@ -121,9 +123,31 @@ function programOfferedAtCampus(
 function programsForCampus(
   programs: Program[],
   campusId: number,
-  applicationCampusId?: number
+  applicationCampusId?: number,
+  eligibleCampusIds?: number[]
 ): Program[] {
-  return programs.filter((p) => programOfferedAtCampus(p, campusId, applicationCampusId))
+  return programs.filter((p) =>
+    programOfferedAtCampus(p, campusId, applicationCampusId, eligibleCampusIds)
+  )
+}
+
+function extractUpdateError(err: any): string {
+  const data = err?.response?.data
+  if (!data) return "Update failed!"
+  if (typeof data.detail === "string") return data.detail
+  if (Array.isArray(data.non_field_errors)?.length) return data.non_field_errors[0]
+  for (const key of [
+    "admitted_program",
+    "admitted_campus",
+    "intended_program_batch",
+    "student_id",
+    "reg_no",
+  ]) {
+    const val = data[key]
+    if (Array.isArray(val) && val.length) return String(val[0])
+    if (typeof val === "string") return val
+  }
+  return "Update failed!"
 }
 
 function resolveCampusForProgram(
@@ -189,19 +213,24 @@ export default function EditAdmittedStudentPage() {
 
   const eligibleCampuses = useMemo(() => {
     const byId = new Map<number, Campus>()
+    if (application?.campus?.id) {
+      byId.set(application.campus.id, application.campus)
+    }
     for (const program of applicationPrograms) {
       for (const campus of program.campuses ?? []) {
         byId.set(campus.id, campus)
       }
-    }
-    if (byId.size === 0 && application?.campus?.id) {
-      byId.set(application.campus.id, application.campus)
     }
     if (admittedData?.admitted_campus?.id) {
       byId.set(admittedData.admitted_campus.id, admittedData.admitted_campus)
     }
     return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [application, applicationPrograms, admittedData?.admitted_campus])
+
+  const eligibleCampusIds = useMemo(
+    () => eligibleCampuses.map((c) => c.id),
+    [eligibleCampuses]
+  )
 
   const selectedCampusName = useMemo(() => {
     const id = formData.campus ? Number(formData.campus) : null
@@ -264,17 +293,6 @@ export default function EditAdmittedStudentPage() {
     getApplication()
   }, [admittedData?.application])
 
-  useEffect(() => {
-    if (!application?.id || !formData.program) return
-    const program = applicationPrograms.find((p) => String(p.id) === formData.program)
-    if (!program) return
-    setFormData((prev) => {
-      const campus = resolveCampusForProgram(program, prev.campus, application.campus)
-      if (campus === prev.campus) return prev
-      return { ...prev, campus }
-    })
-  }, [application?.id, applicationPrograms])
-
   const programIdForBatches = formData.program
 
   useEffect(() => {
@@ -303,6 +321,13 @@ export default function EditAdmittedStudentPage() {
         setProgramBatchOptions(batches)
         setFormData((prev) => {
           if (prev.program !== programIdForBatches) return prev
+          const batchIds = new Set(batches.map((b) => String(b.id)))
+          if (prev.intended_program_batch && !batchIds.has(prev.intended_program_batch)) {
+            return {
+              ...prev,
+              intended_program_batch: defaultId != null ? String(defaultId) : "",
+            }
+          }
           if (prev.intended_program_batch) return prev
           if (defaultId != null) return { ...prev, intended_program_batch: String(defaultId) }
           return prev
@@ -339,7 +364,8 @@ export default function EditAdmittedStudentPage() {
           const validPrograms = programsForCampus(
             applicationPrograms,
             campusId,
-            application?.campus?.id
+            application?.campus?.id,
+            eligibleCampusIds
           )
           const stillValid = validPrograms.some((p) => String(p.id) === prev.program)
           return {
@@ -377,7 +403,7 @@ export default function EditAdmittedStudentPage() {
         [name]: name === "study_mode" || name === "intended_program_batch" ? strVal : value,
       }))
     },
-    [applicationPrograms, application?.campus]
+    [applicationPrograms, application?.campus, eligibleCampusIds]
   )
 
   const handleSubmitClick = () => {
@@ -399,7 +425,7 @@ export default function EditAdmittedStudentPage() {
     }
     const campusId = Number(formData.campus)
     const program = applicationPrograms.find((p) => String(p.id) === formData.program)
-    if (program && !programOfferedAtCampus(program, campusId, applicationCampusId)) {
+    if (program && !programOfferedAtCampus(program, campusId, applicationCampusId, eligibleCampusIds)) {
       setSnackbar({
         open: true,
         message: "Selected programme is not offered at the chosen campus.",
@@ -454,8 +480,8 @@ export default function EditAdmittedStudentPage() {
       const payload = {
         student_id: formData.student_id.trim(),
         reg_no: formData.reg_no.trim(),
-        admitted_campus: formData.campus,
-        admitted_program: formData.program,
+        admitted_campus: Number(formData.campus),
+        admitted_program: Number(formData.program),
         admission_notes: formData.notes.trim(),
         study_mode: formData.study_mode,
         intended_program_batch: formData.intended_program_batch
@@ -475,21 +501,9 @@ export default function EditAdmittedStudentPage() {
         navigate("/admin/admited_students")
       }, 1500)
     } catch (err: any) {
-      let errorMessage = "Update failed!"
-
-      if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail
-      } else if (err.response?.data?.non_field_errors) {
-        errorMessage = err.response.data.non_field_errors[0]
-      } else if (err.response?.data?.admitted_campus) {
-        errorMessage = err.response.data.admitted_campus[0]
-      } else if (err.response?.data?.admitted_program) {
-        errorMessage = err.response.data.admitted_program[0]
-      }
-
       setSnackbar({
         open: true,
-        message: errorMessage,
+        message: extractUpdateError(err),
         type: "error",
       })
     } finally {
