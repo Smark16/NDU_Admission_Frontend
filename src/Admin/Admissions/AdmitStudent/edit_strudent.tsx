@@ -110,7 +110,9 @@ function extractUpdateError(err: any): string {
   const data = err?.response?.data
   if (!data) return "Update failed!"
   if (typeof data.detail === "string") return data.detail
-  if (Array.isArray(data.non_field_errors)?.length) return data.non_field_errors[0]
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) {
+    return data.non_field_errors[0]
+  }
   for (const key of [
     "admitted_program",
     "admitted_campus",
