@@ -109,7 +109,7 @@ interface FormData {
   passportPhoto: File | null
   oLevelDocuments: File | null
   aLevelDocuments: File | null
-  otherInstitutionDocuments: File | null
+  otherInstitutionDocuments: File[]
   hasOLevel: boolean;
   hasALevel: boolean;
   status: string
@@ -163,7 +163,7 @@ export default function DirectApplicationForm() {
     passportPhoto: null,
     oLevelDocuments: null,
     aLevelDocuments: null,
-    otherInstitutionDocuments: null,
+    otherInstitutionDocuments: [],
     externalReference: "",
     hasOLevel: false,
     hasALevel: false,
@@ -189,9 +189,11 @@ export default function DirectApplicationForm() {
     return regex.test(nin.toUpperCase());
   };
 
-  // Validate forms
-  const validateStep = (step: number): boolean => {
+  // Validate forms — returns field errors (empty object = valid)
+  const validateStep = (step: number): Record<string, string> => {
     const errors: Record<string, string> = {};
+    const countGraded = (subjects: SubjectResult[]) =>
+      subjects.filter((s) => s.subject && s.grade).length;
 
     switch (step) {
       case 0: // Personal Info
@@ -221,8 +223,11 @@ export default function DirectApplicationForm() {
         break;
 
       case 1: // Programs
+        if (!admissionBatch?.id) {
+          errors.programs = "No active admission intake is loaded. Refresh the page or contact an administrator.";
+        }
         if (formData.programs.length === 0) {
-          errors.programs = "Please select at least one program";
+          errors.programs = errors.programs || "Please select at least one program";
         }
         if (!formData.campus) errors.campus = "Please select a campus";
         if (!formData.academic_level) errors.academic_level = "Academic level is required";
@@ -236,8 +241,8 @@ export default function DirectApplicationForm() {
           if (!formData.oLevelYear) errors.oLevelYear = "O-Level year is required";
           if (!formData.oLevelIndexNumber?.trim()) errors.oLevelIndexNumber = "O-Level index number required";
           if (!formData.oLevelSchool?.trim()) errors.oLevelSchool = "O-Level school required";
-          if (formData.oLevelSubjects.length < 8) {
-            errors.oLevelSubjects = "Add at least 8 O-Level results";
+          if (countGraded(formData.oLevelSubjects) < 8) {
+            errors.oLevelSubjects = "Grade at least 8 O-Level subjects";
           }
         }
 
@@ -246,8 +251,8 @@ export default function DirectApplicationForm() {
           if (!formData.aLevelIndexNumber?.trim()) errors.aLevelIndexNumber = "A-Level index required";
           if (!formData.aLevelSchool?.trim()) errors.aLevelSchool = "A-Level school required";
           if (!formData.alevel_combination?.trim()) errors.alevel_combination = "A-Level combination required";
-          if (formData.aLevelSubjects.length < 5) {
-            errors.aLevelSubjects = "Add at least 5 A-Level results";
+          if (countGraded(formData.aLevelSubjects) < 5) {
+            errors.aLevelSubjects = "Grade at least 5 A-Level subjects";
           }
         }
 
@@ -290,20 +295,24 @@ export default function DirectApplicationForm() {
           }
         }
         
-        if (formData.additionalQualifications.length > 0 && !formData.otherInstitutionDocuments) errors.otherInstitutionDocuments = "Other documents are required"
+        if (formData.additionalQualifications.length > 0 && formData.otherInstitutionDocuments.length === 0) {
+          errors.otherInstitutionDocuments = "Upload at least one document for additional qualifications";
+        }
         break;
 
       case 4:
-        return true;
+        break;
     }
 
-    setFormErrors(errors);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return Object.keys(errors).length === 0;
+    return errors;
   };
 
   const handleNext = () => {
-    if (!validateStep(activeStep)) {
+    const errors = validateStep(activeStep);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      showNotification(Object.values(errors)[0], "error");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -340,6 +349,12 @@ export default function DirectApplicationForm() {
   useEffect(() => {
     fetchCampus()
   }, [])
+
+  useEffect(() => {
+    if (admissionBatch?.id) {
+      setFormData((prev) => ({ ...prev, batch: Number(admissionBatch.id) }))
+    }
+  }, [admissionBatch?.id])
 
   // For text fields and textareas
   const handleInputChange = (
@@ -482,10 +497,29 @@ export default function DirectApplicationForm() {
 
       // Save the correctly named file
       setFormErrors((prev) => ({ ...prev, [name]: "" }));
-      setFormData((prev) => ({ ...prev, [name]: fileToSave }));
+      if (name === "otherInstitutionDocuments") {
+        setFormData((prev) => ({
+          ...prev,
+          otherInstitutionDocuments: [...prev.otherInstitutionDocuments, fileToSave],
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, [name]: fileToSave }));
+      }
+      e.target.value = "";
     };
 
+  const removeOtherInstitutionDocument = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      otherInstitutionDocuments: prev.otherInstitutionDocuments.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async () => {
+    if (!admissionBatch?.id) {
+      showNotification("No active admission intake is open. Cannot submit direct entry.", "error")
+      return
+    }
     try {
       setSubmitLoader(true);
 
@@ -576,10 +610,10 @@ export default function DirectApplicationForm() {
         formDataToSend.append("documents", formData.aLevelDocuments);
         formDataToSend.append("document_types", "ALevel");
       }
-      if (formData.otherInstitutionDocuments) {
-        formDataToSend.append("documents", formData.otherInstitutionDocuments);
+      formData.otherInstitutionDocuments.forEach((file) => {
+        formDataToSend.append("documents", file);
         formDataToSend.append("document_types", "Others");
-      }
+      });
 
       if (formData.externalReference) {
         formDataToSend.append("external_reference", formData.externalReference);
@@ -660,7 +694,8 @@ export default function DirectApplicationForm() {
       handleFileChange={handleFileChange}
       setFormData={setFormData}
       formErrors={formErrors}
-      compressingField={compressingField} 
+      compressingField={compressingField}
+      onRemoveOtherInstitutionDocument={removeOtherInstitutionDocument}
     />
     </>
   )
@@ -763,7 +798,9 @@ export default function DirectApplicationForm() {
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>Other Institution Documents:</strong>{" "}
-              {formData.otherInstitutionDocuments ? formData.otherInstitutionDocuments.name : "Not uploaded"}
+              {formData.otherInstitutionDocuments.length > 0
+                ? `${formData.otherInstitutionDocuments.length} uploaded`
+                : "Not uploaded"}
             </Typography>
           </Grid>
         </Grid>
@@ -834,6 +871,12 @@ export default function DirectApplicationForm() {
               ))}
             </Stepper>
           </Box>
+
+          {Object.keys(formErrors).length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormErrors({})}>
+              {Object.values(formErrors)[0]}
+            </Alert>
+          )}
 
           <Box sx={{ minHeight: 400, mb: 4 }}>{renderStepContent()}</Box>
 

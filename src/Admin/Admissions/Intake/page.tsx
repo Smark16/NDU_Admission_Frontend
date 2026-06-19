@@ -124,13 +124,19 @@ export default function BatchManagement() {
     }
   }
 
-  // === FETCH PROGRAMS ===
-  const fetchPrograms = async () => {
+  // === FETCH PROGRAMS (only programmes with an active cohort in offer) ===
+  const fetchPrograms = async (includeProgramIds: number[] = []) => {
     try {
-      const response = await AxiosInstance.get("/api/program/list_programs")
-      setPrograms(response.data)
+      const params: Record<string, string> = {}
+      if (includeProgramIds.length) {
+        params.include_program_ids = includeProgramIds.join(",")
+      }
+      const response = await AxiosInstance.get("/api/admissions/intake_eligible_programs", {
+        params,
+      })
+      setPrograms(Array.isArray(response.data) ? response.data : response.data?.results ?? [])
     } catch (error: any) {
-      showNotification("Failed to load programs", "error")
+      showNotification("Failed to load programmes", "error")
     }
   }
 
@@ -161,6 +167,8 @@ export default function BatchManagement() {
   const handleOpenDialog = (batch?: Batch) => {
     if (batch) {
       setEditingId(batch.id)
+      const existingIds = batch.programs.map((p) => p.id)
+      void fetchPrograms(existingIds)
       setFormData({
         name: batch.name,
         code: batch.code,
@@ -174,6 +182,7 @@ export default function BatchManagement() {
       })
     } else {
       setEditingId(null)
+      void fetchPrograms()
       setFormData(INITIAL_FORM_DATA)
     }
     setOpenDialog(true)
@@ -576,7 +585,7 @@ export default function BatchManagement() {
                     ))
                   }
                   loading={programs.length === 0}
-                  noOptionsText="No programs found"
+                  noOptionsText="No programmes with an active cohort in offer"
                 />
                 {formErrors.programs && <FormHelperText>{formErrors.programs}</FormHelperText>}
               </FormControl>

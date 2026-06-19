@@ -31,8 +31,20 @@ interface AcademicLevel {
 interface Program {
   id: number;
   name: string;
-  academic_level: number;
+  academic_level: number | string | { id: number };
+  academic_level_id?: number;
   campuses: { id: number }[];
+}
+
+function programAcademicLevelId(program: Program): number | string | undefined {
+  if (program.academic_level_id != null) {
+    return program.academic_level_id;
+  }
+  const level = program.academic_level;
+  if (level && typeof level === "object" && "id" in level) {
+    return level.id;
+  }
+  return level as number | string | undefined;
 }
 
 interface ProgramProps {
@@ -53,7 +65,7 @@ const Programs: React.FC<ProgramProps> = ({
   setFormData,
 }) => {
   const AxiosInstance = useAxios();
-  const { batch } = useHook();
+  const { admissionBatch } = useHook();
 
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
@@ -83,20 +95,20 @@ const Programs: React.FC<ProgramProps> = ({
 
   // Filtered programs based on selected campus & academic level
   const filteredPrograms = useMemo(() => {
-    if (!batch?.programs || !Array.isArray(batch.programs)) return [];
+    if (!admissionBatch?.programs || !Array.isArray(admissionBatch.programs)) return [];
 
-    return batch.programs.filter((program: Program) => {
-      const matchesAcademicLevel = 
-        !formData.academic_level || 
-        String(program.academic_level) === String(formData.academic_level);
+    return admissionBatch.programs.filter((program: Program) => {
+      const matchesAcademicLevel =
+        !formData.academic_level ||
+        String(programAcademicLevelId(program)) === String(formData.academic_level);
 
-      const matchesCampus = 
-        !formData.campus || 
-        program.campuses.some((c: any) => String(c.id) === String(formData.campus));
+      const matchesCampus =
+        !formData.campus ||
+        program.campuses.some((c: { id: number }) => String(c.id) === String(formData.campus));
 
       return matchesAcademicLevel && matchesCampus;
     });
-  }, [batch?.programs, formData.academic_level, formData.campus]);
+  }, [admissionBatch?.programs, formData.academic_level, formData.campus]);
 
   // Get selected program objects for Autocomplete
   const selectedPrograms = useMemo(() => {
@@ -108,8 +120,14 @@ const Programs: React.FC<ProgramProps> = ({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Alert severity="info" icon={<InfoIcon />}>
-        <strong>Note:</strong> You will be assigned to an admission batch by the administration office after your application is reviewed.
+        <strong>Direct entry:</strong> Programmes are drawn from the active admission intake ({admissionBatch?.name || "loading…"}).
       </Alert>
+
+      {!admissionBatch?.id && (
+        <Alert severity="warning">
+          No active admission intake is open. Direct entry cannot be submitted until an intake is active.
+        </Alert>
+      )}
 
       {/* Preferred Campus */}
       <FormControl fullWidth required error={!!formErrors.campus}>
@@ -125,7 +143,7 @@ const Programs: React.FC<ProgramProps> = ({
             <MenuItem disabled>Loading campuses...</MenuItem>
           ) : (
             campuses.map((campus) => (
-              <MenuItem key={campus.id} value={campus.id}>
+              <MenuItem key={campus.id} value={String(campus.id)}>
                 {campus.name}
               </MenuItem>
             ))
@@ -148,7 +166,7 @@ const Programs: React.FC<ProgramProps> = ({
             <MenuItem disabled>Loading academic levels...</MenuItem>
           ) : (
             academicLevels.map((level) => (
-              <MenuItem key={level.id} value={level.id}>
+              <MenuItem key={level.id} value={String(level.id)}>
                 {level.name}
               </MenuItem>
             ))

@@ -82,24 +82,48 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
 
   const [olevelSubjectList, setOlevelSubjectList] = useState<OLevelSubject[]>([]);
   const [alevelSubjectList, setAlevelSubjectList] = useState<ALevelSubject[]>([]);
+  const [isOLevelSubjectsLoading, setIsOLevelSubjectsLoading] = useState(true);
+  const [isALevelSubjectsLoading, setIsALevelSubjectsLoading] = useState(true);
+  const [olevelSubjectsError, setOlevelSubjectsError] = useState<string | null>(null);
+  const [alevelSubjectsError, setAlevelSubjectsError] = useState<string | null>(null);
   const [examBody, setExamBody] = useState<'UCE' | 'GCE'>('UCE');
 
   // Fetch subjects
   const fetchOlevelSubjects = async () => {
     try {
+      setIsOLevelSubjectsLoading(true);
+      setOlevelSubjectsError(null);
       const response = await AxiosInstance.get('/api/admissions/list_olevel_subject');
-      setOlevelSubjectList(response.data);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setOlevelSubjectList(rows);
+      if (rows.length === 0) {
+        setOlevelSubjectsError('No O-Level subjects are configured yet. Please contact the admissions office.');
+      }
     } catch (err) {
       console.error('Error fetching O-Level subjects:', err);
+      setOlevelSubjectList([]);
+      setOlevelSubjectsError('Could not load O-Level subjects. Please refresh the page or try again later.');
+    } finally {
+      setIsOLevelSubjectsLoading(false);
     }
   };
 
   const fetchAlevelSubjects = async () => {
     try {
+      setIsALevelSubjectsLoading(true);
+      setAlevelSubjectsError(null);
       const response = await AxiosInstance.get('/api/admissions/list_alevel_subject');
-      setAlevelSubjectList(response.data);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setAlevelSubjectList(rows);
+      if (rows.length === 0) {
+        setAlevelSubjectsError('No A-Level subjects are configured yet. Please contact the admissions office.');
+      }
     } catch (err) {
       console.error('Error fetching A-Level subjects:', err);
+      setAlevelSubjectList([]);
+      setAlevelSubjectsError('Could not load A-Level subjects. Please refresh the page or try again later.');
+    } finally {
+      setIsALevelSubjectsLoading(false);
     }
   };
 
@@ -320,12 +344,14 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
 
           {formErrors.oLevelSubjects && <Alert severity="error" sx={{ mb: 2 }}>{formErrors.oLevelSubjects}</Alert>}
 
+          {olevelSubjectsError && <Alert severity="warning" sx={{ mb: 2 }}>{olevelSubjectsError}</Alert>}
+
           {/* Subject grid */}
-          {olevelSubjectList.length === 0 ? (
+          {isOLevelSubjectsLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress size={28} sx={{ color: "#3e397b" }} />
             </Box>
-          ) : (
+          ) : olevelSubjectList.length === 0 ? null : (
             <Box sx={{ border: "1px solid #e0eef7", borderRadius: 1, overflow: "hidden" }}>
               {sortedOLevelSubjects.map((subj, idx) => {
                 const selectedGrade = gradeMap[subj.id.toString()];
@@ -510,12 +536,14 @@ const AcademicResults: React.FC<AcademicResultsProps> = ({
 
           {formErrors.aLevelSubjects && <Alert severity="error" sx={{ mb: 2 }}>{formErrors.aLevelSubjects}</Alert>}
 
+          {alevelSubjectsError && <Alert severity="warning" sx={{ mb: 2 }}>{alevelSubjectsError}</Alert>}
+
           {/* Subject grid */}
-          {alevelSubjectList.length === 0 ? (
+          {isALevelSubjectsLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress size={28} sx={{ color: "#3e397b" }} />
             </Box>
-          ) : (
+          ) : alevelSubjectList.length === 0 ? null : (
             <Box sx={{ border: "1px solid #e0eef7", borderRadius: 1, overflow: "hidden" }}>
               {sortedALevelSubjects.map((subj, idx) => {
                 const selectedGrade = aGradeMap[subj.id.toString()];

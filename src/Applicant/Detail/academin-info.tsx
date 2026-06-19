@@ -40,6 +40,7 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
   const [programOptions, setProgramOptions] = useState<Array<{ id: number; name: string; code?: string; campus_ids: number[] }>>([])
   const [changeNote, setChangeNote] = useState("")
   const [changingProgramme, setChangingProgramme] = useState(false)
+  const [canUpdatePrograms, setCanUpdatePrograms] = useState(false)
   const location = useLocation()
   const AxiosInstance = useAxios()
   // const returnTo = (location.state as any)?.returnTo || "/admin/application_list"
@@ -94,22 +95,49 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
   }
 
   useEffect(() => {
-    if (!openChangeProgramme) return
+    if (!application?.id) return
+    let cancelled = false
+    const loadEligibility = async () => {
+      try {
+        const res = await AxiosInstance.get(
+          `/api/admissions/applicant_program_choices/${application.id}`,
+        )
+        if (!cancelled) {
+          setCanUpdatePrograms(Boolean(res.data?.can_update_programs))
+        }
+      } catch {
+        if (!cancelled) setCanUpdatePrograms(false)
+      }
+    }
+    loadEligibility()
+    return () => {
+      cancelled = true
+    }
+  }, [application?.id])
+
+  useEffect(() => {
+    if (!openChangeProgramme || !application?.id) return
     const loadOptions = async () => {
       try {
-        const [campusRes, programRes] = await Promise.all([
+        const [campusRes, choicesRes] = await Promise.all([
           AxiosInstance.get("/api/accounts/list_campus"),
-          AxiosInstance.get("/api/program/list_programs"),
+          AxiosInstance.get(`/api/admissions/applicant_program_choices/${application.id}`),
         ])
         setCampusOptions(Array.isArray(campusRes.data) ? campusRes.data : [])
+        setCanUpdatePrograms(Boolean(choicesRes.data?.can_update_programs))
 
-        const normalizedPrograms = (Array.isArray(programRes.data) ? programRes.data : []).map((p: any) => ({
+        const campusId = Number(
+          application?.campus_id ?? application?.campus?.id ?? "",
+        )
+        const normalizedPrograms = (
+          Array.isArray(choicesRes.data?.available_programs)
+            ? choicesRes.data.available_programs
+            : []
+        ).map((p: any) => ({
           id: Number(p.id),
           name: p.name,
           code: p.code,
-          campus_ids: Array.isArray(p.campuses)
-            ? p.campuses.map((c: any) => Number(typeof c === "object" ? c.id : c)).filter((x: number) => Number.isFinite(x))
-            : [],
+          campus_ids: Number.isFinite(campusId) && campusId > 0 ? [campusId] : [],
         }))
         setProgramOptions(normalizedPrograms)
       } catch {
@@ -117,7 +145,7 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
       }
     }
     loadOptions()
-  }, [openChangeProgramme])
+  }, [openChangeProgramme, application?.id])
 
   useEffect(() => {
     if (!openChangeProgramme) return
@@ -174,7 +202,7 @@ export default function AcademicInfoSection({ application, program_choices }: Ac
             </Grid>
           )}
 
-         {application?.status !== 'Admitted' && (
+         {application?.status !== 'Admitted' && canUpdatePrograms && (
           <Button
             variant="outlined"
             fullWidth

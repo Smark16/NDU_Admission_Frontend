@@ -61,6 +61,12 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  otherInstitutionDocumentItems: Array<{
+    id?: number | null;
+    url: string;
+    filename: string;
+    legacy?: boolean;
+  }>
   passportPhotoUrl: string | null
   oLevelDocumentsUrl: string | null
   aLevelDocumentsUrl: string | null
@@ -78,6 +84,7 @@ interface DocumentProps {
   formErrors: Record<string, string>
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  onRemoveOtherInstitutionDocument: (item: FormData["otherInstitutionDocumentItems"][number]) => void | Promise<void>;
 }
 
 const SavedFileChip = ({
@@ -122,7 +129,8 @@ const Documents: React.FC<DocumentProps> = ({
   docType,
   compressingField,
   handleFileChange,
-  setFormData
+  setFormData,
+  onRemoveOtherInstitutionDocument,
 }) => {
 
   return (
@@ -356,9 +364,21 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            If you have any additional academic qualifications from other institutions (diplomas, certificates, degrees,
-            etc.), upload them here. Optional.
+            Upload certificates or transcripts for each additional qualification. You can add multiple files — one per qualification or combined scans.
           </Typography>
+          {formData.otherInstitutionDocumentItems.length > 0 && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+              {formData.otherInstitutionDocumentItems.map((doc) => (
+                <Chip
+                  key={doc.url}
+                  icon={<CheckCircleIcon />}
+                  label={doc.filename}
+                  onDelete={() => onRemoveOtherInstitutionDocument(doc)}
+                  sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", "& .MuiChip-deleteIcon": { color: "#2e7d32" } }}
+                />
+              ))}
+            </Box>
+          )}
           <Paper
             sx={{
               p: 3,
@@ -381,10 +401,12 @@ const Documents: React.FC<DocumentProps> = ({
             <label htmlFor="other-docs" style={{ cursor: "pointer", display: "block" }}>
               <CloudUploadIcon sx={{ fontSize: 40, color: "#5ba3f5", mb: 1 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Click to upload or drag and drop
+                {formData.otherInstitutionDocumentItems.length > 0
+                  ? "Add another document"
+                  : "Click to upload or drag and drop"}
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP, IMAGE (Max 100MB) - Optional
+                PDF, ZIP, IMAGE (Max 100MB each)
               </Typography>
               {compressingField === "otherInstitutionDocuments" ? (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
@@ -396,9 +418,7 @@ const Documents: React.FC<DocumentProps> = ({
                       <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
                       <Typography variant="caption" sx={{ color: "#666" }}>Uploading Document...</Typography>
                     </Box>
-                  ) : (
-                <SavedFileChip file={formData.otherInstitutionDocuments} url={formData.otherInstitutionDocumentsUrl} fieldName="otherInstitutionDocuments" setFormData={setFormData} />
-              )}
+                  ) : null}
             </label>
           </Paper>
            {formErrors.otherInstitutionDocuments && (

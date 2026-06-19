@@ -53,7 +53,7 @@ const Programs: React.FC<ProgramProps> = ({
   setFormData,
 }) => {
   const AxiosInstance = useAxios();
-  const { batch } = useHook();
+  const { batch, isBatchLoading, batchError } = useHook();
 
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
@@ -110,6 +110,17 @@ const Programs: React.FC<ProgramProps> = ({
       <Alert severity="info" icon={<InfoIcon />}>
         <strong>Note:</strong> You will be assigned to an admission batch by the administration office after your application is reviewed.
       </Alert>
+
+      {batchError && (
+        <Alert severity="warning">{batchError}</Alert>
+      )}
+
+      {!isBatchLoading && !batchError && filteredPrograms.length === 0 && (
+        <Alert severity="warning">
+          No programmes are open for your campus and academic level on the current intake.
+          Check your selections or contact the Admissions Office.
+        </Alert>
+      )}
 
       {/* Preferred Campus */}
       <FormControl fullWidth required error={!!formErrors.campus}>

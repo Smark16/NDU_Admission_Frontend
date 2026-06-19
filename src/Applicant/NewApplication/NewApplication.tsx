@@ -85,6 +85,13 @@ interface Campus {
   name: string;
 }
 
+interface OtherInstitutionDocumentItem {
+  id?: number | null;
+  url: string;
+  filename: string;
+  legacy?: boolean;
+}
+
 interface FormData {
   applicant: number | undefined;
   batch: number | undefined
@@ -129,6 +136,7 @@ interface FormData {
   oLevelDocuments: File | null
   aLevelDocuments: File | null
   otherInstitutionDocuments: File | null
+  otherInstitutionDocumentItems: OtherInstitutionDocumentItem[]
   passportPhotoUrl: string | null
   oLevelDocumentsUrl: string | null
   aLevelDocumentsUrl: string | null
@@ -196,6 +204,7 @@ export default function NewApplicationForm() {
     oLevelDocuments: null,
     aLevelDocuments: null,
     otherInstitutionDocuments: null,
+    otherInstitutionDocumentItems: [],
     passportPhotoUrl: null,
     oLevelDocumentsUrl: null,
     aLevelDocumentsUrl: null,
@@ -216,9 +225,24 @@ export default function NewApplicationForm() {
 
   // payment modal handlers
   const handleOpenPaymentModal = () => {
-    if (!selectedFee?.amount) {
+    if (!batch?.id && !formData.batch) {
+      showNotification("The application intake is still loading. Please wait a moment and try again.", "error");
       return;
     }
+
+    if (!formData.academic_level) {
+      showNotification("Academic level is missing. Go back to Programs and complete that step.", "error");
+      return;
+    }
+
+    if (!selectedFee?.amount) {
+      showNotification(
+        "No application fee is set up for your intake, nationality, and academic level. On a fresh local database run: py -3 manage.py seed_application_fees — or ask admissions to configure fees in Fee Management.",
+        "error"
+      );
+      return;
+    }
+
     setPaymentModalOpen(true);
   };
 
@@ -370,8 +394,8 @@ export default function NewApplicationForm() {
 
         // Other Documents (only if they have additional qualifications)
         if (formData.additionalQualifications && formData.additionalQualifications.length > 0) {
-          if (!formData.otherInstitutionDocuments && !formData.otherInstitutionDocumentsUrl) {
-            errors.otherInstitutionDocuments = "Other institution documents are required";
+          if (formData.otherInstitutionDocumentItems.length === 0) {
+            errors.otherInstitutionDocuments = "Upload at least one document for your additional qualifications";
           }
         }
         break;
@@ -412,6 +436,15 @@ export default function NewApplicationForm() {
     fetchCampus()
     fetchFeePlans()
   }, [])
+
+  useEffect(() => {
+    if (batch?.id) {
+      setFormData((prev) => ({
+        ...prev,
+        batch: Number(batch.id),
+      }))
+    }
+  }, [batch?.id])
 
   // For text fields and textareas
   const handleInputChange = (
@@ -561,7 +594,7 @@ export default function NewApplicationForm() {
       const uploadData = new FormData();
       uploadData.append("file", fileToSave);
       uploadData.append("document_type", name); // IMPORTANT (matches backend)
-      uploadData.append("batch", String(batch?.id || ""));
+      uploadData.append("batch", String(formData.batch || batch?.id || ""));
 
       const res = await AxiosInstance.post(
         "/api/drafts/upload_draft_document/",
@@ -571,19 +604,33 @@ export default function NewApplicationForm() {
         }
       );
 
-      const { url, filename } = res.data;
+      const { url, filename, id } = res.data;
 
       // ================= UPDATE STATE =================
       setFormErrors((prev) => ({ ...prev, [name]: "" }));
-      setFormData((prev) => ({
-        ...prev,
 
-        // Clear file object (optional)
-        [name]: null,
-
-        // Save URL
-        [`${name}Url`]: url,
-      }));
+      if (name === "otherInstitutionDocuments") {
+        setFormData((prev) => ({
+          ...prev,
+          otherInstitutionDocuments: null,
+          otherInstitutionDocumentItems: [
+            ...prev.otherInstitutionDocumentItems,
+            {
+              id: id ?? null,
+              url,
+              filename: filename || fileToSave.name,
+              legacy: false,
+            },
+          ],
+          otherInstitutionDocumentsUrl: url,
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: null,
+          [`${name}Url`]: url,
+        }));
+      }
 
       showNotification(`${filename} uploaded successfully`, "success");
 
@@ -598,6 +645,28 @@ export default function NewApplicationForm() {
     } finally {
       setIsUploading(false)
       setDocType(null)
+    }
+  };
+
+  const removeOtherInstitutionDocument = async (item: OtherInstitutionDocumentItem) => {
+    try {
+      await AxiosInstance.post("/api/drafts/delete_draft_other_document/", {
+        id: item.id,
+        legacy: item.legacy ?? false,
+        batch: String(formData.batch || batch?.id || ""),
+      });
+      setFormData((prev) => {
+        const nextItems = prev.otherInstitutionDocumentItems.filter((doc) => doc.url !== item.url);
+        return {
+          ...prev,
+          otherInstitutionDocumentItems: nextItems,
+          otherInstitutionDocumentsUrl: nextItems[0]?.url ?? null,
+        };
+      });
+      showNotification("Document removed", "success");
+    } catch (error) {
+      console.error("Failed to remove document:", error);
+      showNotification("Could not remove document. Please try again.", "error");
     }
   };
 
@@ -669,7 +738,7 @@ export default function NewApplicationForm() {
         // draftPayload.append("externalReference", formData.externalReference || "");
         draftPayload.append("status", "draft");
         draftPayload.append("applicant", String(loggeduser?.user_id || ""));
-        draftPayload.append("batch", String(batch?.id || ""));
+        draftPayload.append("batch", String(formData.batch || batch?.id || ""));
 
         const response = await AxiosInstance.post(
           "/api/drafts/save_draft/",
@@ -734,14 +803,15 @@ export default function NewApplicationForm() {
 
   const selectedFee = batch
     ? fees.find(
-      fee =>
-        fee.admission_id === batch.id &&
+      (fee) =>
+        Number(fee.admission_id) === Number(batch.id) &&
         fee.academic_year === batch.academic_year &&
         fee.nationality_type === applicantType &&
+        fee.is_active !== false &&
+        Array.isArray(fee.academic_level) &&
         fee.academic_level.some(
-          (level) => level.id === Number(formData.academic_level)
+          (level) => Number(level.id) === Number(formData.academic_level)
         )
-
     )
     : undefined;
 
@@ -776,7 +846,13 @@ export default function NewApplicationForm() {
 
       // Personal & Program Info
       formDataToSend.append("applicant", String(loggeduser?.user_id));
-      formDataToSend.append("batch", String(batch?.id));
+      const intakeId = formData.batch || batch?.id;
+      if (!intakeId) {
+        showNotification("The application intake is still loading. Please wait a moment and try again.", "error");
+        setIsSubmitting(false);
+        return;
+      }
+      formDataToSend.append("batch", String(intakeId));
       formDataToSend.append("first_name", formData.firstName);
       formDataToSend.append("last_name", formData.lastName);
       formDataToSend.append("middle_name", formData.middleName || "");
@@ -938,6 +1014,7 @@ export default function NewApplicationForm() {
 
         setFormData(prev => ({
           ...prev,
+          batch: draft.batch ? Number(draft.batch) : prev.batch,
           firstName: draft.firstName || "",
           lastName: draft.lastName || "",
           middleName: draft.middleName || "",
@@ -994,6 +1071,15 @@ export default function NewApplicationForm() {
           oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
           aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
           otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
+          otherInstitutionDocumentItems: Array.isArray(draft.otherInstitutionDocumentItems)
+            ? draft.otherInstitutionDocumentItems
+            : draft.otherInstitutionDocumentsUrl
+              ? [{
+                  url: draft.otherInstitutionDocumentsUrl,
+                  filename: draft.otherInstitutionDocumentsUrl.split("/").pop() || "document",
+                  legacy: true,
+                }]
+              : [],
 
           // Reset File objects
           passportPhoto: null,
@@ -1154,6 +1240,7 @@ export default function NewApplicationForm() {
         compressingField={compressingField}
         loading={isUploading}
         docType={docType}
+        onRemoveOtherInstitutionDocument={removeOtherInstitutionDocument}
       />
     </>
   )
@@ -1257,8 +1344,8 @@ export default function NewApplicationForm() {
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>Other Institution Documents:</strong>{" "}
-              {formData.otherInstitutionDocumentsUrl
-                ? "Uploaded ✅"
+              {formData.otherInstitutionDocumentItems.length > 0
+                ? `${formData.otherInstitutionDocumentItems.length} uploaded ✅`
                 : formData.otherInstitutionDocuments
                   ? formData.otherInstitutionDocuments.name
                   : "Not uploaded"}
@@ -1267,15 +1354,20 @@ export default function NewApplicationForm() {
         </Grid>
       </Paper>
 
-      <Alert>
+      <Alert severity={selectedFee?.amount ? (formData.application_fee_paid ? "success" : "info") : "warning"}>
         {formData.application_fee_paid ? (
           <Typography>
-            <strong>Payment of UGX {selectedFee?.amount} was sucessfull, Please continue with Submission</strong>
+            <strong>Payment of UGX {selectedFee?.amount} was successful. Please continue with submission.</strong>
+          </Typography>
+        ) : selectedFee?.amount ? (
+          <Typography>
+            Note: You are required to pay a non-refundable application fee of{" "}
+            <strong>UGX {selectedFee.amount}</strong> before application submission.
           </Typography>
         ) : (
           <Typography>
-            Note: Your Required to pay a nonrefundable application fee of {" "}
-            <strong>UGX {selectedFee?.amount}</strong> before application submission
+            <strong>Application fee not configured.</strong> Payment cannot start until an admin sets up the fee for
+            this intake, your nationality ({applicantType}), and academic level. Refresh the page after fees are added.
           </Typography>
         )}
       </Alert>

@@ -151,6 +151,7 @@ export default function Register() {
       const response = await api.post("/api/accounts/register", formData)
       if (response.status === 200 || response.status === 201) {
         setSuccess(true)
+        setRegisterErrors([])
         setFormData({
           first_name: "",
           last_name: "",
@@ -379,7 +380,7 @@ export default function Register() {
           {/* Success */}
           {success && (
             <Alert icon={<CheckCircleIcon />} severity="success" sx={{ mb: 2, borderRadius: 2 }}>
-              Account created successfully!
+              Account created! Log in next, then open <strong>New Application</strong> to complete and submit your form (payment required).
             </Alert>
           )}
 

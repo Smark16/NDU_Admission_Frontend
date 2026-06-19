@@ -47,7 +47,7 @@ const ApplicantDashboard: React.FC = () => {
   const [application, setApplication] = useState<Application | null>(null);
   const [draft, setDraft] = useState<DraftInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const { batch } = useHook();
+  const { batch, batchError } = useHook();
   const AxiosInstance = useAxios();
 
   const getStatusLabel = (status: string) => {
@@ -244,13 +244,15 @@ const ApplicantDashboard: React.FC = () => {
                 No Application Yet
               </Typography>
               <Typography variant="body1" sx={{ color: "#9ca3af", mb: 4 }}>
-                Start your admission journey today.
+                Creating an account does not submit an application. Use the button below to start the form, then complete all steps and pay the application fee to submit.
               </Typography>
 
               {batch?.is_active ? (
                 <Link to="/applicant/new_application">
-                  <CustomButton icon={<AddIcon />} text="Create New Application" />
+                  <CustomButton icon={<AddIcon />} text="Start New Application" />
                 </Link>
+              ) : batchError ? (
+                <Typography color="text.secondary">{batchError}</Typography>
               ) : (
                 <Typography color="text.secondary">Applications are currently closed.</Typography>
               )}

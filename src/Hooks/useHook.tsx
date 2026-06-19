@@ -31,15 +31,25 @@ function useHook() {
    const [admissionBatch, setAdmissionBatch] = useState<Batch | null>(null)
    const [isBatchLoading, setIsBatchLoading] = useState(true)
    const [isAdmissionLoading, setIsAdmissionLoading] = useState(true)
+   const [batchError, setBatchError] = useState<string | null>(null)
 
     // get active batch
      const fetchBatch = async ()=>{
        try{
          setIsBatchLoading(true)
+         setBatchError(null)
          const response = await AxiosInstance.get('/api/admissions/active_batch')
          setBatch(response.data)
-       }catch(err){
-         console.log(err)
+       }catch(err: any){
+         setBatch(null)
+         const detail = err?.response?.data?.detail
+         if (typeof detail === 'string' && detail.trim()) {
+           setBatchError(detail)
+         } else if (err?.response?.status === 404) {
+           setBatchError('No active application intake is open right now.')
+         } else {
+           setBatchError('Could not load the current application intake.')
+         }
        }finally{
          setIsBatchLoading(false)
        }
@@ -52,7 +62,7 @@ function useHook() {
          const response = await AxiosInstance.get('/api/admissions/active_admission_batch')
          setAdmissionBatch(response.data)
        }catch(err){
-         console.log(err)
+         setAdmissionBatch(null)
        }finally{
          setIsAdmissionLoading(false)
        }
@@ -64,7 +74,7 @@ function useHook() {
      }, [])
    
   return {
-    batch, isBatchLoading, admissionBatch, isAdmissionLoading
+    batch, isBatchLoading, batchError, admissionBatch, isAdmissionLoading
   }
 }
 

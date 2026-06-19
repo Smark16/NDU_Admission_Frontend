@@ -69,6 +69,7 @@ interface User {
   confirm_password: string;
   role: string | null
   phone?: string | null
+  groups?: Array<{ name: string }>
 }
 
 const getRoleColor = (role: string | null): "default" | "primary" | "secondary" | "error" | "warning" | "info" | "success" => {
@@ -190,7 +191,7 @@ export default function UserManagement() {
         confirm_password: "",
         phone: user.phone || "",
         is_staff: true,
-        role: user.role || "",
+        role: user.groups?.[0]?.name || user.role || "",
         campuses: user.campuses.map((c) => c.id),
       })
     } else {

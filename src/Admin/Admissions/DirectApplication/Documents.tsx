@@ -60,7 +60,7 @@ interface FormData {
   passportPhoto: File | null
   oLevelDocuments: File | null
   aLevelDocuments: File | null
-  otherInstitutionDocuments: File | null
+  otherInstitutionDocuments: File[]
   hasOLevel: boolean;
   hasALevel: boolean;
   status: string
@@ -72,6 +72,7 @@ interface DocumentProps {
   formErrors: Record<string, string>
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  onRemoveOtherInstitutionDocument: (index: number) => void;
 }
 
 const Documents: React.FC<DocumentProps> = ({
@@ -79,7 +80,8 @@ const Documents: React.FC<DocumentProps> = ({
   formErrors,
   compressingField,
   handleFileChange,
-  setFormData
+  setFormData,
+  onRemoveOtherInstitutionDocument,
 }) => {
 
   return (
@@ -319,9 +321,21 @@ const Documents: React.FC<DocumentProps> = ({
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
-            If you have any additional academic qualifications from other institutions (diplomas, certificates, degrees,
-            etc.), upload them here. Optional.
+            Upload certificates or transcripts for each additional qualification. You can add multiple files.
           </Typography>
+          {formData.otherInstitutionDocuments.length > 0 && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+              {formData.otherInstitutionDocuments.map((file, index) => (
+                <Chip
+                  key={`${file.name}-${index}`}
+                  icon={<CheckCircleIcon />}
+                  label={file.name}
+                  onDelete={() => onRemoveOtherInstitutionDocument(index)}
+                  sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", "& .MuiChip-deleteIcon": { color: "#2e7d32" } }}
+                />
+              ))}
+            </Box>
+          )}
           <Paper
             sx={{
               p: 3,
@@ -344,26 +358,21 @@ const Documents: React.FC<DocumentProps> = ({
             <label htmlFor="other-docs" style={{ cursor: "pointer", display: "block" }}>
               <CloudUploadIcon sx={{ fontSize: 40, color: "#5ba3f5", mb: 1 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Click to upload or drag and drop
+                {formData.otherInstitutionDocuments.length > 0
+                  ? "Add another document"
+                  : "Click to upload or drag and drop"}
               </Typography>
               <Typography variant="caption" sx={{ color: "#666" }}>
-                PDF, ZIP (Max 100MB) - Optional
+                PDF, ZIP, IMAGE (Max 100MB each)
               </Typography>
-              {compressingField === "otherInstitutionDocuments"  ? (
-                <Box sx={{display:"flex", justifyContent:"center", gap:2}}>
-                 <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }}/>
-                 <Typography variant="caption" sx={{ color: "#666" }}>
-                  The uploaded image is being compressed...
-              </Typography>
+              {compressingField === "otherInstitutionDocuments" ? (
+                <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                  <CircularProgress size={20} sx={{ color: '#3e397b', mb: 3 }} />
+                  <Typography variant="caption" sx={{ color: "#666" }}>
+                    The uploaded image is being compressed...
+                  </Typography>
                 </Box>
-              ) : formData.otherInstitutionDocuments && (
-                <Chip
-                  label={formData.otherInstitutionDocuments.name}
-                  onDelete={() => setFormData((prev) => ({ ...prev, otherInstitutionDocuments: null }))}
-                  sx={{ mt: 2 }}
-                  color="primary"
-                />
-              )}
+              ) : null}
             </label>
           </Paper>
            {formErrors.otherInstitutionDocuments && (
