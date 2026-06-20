@@ -523,7 +523,7 @@ export default function IDCardsPage() {
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Student IDs
         </Typography>
-        <Button variant="outlined" component={Link} to="/admin/id-card-templates" startIcon={<MapIcon />}>
+        <Button variant="outlined" component={Link} to="/admin/students/id-card-templates" startIcon={<MapIcon />}>
           Map ID card PDF templates
         </Button>
       </Stack>

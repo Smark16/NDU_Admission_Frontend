@@ -230,15 +230,15 @@ const navigationItems: NavItem[] = [
     ],
   },
   {
-    id: "student-ids",
-    label: "Student IDs",
-    icon: <CreditCard size={20} />,
+    id: "students",
+    label: "Students",
+    icon: <Users size={20} />,
     children: [
       {
         id: "student-ids-management",
-        label: "Issue & manage cards",
+        label: "Student IDs",
         icon: <CreditCard size={20} />,
-        path: "/admin/id-cards",
+        path: "/admin/students/id-cards",
         requiredAnyPermissions: [
           "admissions.manage_id_cards",
           "admissions.change_admittedstudent",
@@ -248,7 +248,7 @@ const navigationItems: NavItem[] = [
         id: "id-card-templates",
         label: "ID card templates (PDF map)",
         icon: <CreditCard size={20} />,
-        path: "/admin/id-card-templates",
+        path: "/admin/students/id-card-templates",
         requiredAnyPermissions: [
           "admissions.manage_id_cards",
           "admissions.change_admittedstudent",

@@ -235,7 +235,7 @@ export default function IdCardTemplatesSetupPage() {
             switch templates later.
           </Typography>
         </Box>
-        <Button variant="outlined" component={Link} to="/admin/id-cards">
+        <Button variant="outlined" component={Link} to="/admin/students/id-cards">
           Back to Student IDs
         </Button>
       </Stack>

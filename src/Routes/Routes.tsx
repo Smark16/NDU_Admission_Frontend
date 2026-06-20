@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { CircularProgress, Box, useTheme, useMediaQuery } from '@mui/material'
 
 import Sidebar from '../Applicant/Sidebar/Sidebar'
@@ -297,17 +297,20 @@ function AppRoutes() {
                     </AdminRoute>
                     } />
 
-                  <Route path='/id-cards' element={
+                  <Route path='/students/id-cards' element={
                     <AdminRoute permission={['admissions.manage_id_cards', 'admissions.change_admittedstudent']}>
                       <Suspense fallback={<LoadingSpinner />}><IDCardsPage /></Suspense>
                     </AdminRoute>
                     } />
 
-                  <Route path='/id-card-templates' element={
+                  <Route path='/students/id-card-templates' element={
                     <AdminRoute permission={['admissions.manage_id_cards', 'admissions.change_admittedstudent']}>
                       <Suspense fallback={<LoadingSpinner />}><IdCardTemplatesSetupPage /></Suspense>
                     </AdminRoute>
                     } />
+
+                  <Route path='/id-cards' element={<Navigate to="/admin/students/id-cards" replace />} />
+                  <Route path='/id-card-templates' element={<Navigate to="/admin/students/id-card-templates" replace />} />
                 </Routes>
               </Box>
             </Box>
