@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Button, Chip, Select, MenuItem,
@@ -8,7 +8,10 @@ import {
 import { Delete as DeleteIcon, Save as SaveIcon, MyLocation as PinIcon } from "@mui/icons-material"
 import useAxios from "../../AxiosInstance/UseAxios"
 
+const IMAGE_FIELD_KEYS = new Set(["passport_photo"])
+
 const AVAILABLE_FIELDS: { key: string; label: string }[] = [
+  { key: "passport_photo", label: "Passport photo (image box)" },
   { key: "name", label: "Full name" },
   { key: "student_no", label: "Student number" },
   { key: "reg_no", label: "Registration number" },
@@ -22,9 +25,11 @@ interface FieldPosition {
   x: number
   y: number
   page: number
-  font_size: number
-  bold: boolean
+  font_size?: number
+  bold?: boolean
   font_family?: string
+  width?: number
+  height?: number
 }
 
 const FONT_OPTIONS = [
@@ -34,12 +39,20 @@ const FONT_OPTIONS = [
   { value: "century", label: "Century" },
 ]
 
+const DEFAULT_FONT_SIZE = 11
+const DEFAULT_PHOTO_WIDTH = 85
+const DEFAULT_PHOTO_HEIGHT = 105
+
+function isImageField(key: string) {
+  return IMAGE_FIELD_KEYS.has(key)
+}
+
 interface Props {
   open: boolean
   templateId: number
   templateName: string
   onClose: () => void
-  onSaved: () => void
+  onSaved: (autoActivated?: boolean) => void
 }
 
 export default function IdCardPdfFieldMapper({ open, templateId, templateName, onClose, onSaved }: Props) {
@@ -55,24 +68,53 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
   const [positions, setPositions] = useState<Record<string, FieldPosition>>({})
 
   const [activeField, setActiveField] = useState<string>("")
-  const [fontSize, setFontSize] = useState(11)
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE)
   const [bold, setBold] = useState(false)
   const [fontFamily, setFontFamily] = useState("helvetica")
+  const [photoWidth, setPhotoWidth] = useState(DEFAULT_PHOTO_WIDTH)
+  const [photoHeight, setPhotoHeight] = useState(DEFAULT_PHOTO_HEIGHT)
 
   const imgRef = useRef<HTMLImageElement>(null)
   const [imgLoaded, setImgLoaded] = useState(false)
+
+  const loadFieldSettings = useCallback((key: string, pos?: FieldPosition) => {
+    if (isImageField(key)) {
+      setPhotoWidth(pos?.width ?? DEFAULT_PHOTO_WIDTH)
+      setPhotoHeight(pos?.height ?? DEFAULT_PHOTO_HEIGHT)
+      return
+    }
+    setFontSize(pos?.font_size ?? DEFAULT_FONT_SIZE)
+    setBold(Boolean(pos?.bold))
+    setFontFamily(pos?.font_family ?? "helvetica")
+  }, [])
+
+  const selectField = useCallback(
+    (key: string) => {
+      setActiveField(key)
+      loadFieldSettings(key, positions[key])
+    },
+    [loadFieldSettings, positions],
+  )
 
   useEffect(() => {
     if (!open) return
     setLoading(true)
     setError(null)
     setImgLoaded(false)
+    setActiveField("")
     AxiosInstance.get(`/api/admissions/id_card_templates/${templateId}/pdf_preview`)
       .then(({ data }) => {
+        const loaded = (data.field_positions || {}) as Record<string, FieldPosition>
         setImage(data.image)
         setPdfWidth(data.pdf_width)
         setPdfHeight(data.pdf_height)
-        setPositions(data.field_positions || {})
+        setPositions(loaded)
+        const firstUnplaced = AVAILABLE_FIELDS.find((f) => !loaded[f.key])
+        const initial = firstUnplaced?.key || AVAILABLE_FIELDS[0]?.key || ""
+        if (initial) {
+          setActiveField(initial)
+          loadFieldSettings(initial, loaded[initial])
+        }
       })
       .catch((err: any) => {
         const detail =
@@ -82,7 +124,15 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
         setError(detail)
       })
       .finally(() => setLoading(false))
-  }, [open, templateId])
+  }, [open, templateId, AxiosInstance, loadFieldSettings])
+
+  const patchActivePosition = (patch: Partial<FieldPosition>) => {
+    if (!activeField || !positions[activeField]) return
+    setPositions((prev) => ({
+      ...prev,
+      [activeField]: { ...prev[activeField], ...patch },
+    }))
+  }
 
   const handleImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
     if (!activeField || !imgRef.current) return
@@ -92,9 +142,22 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
     const displayW = rect.width
     const displayH = rect.height
 
-    // Scale from display pixels to PDF points
     const pdfX = (clickX / displayW) * pdfWidth
     const pdfY = (clickY / displayH) * pdfHeight
+
+    if (isImageField(activeField)) {
+      setPositions((prev) => ({
+        ...prev,
+        [activeField]: {
+          x: Math.round(pdfX),
+          y: Math.round(pdfY),
+          page: 0,
+          width: photoWidth,
+          height: photoHeight,
+        },
+      }))
+      return
+    }
 
     setPositions((prev) => ({
       ...prev,
@@ -115,15 +178,21 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
       delete next[key]
       return next
     })
+    if (activeField === key) {
+      loadFieldSettings(key)
+    }
   }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await AxiosInstance.post(`/api/admissions/id_card_templates/${templateId}/save_field_positions`, {
-        field_positions: positions,
-      })
-      onSaved()
+      const { data } = await AxiosInstance.post<{ auto_activated?: boolean }>(
+        `/api/admissions/id_card_templates/${templateId}/save_field_positions`,
+        {
+          field_positions: positions,
+        },
+      )
+      onSaved(Boolean(data?.auto_activated))
       onClose()
     } catch (err: any) {
       const detail =
@@ -138,7 +207,19 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
 
   const getFieldLabel = (key: string) => AVAILABLE_FIELDS.find((f) => f.key === key)?.label ?? key
   const placedKeys = Object.keys(positions)
-  const unplacedFields = AVAILABLE_FIELDS.filter((f) => !placedKeys.includes(f.key))
+  const activeIsImage = Boolean(activeField && isImageField(activeField))
+
+  const pdfToDisplay = (pos: FieldPosition) => {
+    const img = imgRef.current!
+    const scaleX = img.clientWidth / (img.naturalWidth / 2)
+    const scaleY = img.clientHeight / (img.naturalHeight / 2)
+    const displayX = (pos.x / pdfWidth) * (img.naturalWidth / 2)
+    const displayY = (pos.y / pdfHeight) * (img.naturalHeight / 2)
+    return {
+      left: displayX * scaleX,
+      top: displayY * scaleY,
+    }
+  }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
@@ -147,54 +228,127 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, display: "flex", height: "75vh" }}>
-        {/* Left panel: field controls */}
-        <Box sx={{ width: 260, borderRight: "1px solid #e0e0e0", p: 2, overflowY: "auto", flexShrink: 0 }}>
+        <Box sx={{ width: 280, borderRight: "1px solid #e0e0e0", p: 2, overflowY: "auto", flexShrink: 0 }}>
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-            1. Select field to place
+            1. Select field to place or edit
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
             <InputLabel>Field</InputLabel>
-            <Select value={activeField} label="Field" onChange={(e) => setActiveField(e.target.value)}>
-              {unplacedFields.map((f) => (
-                <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            fullWidth size="small" type="number" label="Font size"
-            value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
-            slotProps={{ htmlInput: { min: 6, max: 36 } }}
-            sx={{ mb: 1 }}
-          />
-
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Style</InputLabel>
-            <Select value={bold ? "bold" : "normal"} label="Style" onChange={(e) => setBold(e.target.value === "bold")}>
-              <MenuItem value="normal">Normal</MenuItem>
-              <MenuItem value="bold">Bold</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Font Family</InputLabel>
             <Select
-              value={fontFamily}
-              label="Font Family"
-              onChange={(e) => setFontFamily(e.target.value)}
+              value={activeField}
+              label="Field"
+              onChange={(e) => selectField(String(e.target.value))}
             >
-              {FONT_OPTIONS.map((font) => (
-                <MenuItem key={font.value} value={font.value}>
-                  {font.label}
+              {AVAILABLE_FIELDS.map((f) => (
+                <MenuItem key={f.key} value={f.key}>
+                  {f.label}
+                  {placedKeys.includes(f.key) ? " (placed)" : ""}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          {activeIsImage ? (
+            <>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                Click the top-left corner of the photo box on the PDF. Adjust width and height to match your artwork.
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Photo box width (pt)"
+                value={photoWidth}
+                onChange={(e) => {
+                  const width = Number(e.target.value) || DEFAULT_PHOTO_WIDTH
+                  setPhotoWidth(width)
+                  patchActivePosition({ width })
+                }}
+                slotProps={{ htmlInput: { min: 20, max: 300 } }}
+                sx={{ mb: 1 }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Photo box height (pt)"
+                value={photoHeight}
+                onChange={(e) => {
+                  const height = Number(e.target.value) || DEFAULT_PHOTO_HEIGHT
+                  setPhotoHeight(height)
+                  patchActivePosition({ height })
+                }}
+                slotProps={{ htmlInput: { min: 20, max: 300 } }}
+                sx={{ mb: 2 }}
+              />
+            </>
+          ) : (
+            <>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Font size"
+                value={fontSize}
+                onChange={(e) => {
+                  const nextSize = Number(e.target.value) || DEFAULT_FONT_SIZE
+                  setFontSize(nextSize)
+                  patchActivePosition({ font_size: nextSize })
+                }}
+                slotProps={{ htmlInput: { min: 6, max: 36 } }}
+                sx={{ mb: 1 }}
+              />
+
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Style</InputLabel>
+                <Select
+                  value={bold ? "bold" : "normal"}
+                  label="Style"
+                  onChange={(e) => {
+                    const nextBold = e.target.value === "bold"
+                    setBold(nextBold)
+                    patchActivePosition({ bold: nextBold })
+                  }}
+                >
+                  <MenuItem value="normal">Normal</MenuItem>
+                  <MenuItem value="bold">Bold</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Font Family</InputLabel>
+                <Select
+                  value={fontFamily}
+                  label="Font Family"
+                  onChange={(e) => {
+                    const nextFamily = e.target.value
+                    setFontFamily(nextFamily)
+                    patchActivePosition({ font_family: nextFamily })
+                  }}
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <MenuItem key={font.value} value={font.value}>
+                      {font.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
+          )}
+
           {activeField && (
             <Alert severity="info" sx={{ mb: 2, fontSize: "0.78rem" }}>
-              Click on the PDF where <strong>{getFieldLabel(activeField)}</strong> should appear.
+              {activeIsImage ? (
+                <>
+                  Click on the PDF where the <strong>top-left</strong> of{" "}
+                  <strong>{getFieldLabel(activeField)}</strong> should sit.
+                </>
+              ) : (
+                <>
+                  Click on the PDF where <strong>{getFieldLabel(activeField)}</strong> text should start.
+                  {positions[activeField] ? " Adjust font settings above — changes apply to the placed field." : ""}
+                </>
+              )}
             </Alert>
           )}
 
@@ -213,9 +367,10 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
                   label={getFieldLabel(key)}
                   size="small"
                   icon={<PinIcon sx={{ fontSize: 14 }} />}
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontSize: "0.72rem", maxWidth: 170 }}
+                  color={activeField === key ? "primary" : "default"}
+                  variant={activeField === key ? "filled" : "outlined"}
+                  onClick={() => selectField(key)}
+                  sx={{ fontSize: "0.72rem", maxWidth: 190, cursor: "pointer" }}
                 />
                 <Tooltip title="Remove">
                   <IconButton size="small" onClick={() => handleRemoveField(key)}>
@@ -227,7 +382,6 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
           )}
         </Box>
 
-        {/* Right panel: PDF preview */}
         <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "#f0f0f0", display: "flex", justifyContent: "center", p: 2, position: "relative" }}>
           {loading && (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
@@ -253,33 +407,79 @@ export default function IdCardPdfFieldMapper({ open, templateId, templateName, o
                 }}
               />
 
-              {/* Render placed field markers — only after image dimensions are known */}
               {imgLoaded && imgRef.current && placedKeys.map((key) => {
                 const pos = positions[key]
-                const displayX = (pos.x / pdfWidth) * (imgRef.current!.naturalWidth / 2)
-                const displayY = (pos.y / pdfHeight) * (imgRef.current!.naturalHeight / 2)
-                const scaleX = imgRef.current!.clientWidth / (imgRef.current!.naturalWidth / 2)
-                const scaleY = imgRef.current!.clientHeight / (imgRef.current!.naturalHeight / 2)
+                const { left, top } = pdfToDisplay(pos)
+
+                if (isImageField(key)) {
+                  const w = pos.width ?? DEFAULT_PHOTO_WIDTH
+                  const h = pos.height ?? DEFAULT_PHOTO_HEIGHT
+                  const boxW = (w / pdfWidth) * imgRef.current!.clientWidth
+                  const boxH = (h / pdfHeight) * imgRef.current!.clientHeight
+                  return (
+                    <Box
+                      key={key}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        selectField(key)
+                      }}
+                      sx={{
+                        position: "absolute",
+                        left,
+                        top,
+                        width: boxW,
+                        height: boxH,
+                        border: activeField === key ? "2px solid #0D0060" : "2px dashed rgba(13,0,96,0.7)",
+                        bgcolor: "rgba(13,0,96,0.08)",
+                        cursor: "pointer",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          position: "absolute",
+                          top: -18,
+                          left: 0,
+                          bgcolor: "rgba(13,0,96,0.85)",
+                          color: "#fff",
+                          px: 0.5,
+                          borderRadius: 0.5,
+                          fontSize: "0.65rem",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {getFieldLabel(key)}
+                      </Typography>
+                    </Box>
+                  )
+                }
+
                 return (
                   <Box
                     key={key}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      selectField(key)
+                    }}
                     sx={{
                       position: "absolute",
-                      left: displayX * scaleX,
-                      top: displayY * scaleY,
+                      left,
+                      top,
                       transform: "translate(-50%, -50%)",
-                      bgcolor: "rgba(13,0,96,0.85)",
+                      bgcolor: activeField === key ? "#0D0060" : "rgba(13,0,96,0.85)",
                       color: "#fff",
                       borderRadius: 1,
                       px: 0.5,
                       py: 0.2,
                       fontSize: "0.65rem",
                       whiteSpace: "nowrap",
-                      pointerEvents: "none",
+                      cursor: "pointer",
                       fontWeight: 700,
                     }}
                   >
                     {getFieldLabel(key)}
+                    {pos.font_size ? ` (${pos.font_size}pt)` : ""}
                   </Box>
                 )
               })}

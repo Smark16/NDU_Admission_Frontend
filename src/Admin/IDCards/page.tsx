@@ -74,6 +74,10 @@ interface IDCardItem {
 
 interface CardPreviewData {
   card_number: string
+  render_mode?: "default" | "pdf_template"
+  rendered_image?: string
+  print_pdf_url?: string
+  render_hint?: string
   template?: { key?: string; name?: string; front_title?: string; back_text?: string }
   front?: {
     name?: string
@@ -219,6 +223,7 @@ export default function IDCardsPage() {
   const [programs, setPrograms] = useState<ProgramOpt[]>([])
   const [creatingFor, setCreatingFor] = useState<number | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewCardId, setPreviewCardId] = useState<number | null>(null)
   const [preview, setPreview] = useState<CardPreviewData | null>(null)
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -450,10 +455,30 @@ export default function IDCardsPage() {
     setError("")
     try {
       const res = await AxiosInstance.get(`/api/admissions/id_cards/${cardId}/preview-data`)
+      setPreviewCardId(cardId)
       setPreview(res.data || null)
       setPreviewOpen(true)
     } catch (err: unknown) {
       setError(errDetail(err) || "Failed to load preview data")
+    }
+  }
+
+  const downloadPreviewPdf = async () => {
+    if (!previewCardId) return
+    try {
+      const res = await AxiosInstance.get(`/api/admissions/id_cards/${previewCardId}/print.pdf`, {
+        responseType: "blob",
+      })
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }))
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `id-card-${preview?.card_number || previewCardId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: unknown) {
+      setError(errDetail(err) || "Could not download PDF.")
     }
   }
 
@@ -962,6 +987,31 @@ export default function IDCardsPage() {
           ID Card Preview ({preview?.template?.name || "Default"})
         </DialogTitle>
         <DialogContent>
+          {preview?.render_mode !== "pdf_template" && preview?.render_hint ? (
+            <Alert severity="warning" sx={{ mb: 2 }} className="id-card-print-hide">
+              {preview.render_hint}
+            </Alert>
+          ) : null}
+          {preview?.render_mode === "pdf_template" && preview.rendered_image ? (
+            <Box sx={{ textAlign: "center", py: 1 }}>
+              <Box
+                component="img"
+                src={`data:image/png;base64,${preview.rendered_image}`}
+                alt="ID card from PDF template"
+                className="id-card-print-target"
+                sx={{
+                  maxWidth: "100%",
+                  height: "auto",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  borderRadius: 1,
+                }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }} className="id-card-print-hide">
+                Rendered from active PDF template ({preview.template?.name || preview.template?.key}). Map fields
+                under <strong>ID card templates</strong> if text or photo placement needs adjustment.
+              </Typography>
+            </Box>
+          ) : (
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <Card sx={{ flex: 1, borderRadius: 2 }}>
               <CardContent>
@@ -1028,11 +1078,17 @@ export default function IDCardsPage() {
               </CardContent>
             </Card>
           </Stack>
+          )}
         </DialogContent>
         <DialogActions className="id-card-print-hide" sx={{ px: 3, pb: 2 }}>
           <Button variant="outlined" onClick={() => setPreviewOpen(false)}>
             Close
           </Button>
+          {preview?.render_mode === "pdf_template" && preview.rendered_image ? (
+            <Button variant="outlined" onClick={() => void downloadPreviewPdf()}>
+              Download PDF
+            </Button>
+          ) : null}
           <Button variant="contained" startIcon={<Print />} onClick={() => window.print()}>
             Print
           </Button>

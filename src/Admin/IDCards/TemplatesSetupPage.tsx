@@ -58,6 +58,7 @@ export default function IdCardTemplatesSetupPage() {
   const [activeKey, setActiveKey] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [notice, setNotice] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<PdfTemplateRow | null>(null)
   const [saving, setSaving] = useState(false)
@@ -142,6 +143,7 @@ export default function IdCardTemplatesSetupPage() {
     }
     setSaving(true)
     setError("")
+    setNotice("")
     try {
       if (editing) {
         if (form.file) {
@@ -182,7 +184,10 @@ export default function IdCardTemplatesSetupPage() {
         fd.append("return_to", form.return_to)
         fd.append("tel", form.tel)
         fd.append("email", form.email)
-        await AxiosInstance.post("/api/admissions/id_card_templates", fd)
+        const { data } = await AxiosInstance.post<{ auto_activated?: boolean }>("/api/admissions/id_card_templates", fd)
+        if (data?.auto_activated) {
+          setNotice(`Template saved and set as active automatically (${form.key.trim()}). Map fields next.`)
+        }
       }
       setDialogOpen(false)
       await loadAll()
@@ -225,9 +230,9 @@ export default function IdCardTemplatesSetupPage() {
             ID card PDF templates
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Same idea as admission offer letters: upload a PDF, then <strong>Map PDF fields</strong> to drop student data
-            onto the artwork. Set the <strong>active</strong> template so previews use its text settings; the on-screen
-            card preview still uses the built-in layout until PDF generation is wired to these positions.
+            Upload a PDF, <strong>Map PDF fields</strong> (including passport photo on the photo box), then preview/print on
+            Student IDs uses your artwork. The first upload is set <strong>active</strong> automatically; use the star to
+            switch templates later.
           </Typography>
         </Box>
         <Button variant="outlined" component={Link} to="/admin/id-cards">
@@ -235,9 +240,22 @@ export default function IdCardTemplatesSetupPage() {
         </Button>
       </Stack>
 
+      {notice && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>
+          {notice}
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
           {error}
+        </Alert>
+      )}
+
+      {!loading && rows.length > 0 && !activeKey && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          No template is active yet. Click the <strong>star</strong> on the template you want for Student ID preview and
+          print. New uploads are activated automatically when none is set.
         </Alert>
       )}
 
@@ -375,8 +393,11 @@ export default function IdCardTemplatesSetupPage() {
           templateId={mapper.id}
           templateName={mapper.name}
           onClose={() => setMapper(null)}
-          onSaved={() => {
+          onSaved={(autoActivated) => {
             setMapper(null)
+            if (autoActivated) {
+              setNotice("Field positions saved and template set as active automatically.")
+            }
             void loadAll()
           }}
         />
