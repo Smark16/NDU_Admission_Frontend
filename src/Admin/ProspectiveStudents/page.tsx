@@ -278,6 +278,7 @@ export default function ProspectiveStudents() {
               <TableCell><strong>Phone</strong></TableCell>
               <TableCell><strong>Registered</strong></TableCell>
               <TableCell><strong>Last Login</strong></TableCell>
+              <TableCell><strong>Draft Saved</strong></TableCell>
               <TableCell><strong>Days Since Joined</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Reminder</strong></TableCell>
@@ -287,7 +288,7 @@ export default function ProspectiveStudents() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 5, color: "text.secondary" }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 5, color: "text.secondary" }}>
                   No prospective students found.
                 </TableCell>
               </TableRow>
@@ -305,6 +306,13 @@ export default function ProspectiveStudents() {
                   <TableCell>
                     <Typography variant="caption">
                       {s.last_login ? new Date(s.last_login).toLocaleDateString() : "Never"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="caption">
+                      {s.status === "Draft Started" && s.draft_started_at
+                        ? new Date(s.draft_started_at).toLocaleString()
+                        : "—"}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
