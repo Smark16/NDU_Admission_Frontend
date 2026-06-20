@@ -100,6 +100,64 @@ const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }))
 
+interface Programs {
+  id: number
+  name: string
+  code: string
+  campuses?: Campus[]
+}
+
+function programOfferedAtCampus(
+  program: Programs,
+  campusId: number,
+  applicationCampusId?: number,
+  eligibleCampusIds?: number[]
+): boolean {
+  const offered = program.campuses
+  if (!offered?.length) {
+    if (eligibleCampusIds?.includes(campusId)) return true
+    return applicationCampusId != null ? campusId === applicationCampusId : true
+  }
+  return offered.some((c) => c.id === campusId)
+}
+
+function resolveCampusForProgram(
+  program: Programs,
+  currentCampusId: string,
+  applicationCampus?: Campus
+): string {
+  const offered = program.campuses ?? []
+  if (!offered.length) {
+    return applicationCampus ? String(applicationCampus.id) : currentCampusId
+  }
+  if (offered.length === 1) return String(offered[0].id)
+  const currentNum = currentCampusId ? Number(currentCampusId) : null
+  if (currentNum && offered.some((c) => c.id === currentNum)) return currentCampusId
+  if (applicationCampus && offered.some((c) => c.id === applicationCampus.id)) {
+    return String(applicationCampus.id)
+  }
+  return String(offered[0].id)
+}
+
+interface BatchProgramRef {
+  id: number
+  name: string
+  code: string
+  campuses?: { id: number; name?: string }[]
+}
+
+function normalizeBatchProgram(p: BatchProgramRef): Programs {
+  return {
+    id: p.id,
+    name: p.name,
+    code: p.code,
+    campuses: (p.campuses ?? []).map((c) => ({
+      id: c.id,
+      name: c.name ?? "",
+    })),
+  }
+}
+
 export default function AdmitStudentPage() {
   const { id } = useParams()
   const {admissionBatch} = useHook()
@@ -107,8 +165,7 @@ export default function AdmitStudentPage() {
   const { loggeduser} = useContext(AuthContext) || {}
   const AxiosInstance = useAxios()
   const [application, setApplication] = useState<Application | null>(null)
-  const [loadSelectedProgram, setLoadSelectedProgram] = useState(false)
-  const [selectedPrograms, setSelectedPrograms] = useState<ProgramChoice[]>([])
+  const [programChoices, setProgramChoices] = useState<ProgramChoice[]>([])
   const [formData, setFormData] = useState({
     // student_id: "",
     program: "",
@@ -138,30 +195,81 @@ export default function AdmitStudentPage() {
   const [showProgress, setShowProgress] = useState(false)
   const [startDate, setStartDate] = useState("")
 
-  const eligibleProgramChoices = useMemo(() => {
-    if (!selectedPrograms.length) return []
-    const campusId = application?.campus?.id
-    const byId = new Map((application?.programs ?? []).map((p) => [p.id, p]))
-    return selectedPrograms.filter((choice) => {
-      const meta = byId.get(choice.program_id)
-      if (!meta?.campuses?.length || !campusId) return true
-      return meta.campuses.some((c) => c.id === campusId)
-    })
-  }, [selectedPrograms, application])
+  const batchProgramById = useMemo(() => {
+    const map = new Map<number, Programs>()
+    for (const p of admissionBatch?.programs ?? []) {
+      map.set(p.id, normalizeBatchProgram(p))
+    }
+    return map
+  }, [admissionBatch?.programs])
 
-  const programSelectLocked = eligibleProgramChoices.length <= 1
+  const applicationPrograms = useMemo(() => {
+    const enrich = (p: Programs): Programs => {
+      if (p.campuses?.length) return p
+      const fromBatch = batchProgramById.get(p.id)
+      if (fromBatch?.campuses?.length) {
+        return { ...p, campuses: fromBatch.campuses }
+      }
+      return p
+    }
 
-  // fetch application
+    let programs: Programs[] = []
+    if (application?.programs?.length && Array.isArray(application.programs)) {
+      programs = application.programs.map((p) =>
+        enrich({ id: p.id, name: p.name, code: p.code, campuses: p.campuses })
+      )
+    } else if (programChoices.length) {
+      programs = programChoices.map((choice) =>
+        enrich({
+          id: choice.program_id,
+          name: choice.program_name,
+          code: choice.code,
+        })
+      )
+    }
+    return programs
+  }, [application, programChoices, batchProgramById])
+
+  const applicationCampusId = application?.campus?.id
+
+  const eligibleCampuses = useMemo(() => {
+    const byId = new Map<number, Campus>()
+    if (application?.campus?.id) {
+      byId.set(application.campus.id, application.campus)
+    }
+    for (const program of applicationPrograms) {
+      for (const campus of program.campuses ?? []) {
+        byId.set(campus.id, campus)
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [application, applicationPrograms])
+
+  const eligibleCampusIds = useMemo(
+    () => eligibleCampuses.map((c) => c.id),
+    [eligibleCampuses]
+  )
+
+  const selectedCampusName = useMemo(() => {
+    const campusId = formData.campus ? Number(formData.campus) : null
+    if (!campusId) return ""
+    return eligibleCampuses.find((c) => c.id === campusId)?.name ?? application?.campus?.name ?? ""
+  }, [formData.campus, eligibleCampuses, application?.campus?.name])
+
   const getApplication = async () => {
     try {
       setLoadApplication(true)
-      const response = await AxiosInstance.get(`/api/admissions/single_app/${id}`)
-      const app = response.data
+      const [appRes, choicesRes] = await Promise.all([
+        AxiosInstance.get(`/api/admissions/single_app/${id}`),
+        AxiosInstance.get(`/api/admissions/list_selected_programs/${id}`).catch(() => ({ data: [] })),
+      ])
+      const app = appRes.data
+      const choices = Array.isArray(choicesRes.data) ? choicesRes.data : []
+      setProgramChoices(choices)
 
-      // Block admission if the application hasn't been approved yet
-      if (app?.status?.toLowerCase() !== 'accepted') {
+      if (app?.status?.toLowerCase() !== "accepted") {
         navigate(`/admin/application_review/${id}`, {
-          state: { warning: "This application must be approved before it can be admitted." }
+          state: { warning: "This application must be approved before it can be admitted." },
         })
         return
       }
@@ -172,51 +280,42 @@ export default function AdmitStudentPage() {
       })
     } catch (err) {
       console.log(err)
-    }finally{
+    } finally {
       setLoadApplication(false)
     }
   }
-  // fetch selected programs
-  const fetchSelectedPrograms = async () => {
-    try {
-      setLoadSelectedProgram(true)
-      const response = await AxiosInstance.get(`/api/admissions/list_selected_programs/${id}`)
-      setSelectedPrograms(response.data)
-      // Handle the response as needed
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setLoadSelectedProgram(false)
-    }
-  }
 
   useEffect(() => {
+    if (!id) return
+    setFormData({
+      program: "",
+      campus: "",
+      study_mode: "",
+      reg_no: "",
+      notes: "",
+      intended_program_batch: "",
+    })
+    setApplication(null)
+    setProgramChoices([])
     getApplication()
-    fetchSelectedPrograms()
-  }, [])
+  }, [id])
 
   useEffect(() => {
-    if (!application?.campus?.id) return
-    setFormData((prev) => ({
-      ...prev,
-      campus: String(application.campus.id),
-    }))
-  }, [application?.campus?.id])
-
-  useEffect(() => {
-    if (!eligibleProgramChoices.length) return
+    if (!application?.id || !applicationPrograms.length) return
     setFormData((prev) => {
-      const stillValid = eligibleProgramChoices.some(
-        (p) => String(p.program_id) === prev.program
-      )
-      if (stillValid && prev.program) return prev
+      const first = applicationPrograms[0]
+      const campus = application.campus?.id
+        ? String(application.campus.id)
+        : first.campuses?.[0]
+          ? String(first.campuses[0].id)
+          : ""
       return {
         ...prev,
-        program: String(eligibleProgramChoices[0].program_id),
-        intended_program_batch: "",
+        campus: prev.campus || campus,
+        program: prev.program || String(first.id),
       }
     })
-  }, [eligibleProgramChoices])
+  }, [application?.id, applicationPrograms])
 
   useEffect(() => {
     const programId = formData.program
@@ -226,8 +325,9 @@ export default function AdmitStudentPage() {
     }
     let cancelled = false
     setLoadingProgramBatches(true)
+    const batchQs = application?.id ? `?application_id=${application.id}` : ""
     AxiosInstance.get<ProgramBatchesOptionsResponse | ProgramBatchOption[]>(
-      `/api/admissions/program_batches_options/${programId}/`
+      `/api/admissions/program_batches_options/${programId}${batchQs}`
     )
       .then((res) => {
         if (cancelled) return
@@ -237,16 +337,7 @@ export default function AdmitStudentPage() {
           : Array.isArray((raw as ProgramBatchesOptionsResponse)?.batches)
             ? (raw as ProgramBatchesOptionsResponse).batches
             : []
-        const defaultId = Array.isArray(raw)
-          ? null
-          : (raw as ProgramBatchesOptionsResponse)?.default_program_batch_id ?? null
         setProgramBatchOptions(batches)
-        setFormData((prev) => {
-          if (prev.program !== programId) return prev
-          if (prev.intended_program_batch) return prev
-          if (defaultId != null) return { ...prev, intended_program_batch: String(defaultId) }
-          return prev
-        })
       })
       .catch(() => {
         if (!cancelled) setProgramBatchOptions([])
@@ -257,7 +348,7 @@ export default function AdmitStudentPage() {
     return () => {
       cancelled = true
     }
-  }, [formData.program, AxiosInstance])
+  }, [formData.program, application?.id, AxiosInstance])
 
   // ← UPDATED: Now with auto-navigate on success
   useEffect(() => {
@@ -297,28 +388,79 @@ export default function AdmitStudentPage() {
     }))
   }
 
+  const applyCampusSelection = (strVal: string) => {
+    const campusId = Number(strVal)
+    setFormData((prev) => {
+      const validPrograms = applicationPrograms.filter((p) =>
+        programOfferedAtCampus(p, campusId, applicationCampusId, eligibleCampusIds)
+      )
+      const stillValid = validPrograms.some((p) => String(p.id) === prev.program)
+      return {
+        ...prev,
+        campus: strVal,
+        program: stillValid
+          ? prev.program
+          : validPrograms[0]
+            ? String(validPrograms[0].id)
+            : prev.program,
+        intended_program_batch: stillValid ? prev.intended_program_batch : "",
+      }
+    })
+  }
+
+  const applyProgramSelection = (strVal: string) => {
+    setFormData((prev) => {
+      const program = applicationPrograms.find((p) => String(p.id) === strVal)
+      const campus = program
+        ? resolveCampusForProgram(program, prev.campus, application?.campus)
+        : prev.campus
+      return {
+        ...prev,
+        program: strVal,
+        campus,
+        intended_program_batch: "",
+      }
+    })
+  }
+
   const handleChange = (event: SelectChangeEvent<string | number>) => {
     const { name, value } = event.target
-    if (!name) return
     const strVal = value === "" || value === undefined ? "" : String(value)
+
+    if (name === "campus") {
+      applyCampusSelection(strVal)
+      return
+    }
+    if (name === "program") {
+      applyProgramSelection(strVal)
+      return
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "program" || name === "intended_program_batch" ? strVal : value,
-      ...(name === "program" ? { intended_program_batch: "" } : {}),
+      [name || ""]: name === "intended_program_batch" || name === "study_mode" ? strVal : value,
     }))
   }
 
+  const handleCampusSelect = (event: SelectChangeEvent<string>) => {
+    applyCampusSelection(String(event.target.value))
+  }
+
+  const handleProgramSelect = (event: SelectChangeEvent<string>) => {
+    applyProgramSelection(String(event.target.value))
+  }
+
   const handleSubmitClick = () => {
-    if (!eligibleProgramChoices.length) {
+    if (!applicationPrograms.length) {
       setSnackbar({
         open: true,
-        message: "No valid programme for this applicant's campus. Fix the application first.",
+        message: "This application has no programme choices.",
         type: "error",
       })
       return
     }
 
-    if (!formData.reg_no || !formData.program) {
+    if (!formData.reg_no || !formData.program || !formData.campus) {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields: program, campus, study mode, and student number",
@@ -553,39 +695,44 @@ const handleGenerateRegNo = async () => {
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
               Programme to admit into
             </Typography>
-            {eligibleProgramChoices.length === 0 && selectedPrograms.length > 0 ? (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                None of this applicant&apos;s programme choices are offered at their selected campus (
-                {application?.campus?.name}). Resolve the application before admitting.
+            {application?.campus?.name ? (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Applicant&apos;s campus on application: <strong>{application.campus.name}</strong>
               </Alert>
             ) : null}
-            <Select
-              fullWidth
-              name="program"
-              value={formData.program}
-              onChange={handleChange}
-              displayEmpty
-              variant="outlined"
-              disabled={programSelectLocked || !eligibleProgramChoices.length || loadSelectedProgram}
-            >
-              <MenuItem value="" disabled>
-                Select Program
-              </MenuItem>
-              {loadSelectedProgram ? (
-                <MenuItem value="" disabled>Loading programmes…</MenuItem>
-              ) : (
-                eligibleProgramChoices.map((program) => (
-                  <MenuItem key={program.id} value={String(program.program_id)}>
-                    {program.choice_order === 1 ? "Primary Choice: " : `Choice ${program.choice_order}: `}
-                    {program.program_name} ({program.code})
+            {applicationPrograms.length === 0 ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                This application has no programme choices. Fix the application before admitting.
+              </Alert>
+            ) : null}
+            <FormControl fullWidth variant="outlined" disabled={!applicationPrograms.length}>
+              <InputLabel id="admit-program-label">Programme</InputLabel>
+              <Select
+                labelId="admit-program-label"
+                label="Programme"
+                name="program"
+                value={formData.program}
+                onChange={handleProgramSelect}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  Select Program
+                </MenuItem>
+                {applicationPrograms.map((program, index) => (
+                  <MenuItem key={program.id} value={String(program.id)}>
+                    {index === 0 ? "Primary Choice: " : `Choice ${index + 1}: `}
+                    {program.name} ({program.code})
+                    {program.campuses?.length
+                      ? ` — ${program.campuses.map((c) => c.name).join(", ")}`
+                      : ""}
                   </MenuItem>
-                ))
-              )}
-            </Select>
+                ))}
+              </Select>
+            </FormControl>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              {programSelectLocked
-                ? "Primary programme from the application (locked)."
-                : "Only programme choices from the application that are offered at the applicant's campus."}
+              {selectedCampusName
+                ? `Applicant choices shown. Campus: ${selectedCampusName} — updates when you pick a programme at another location.`
+                : "Choose from the applicant's programme choices. Campus follows the programme."}
             </Typography>
           </FormSection>
 
@@ -610,8 +757,8 @@ const handleGenerateRegNo = async () => {
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              The recommended cohort is pre-selected when available. Change it if needed, or choose &quot;Use system
-              default&quot; so the server applies the same default rule.
+              Choose a cohort below, or leave as &quot;Use system default&quot; to let the server pick the active batch
+              for this programme.
             </Typography>
             {!formData.program ? (
               <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
@@ -660,15 +807,32 @@ const handleGenerateRegNo = async () => {
 
           <FormSection>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Campus (from application)
+              Campus
             </Typography>
-            <TextField
-              fullWidth
-              value={application?.campus?.name ?? ""}
-              disabled
-              variant="outlined"
-              helperText="The applicant's preferred campus — not editable here to avoid mismatches with the programme."
-            />
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="admit-campus-label">Campus</InputLabel>
+              <Select
+                labelId="admit-campus-label"
+                label="Campus"
+                name="campus"
+                value={formData.campus}
+                onChange={handleCampusSelect}
+                disabled={!eligibleCampuses.length}
+              >
+                <MenuItem value="" disabled>
+                  Select campus
+                </MenuItem>
+                {eligibleCampuses.map((c) => (
+                  <MenuItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                    {application?.campus?.id === c.id ? " (application campus)" : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+              Pick campus and programme together — changing one updates the other when needed.
+            </Typography>
           </FormSection>
 
            {/* Study Mode */}
@@ -775,7 +939,7 @@ const handleGenerateRegNo = async () => {
         <DialogContent>
           <DialogContentText sx={{ mt: 2 }}>
             Are you sure you want to admit <strong>{application?.first_name} {application?.last_name}</strong> to{" "}
-            <strong>{selectedPrograms.find((p) => p.id === Number.parseInt(formData.program))?.program_name}</strong>? This action
+            <strong>{applicationPrograms.find((p) => p.id === Number(formData.program))?.name}</strong>? This action
             cannot be reversed.
           </DialogContentText>
         </DialogContent>
