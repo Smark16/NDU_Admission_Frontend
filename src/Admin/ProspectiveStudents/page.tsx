@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Box, Card, CardContent, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, CircularProgress,
   Alert, TextField, InputAdornment, Button, Tooltip, Grid,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-  FormControl, InputLabel, Select, MenuItem,
+  FormControl, InputLabel, Select, MenuItem, TablePagination,
 } from "@mui/material"
 import {
   Search as SearchIcon,
@@ -34,15 +34,28 @@ interface ProspectiveStudent {
   days_since_joined: number | null
 }
 
+interface ProspectiveStats {
+  total: number
+  draft_started: number
+  never_started: number
+}
+
+const SEARCH_DEBOUNCE_MS = 350
+const EXPORT_PAGE_SIZE = 200
+
 export default function ProspectiveStudents() {
   const AxiosInstance = useAxios()
 
   const [students, setStudents] = useState<ProspectiveStudent[]>([])
-  const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState<ProspectiveStats>({ total: 0, draft_started: 0, never_started: 0 })
+  const [filteredCount, setFilteredCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "Draft Started" | "Never Started">("all")
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(50)
   const [sendingId, setSendingId] = useState<number | null>(null)
   const [reminderSent, setReminderSent] = useState<number[]>([])
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
@@ -52,21 +65,53 @@ export default function ProspectiveStudents() {
   const [dateTo, setDateTo] = useState("")
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [annStatusFilter, setAnnStatusFilter] = useState("all")
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
-    const fetch = async () => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedSearch, statusFilter, dateFrom, dateTo, rowsPerPage])
+
+  const listParams = useMemo(() => {
+    const params: Record<string, string | number> = {
+      page: page + 1,
+      page_size: rowsPerPage,
+    }
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim()
+    if (statusFilter !== "all") params.status = statusFilter
+    if (dateFrom) params.date_from = dateFrom
+    if (dateTo) params.date_to = dateTo
+    return params
+  }, [page, rowsPerPage, debouncedSearch, statusFilter, dateFrom, dateTo])
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchStudents = async () => {
+      setLoading(true)
+      setError(null)
       try {
-        const { data } = await AxiosInstance.get("/api/accounts/prospective_students")
-        setStudents(data.results)
-        setTotal(data.count)
+        const { data } = await AxiosInstance.get("/api/accounts/prospective_students", { params: listParams })
+        if (cancelled) return
+        setStudents(data.results ?? [])
+        setFilteredCount(data.count ?? 0)
+        if (data.stats) setStats(data.stats)
       } catch (err: any) {
-        setError(err?.response?.data?.detail || "Failed to load prospective students.")
+        if (!cancelled) {
+          setError(err?.response?.data?.detail || "Failed to load prospective students.")
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetch()
-  }, [])
+    void fetchStudents()
+    return () => {
+      cancelled = true
+    }
+  }, [AxiosInstance, listParams])
 
   const sendReminder = async (id: number, email: string) => {
     setSendingId(id)
@@ -87,7 +132,19 @@ export default function ProspectiveStudents() {
     try {
       await AxiosInstance.delete(`/api/accounts/delete_prospective/${confirmDeleteId}/`)
       setStudents((prev) => prev.filter((s) => s.id !== confirmDeleteId))
-      setTotal((prev) => prev - 1)
+      setFilteredCount((prev) => Math.max(0, prev - 1))
+      setStats((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+        draft_started: Math.max(
+          0,
+          prev.draft_started - (students.find((s) => s.id === confirmDeleteId)?.status === "Draft Started" ? 1 : 0)
+        ),
+        never_started: Math.max(
+          0,
+          prev.never_started - (students.find((s) => s.id === confirmDeleteId)?.status === "Never Started" ? 1 : 0)
+        ),
+      }))
       setConfirmDeleteId(null)
     } catch (err: any) {
       setDeleteError(err?.response?.data?.detail || "Failed to delete.")
@@ -96,43 +153,57 @@ export default function ProspectiveStudents() {
     }
   }
 
-  const exportCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Registered", "Last Login", "Days Since Joined", "Status"]
-    const rows = filtered.map((s) => [
-      s.name,
-      s.email,
-      s.phone || "",
-      s.date_joined ? new Date(s.date_joined).toLocaleDateString() : "",
-      s.last_login ? new Date(s.last_login).toLocaleDateString() : "Never",
-      s.days_since_joined !== null ? s.days_since_joined : "",
-      s.status,
-    ])
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `prospective_students_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  const exportCSV = useCallback(async () => {
+    setExporting(true)
+    try {
+      const baseParams: Record<string, string | number> = { page_size: EXPORT_PAGE_SIZE }
+      if (debouncedSearch.trim()) baseParams.search = debouncedSearch.trim()
+      if (statusFilter !== "all") baseParams.status = statusFilter
+      if (dateFrom) baseParams.date_from = dateFrom
+      if (dateTo) baseParams.date_to = dateTo
 
-  const filtered = students.filter((s) => {
-    const matchSearch =
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase()) ||
-      (s.phone || "").includes(search)
-    const matchStatus = statusFilter === "all" || s.status === statusFilter
-    const joined = s.date_joined ? new Date(s.date_joined) : null
-    const matchFrom = !dateFrom || (joined !== null && joined >= new Date(dateFrom))
-    const matchTo = !dateTo || (joined !== null && joined <= new Date(dateTo + "T23:59:59"))
-    return matchSearch && matchStatus && matchFrom && matchTo
-  })
+      let pageNum = 1
+      let rows: ProspectiveStudent[] = []
+      while (true) {
+        const { data } = await AxiosInstance.get("/api/accounts/prospective_students", {
+          params: { ...baseParams, page: pageNum },
+        })
+        rows = rows.concat(data.results ?? [])
+        if (rows.length >= (data.count ?? 0) || !(data.results?.length)) break
+        pageNum += 1
+      }
 
-  const draftCount = students.filter((s) => s.status === "Draft Started").length
-  const neverCount = students.filter((s) => s.status === "Never Started").length
+      const headers = ["Name", "Email", "Phone", "Registered", "Last Login", "Days Since Joined", "Status"]
+      const csvRows = rows.map((s) => [
+        s.name,
+        s.email,
+        s.phone || "",
+        s.date_joined ? new Date(s.date_joined).toLocaleDateString() : "",
+        s.last_login ? new Date(s.last_login).toLocaleDateString() : "Never",
+        s.days_since_joined !== null ? s.days_since_joined : "",
+        s.status,
+      ])
+      const csv = [headers, ...csvRows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n")
+      const blob = new Blob([csv], { type: "text/csv" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `prospective_students_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }, [AxiosInstance, debouncedSearch, statusFilter, dateFrom, dateTo])
 
-  if (loading) {
+  const maxPage = Math.max(0, Math.ceil(filteredCount / rowsPerPage) - 1)
+  const safePage = Math.min(page, maxPage)
+
+  useEffect(() => {
+    if (page > maxPage) setPage(maxPage)
+  }, [page, maxPage])
+
+  if (loading && students.length === 0 && !error) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
         <CircularProgress sx={{ color: "#7c1519" }} />
@@ -166,7 +237,7 @@ export default function ProspectiveStudents() {
                 <PeopleIcon />
               </Box>
               <Box>
-                <Typography variant="h4" fontWeight={700} color="#7c1519">{total}</Typography>
+                <Typography variant="h4" fontWeight={700} color="#7c1519">{stats.total}</Typography>
                 <Typography variant="caption" color="text.secondary">Total Prospective</Typography>
               </Box>
             </CardContent>
@@ -179,7 +250,7 @@ export default function ProspectiveStudents() {
                 <DraftIcon />
               </Box>
               <Box>
-                <Typography variant="h4" fontWeight={700} color="#1565c0">{draftCount}</Typography>
+                <Typography variant="h4" fontWeight={700} color="#1565c0">{stats.draft_started}</Typography>
                 <Typography variant="caption" color="text.secondary">Draft Started</Typography>
               </Box>
             </CardContent>
@@ -192,7 +263,7 @@ export default function ProspectiveStudents() {
                 <NeverIcon />
               </Box>
               <Box>
-                <Typography variant="h4" fontWeight={700} color="#e65100">{neverCount}</Typography>
+                <Typography variant="h4" fontWeight={700} color="#e65100">{stats.never_started}</Typography>
                 <Typography variant="caption" color="text.secondary">Never Started</Typography>
               </Box>
             </CardContent>
@@ -251,7 +322,7 @@ export default function ProspectiveStudents() {
             variant="outlined"
             startIcon={<CampaignIcon />}
             onClick={() => setAnnouncementOpen(true)}
-            disabled={students.length === 0}
+            disabled={stats.total === 0}
             sx={{ textTransform: "none", borderColor: "#0D0060", color: "#0D0060" }}
           >
             Send Communication
@@ -259,17 +330,32 @@ export default function ProspectiveStudents() {
           <Button
             variant="outlined"
             startIcon={<DownloadIcon />}
-            onClick={exportCSV}
-            disabled={filtered.length === 0}
+            onClick={() => void exportCSV()}
+            disabled={filteredCount === 0 || exporting}
             sx={{ textTransform: "none", borderColor: "#7c1519", color: "#7c1519" }}
           >
-            Export CSV
+            {exporting ? "Exporting…" : "Export CSV"}
           </Button>
         </Box>
       </Box>
 
       {/* Table */}
-      <TableContainer sx={{ border: "1px solid #e0eef7", borderRadius: 2 }}>
+      <TableContainer sx={{ border: "1px solid #e0eef7", borderRadius: 2, position: "relative" }}>
+        {loading && students.length > 0 && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: "rgba(255,255,255,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1,
+            }}
+          >
+            <CircularProgress size={32} sx={{ color: "#7c1519" }} />
+          </Box>
+        )}
         <Table size="small">
           <TableHead sx={{ bgcolor: "#f5f7fa" }}>
             <TableRow>
@@ -286,14 +372,14 @@ export default function ProspectiveStudents() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.length === 0 ? (
+            {students.length === 0 && !loading ? (
               <TableRow>
                 <TableCell colSpan={10} align="center" sx={{ py: 5, color: "text.secondary" }}>
                   No prospective students found.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((s) => (
+              students.map((s) => (
                 <TableRow key={s.id} hover>
                   <TableCell>{s.name || "—"}</TableCell>
                   <TableCell>{s.email}</TableCell>
@@ -380,6 +466,19 @@ export default function ProspectiveStudents() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[25, 50, 100]}
+          component="div"
+          count={filteredCount}
+          rowsPerPage={rowsPerPage}
+          page={safePage}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10))
+            setPage(0)
+          }}
+          sx={{ borderTop: "1px solid #e0eef7" }}
+        />
       </TableContainer>
 
       {/* Send Communication */}
