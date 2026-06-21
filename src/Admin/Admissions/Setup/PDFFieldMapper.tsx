@@ -13,6 +13,7 @@ const AVAILABLE_FIELDS: { key: string; label: string }[] = [
   { key: "student_no", label: "Student Number" },
   { key: "reg_no", label: "Registration Number" },
   { key: "program_name", label: "Programme Name" },
+  { key: "subject_combination", label: "Teaching Subject Combination" },
   { key: "min_years", label: "Min Duration (years)" },
   { key: "max_years", label: "Max Duration (years)" },
   { key: "campus", label: "Campus" },
