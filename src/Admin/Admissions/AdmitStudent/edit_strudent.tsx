@@ -75,6 +75,12 @@ interface ProgramBatchesOptionsResponse {
   default_program_batch_id: number | null
 }
 
+interface ProgramSpecializationOption {
+  id: number
+  name: string
+  is_active: boolean
+}
+
 interface Application {
   id: number
   first_name: string
@@ -98,6 +104,8 @@ interface AdmittedData {
   admitted_program: Program
   admitted_campus: Campus
   application: number
+  subject_combination?: string | null
+  admitted_specialization?: { id: number; name: string } | null
   intended_program_batch?: {
     id: number
     name: string
@@ -117,6 +125,7 @@ function extractUpdateError(err: any): string {
     "admitted_program",
     "admitted_campus",
     "intended_program_batch",
+    "admitted_specialization",
     "student_id",
     "reg_no",
   ]) {
@@ -148,10 +157,14 @@ export default function EditAdmittedStudentPage() {
     study_mode: "",
     notes: "",
     intended_program_batch: "",
+    admitted_specialization: "",
   })
 
   const [programBatchOptions, setProgramBatchOptions] = useState<ProgramBatchOption[]>([])
   const [loadingProgramBatches, setLoadingProgramBatches] = useState(false)
+  const [programRequiresCombination, setProgramRequiresCombination] = useState(false)
+  const [specializationOptions, setSpecializationOptions] = useState<ProgramSpecializationOption[]>([])
+  const [loadingSpecializations, setLoadingSpecializations] = useState(false)
 
   const [openDialog, setOpenDialog] = useState(false)
   const [snackbar, setSnackbar] = useState({
@@ -184,6 +197,9 @@ export default function EditAdmittedStudentPage() {
         notes: data.admission_notes || "",
         intended_program_batch: data.intended_program_batch?.id
           ? String(data.intended_program_batch.id)
+          : "",
+        admitted_specialization: data.admitted_specialization?.id
+          ? String(data.admitted_specialization.id)
           : "",
       })
     } catch (err) {
@@ -270,6 +286,34 @@ export default function EditAdmittedStudentPage() {
     }
   }, [programIdForBatches, admittedData?.application, AxiosInstance])
 
+  useEffect(() => {
+    if (!programIdForBatches) {
+      setProgramRequiresCombination(false)
+      setSpecializationOptions([])
+      return
+    }
+    let cancelled = false
+    setLoadingSpecializations(true)
+    AxiosInstance.get(`/api/admissions/program_specializations/${programIdForBatches}`)
+      .then((res) => {
+        if (cancelled) return
+        setProgramRequiresCombination(!!res.data?.has_specialization)
+        setSpecializationOptions(Array.isArray(res.data?.specializations) ? res.data.specializations : [])
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProgramRequiresCombination(false)
+          setSpecializationOptions([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSpecializations(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [programIdForBatches, AxiosInstance])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -284,7 +328,13 @@ export default function EditAdmittedStudentPage() {
     const strVal = value === "" || value === undefined ? "" : String(value)
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "campus" || name === "study_mode" || name === "intended_program_batch" ? strVal : value,
+      [name]:
+        name === "campus" ||
+        name === "study_mode" ||
+        name === "intended_program_batch" ||
+        name === "admitted_specialization"
+          ? strVal
+          : value,
     }))
   }
 
@@ -293,6 +343,7 @@ export default function EditAdmittedStudentPage() {
       ...prev,
       program: value ? String(value.id) : "",
       intended_program_batch: "",
+      admitted_specialization: "",
     }))
   }
 
@@ -314,6 +365,14 @@ export default function EditAdmittedStudentPage() {
       setSnackbar({
         open: true,
         message: "Student ID and Registration Number are required",
+        type: "error",
+      })
+      return
+    }
+    if (programRequiresCombination && !formData.admitted_specialization) {
+      setSnackbar({
+        open: true,
+        message: "Select the teaching subject combination for this education programme.",
         type: "error",
       })
       return
@@ -371,6 +430,9 @@ export default function EditAdmittedStudentPage() {
         study_mode: formData.study_mode,
         intended_program_batch: formData.intended_program_batch
           ? Number(formData.intended_program_batch)
+          : null,
+        admitted_specialization: formData.admitted_specialization
+          ? Number(formData.admitted_specialization)
           : null,
       }
 
@@ -487,6 +549,52 @@ export default function EditAdmittedStudentPage() {
               Search for any program available in the current active batch/intake
             </Typography>
           </Box>
+
+          {formData.program && programRequiresCombination ? (
+            <Box sx={{ mb: 3 }}>
+              {loadingSpecializations ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2">Loading teaching subject combinations…</Typography>
+                </Box>
+              ) : (
+                <FormControl fullWidth variant="outlined" required>
+                  <InputLabel id="edit-combination-label">Teaching subject combination</InputLabel>
+                  <Select
+                    labelId="edit-combination-label"
+                    label="Teaching subject combination"
+                    name="admitted_specialization"
+                    value={formData.admitted_specialization}
+                    onChange={handleSelectChange}
+                    disabled={!specializationOptions.length}
+                  >
+                    <MenuItem value="" disabled>
+                      Select combination
+                    </MenuItem>
+                    {specializationOptions.map((spec) => (
+                      <MenuItem key={spec.id} value={String(spec.id)}>
+                        {spec.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+              {admittedData?.subject_combination && !formData.admitted_specialization ? (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Previously admitted as: {admittedData.subject_combination}
+                </Alert>
+              ) : null}
+              {!loadingSpecializations && specializationOptions.length === 0 ? (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  No teaching combinations configured for this programme. Add them under Programme specializations first.
+                </Alert>
+              ) : (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                  This combination appears on the admission letter and sets the student&apos;s curriculum track.
+                </Typography>
+              )}
+            </Box>
+          ) : null}
 
           <Box sx={{ mb: 3 }}>
             <FormControl fullWidth variant="outlined" disabled={!formData.program || loadingProgramBatches}>

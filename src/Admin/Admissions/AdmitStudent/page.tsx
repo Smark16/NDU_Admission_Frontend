@@ -96,6 +96,12 @@ interface ProgramBatchesOptionsResponse {
   default_program_batch_id: number | null
 }
 
+interface ProgramSpecializationOption {
+  id: number
+  name: string
+  is_active: boolean
+}
+
 const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }))
@@ -174,9 +180,13 @@ export default function AdmitStudentPage() {
     reg_no: "",
     notes: "",
     intended_program_batch: "",
+    admitted_specialization: "",
   })
   const [programBatchOptions, setProgramBatchOptions] = useState<ProgramBatchOption[]>([])
   const [loadingProgramBatches, setLoadingProgramBatches] = useState(false)
+  const [programRequiresCombination, setProgramRequiresCombination] = useState(false)
+  const [specializationOptions, setSpecializationOptions] = useState<ProgramSpecializationOption[]>([])
+  const [loadingSpecializations, setLoadingSpecializations] = useState(false)
 
   const [openDialog, setOpenDialog] = useState(false)
   const [snackbar, setSnackbar] = useState({
@@ -294,6 +304,7 @@ export default function AdmitStudentPage() {
       reg_no: "",
       notes: "",
       intended_program_batch: "",
+      admitted_specialization: "",
     })
     setApplication(null)
     setProgramChoices([])
@@ -350,6 +361,35 @@ export default function AdmitStudentPage() {
     }
   }, [formData.program, application?.id, AxiosInstance])
 
+  useEffect(() => {
+    const programId = formData.program
+    if (!programId) {
+      setProgramRequiresCombination(false)
+      setSpecializationOptions([])
+      return
+    }
+    let cancelled = false
+    setLoadingSpecializations(true)
+    AxiosInstance.get(`/api/admissions/program_specializations/${programId}`)
+      .then((res) => {
+        if (cancelled) return
+        setProgramRequiresCombination(!!res.data?.has_specialization)
+        setSpecializationOptions(Array.isArray(res.data?.specializations) ? res.data.specializations : [])
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProgramRequiresCombination(false)
+          setSpecializationOptions([])
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSpecializations(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [formData.program, AxiosInstance])
+
   // ← UPDATED: Now with auto-navigate on success
   useEffect(() => {
     if (!showProgress || !id) return
@@ -404,6 +444,7 @@ export default function AdmitStudentPage() {
             ? String(validPrograms[0].id)
             : prev.program,
         intended_program_batch: stillValid ? prev.intended_program_batch : "",
+        admitted_specialization: stillValid ? prev.admitted_specialization : "",
       }
     })
   }
@@ -419,6 +460,7 @@ export default function AdmitStudentPage() {
         program: strVal,
         campus,
         intended_program_batch: "",
+        admitted_specialization: "",
       }
     })
   }
@@ -438,7 +480,10 @@ export default function AdmitStudentPage() {
 
     setFormData((prev) => ({
       ...prev,
-      [name || ""]: name === "intended_program_batch" || name === "study_mode" ? strVal : value,
+      [name || ""]:
+        name === "intended_program_batch" || name === "study_mode" || name === "admitted_specialization"
+          ? strVal
+          : value,
     }))
   }
 
@@ -464,6 +509,14 @@ export default function AdmitStudentPage() {
       setSnackbar({
         open: true,
         message: "Please fill in all required fields: program, campus, study mode, and student number",
+        type: "error",
+      })
+      return
+    }
+    if (programRequiresCombination && !formData.admitted_specialization) {
+      setSnackbar({
+        open: true,
+        message: "Select the teaching subject combination for this education programme.",
         type: "error",
       })
       return
@@ -532,6 +585,11 @@ const handleGenerateRegNo = async () => {
       } else {
         payload.intended_program_batch = null
       }
+      if (formData.admitted_specialization) {
+        payload.admitted_specialization = Number(formData.admitted_specialization)
+      } else {
+        payload.admitted_specialization = null
+      }
 
       const response = await AxiosInstance.post('/api/admissions/create_admissions', payload)
       if (response.status === 201) {
@@ -576,6 +634,7 @@ const handleGenerateRegNo = async () => {
         study_mode: "",
         campus: "",
         intended_program_batch: "",
+        admitted_specialization: "",
       })
     }, 1000)
   }
@@ -734,6 +793,47 @@ const handleGenerateRegNo = async () => {
                 ? `Applicant choices shown. Campus: ${selectedCampusName} — updates when you pick a programme at another location.`
                 : "Choose from the applicant's programme choices. Campus follows the programme."}
             </Typography>
+
+            {formData.program && programRequiresCombination ? (
+              <Box sx={{ mt: 2 }}>
+                {loadingSpecializations ? (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+                    <CircularProgress size={20} />
+                    <Typography variant="body2">Loading teaching subject combinations…</Typography>
+                  </Box>
+                ) : (
+                  <FormControl fullWidth variant="outlined" required>
+                    <InputLabel id="admit-combination-label">Teaching subject combination</InputLabel>
+                    <Select
+                      labelId="admit-combination-label"
+                      label="Teaching subject combination"
+                      name="admitted_specialization"
+                      value={formData.admitted_specialization}
+                      onChange={handleChange}
+                      disabled={!specializationOptions.length}
+                    >
+                      <MenuItem value="" disabled>
+                        Select combination
+                      </MenuItem>
+                      {specializationOptions.map((spec) => (
+                        <MenuItem key={spec.id} value={String(spec.id)}>
+                          {spec.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+                {!loadingSpecializations && specializationOptions.length === 0 ? (
+                  <Alert severity="warning" sx={{ mt: 1 }}>
+                    No teaching combinations configured for this programme. Add them under Programme specializations first.
+                  </Alert>
+                ) : (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    This combination appears on the admission letter and sets the student&apos;s curriculum track.
+                  </Typography>
+                )}
+              </Box>
+            ) : null}
           </FormSection>
 
           <Divider sx={{ my: 2 }} />
