@@ -535,6 +535,13 @@ export default function AllApplicantsReport() {
   const [searching, setSearching] = useState(false)   // For debounced search
   const [error, setError] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState(0)
+  const [reportStats, setReportStats] = useState({
+    total: 0,
+    submitted: 0,
+    admitted: 0,
+    rejected: 0,
+    direct: 0,
+  })
 
   // Filters
   const [search, setSearch] = useState("")
@@ -566,57 +573,72 @@ export default function AllApplicantsReport() {
     return () => clearTimeout(timer)
   }, [search])
 
+  // Build server filter params (shared by list + stats endpoints)
+  const buildFilterParams = useCallback(() => {
+    const params = new URLSearchParams()
+
+    if (debouncedSearch) params.append("search", debouncedSearch)
+    if (statusFilter !== "all") params.append("status", statusFilter)
+    if (genderFilter !== "all") params.append("gender", genderFilter)
+    if (levelFilter !== "all") params.append("academic_level", levelFilter)
+    if (batchFilter !== "all") params.append("batch", batchFilter)
+    if (campusFilter !== "all") params.append("campus", campusFilter)
+    if (facultyFilter !== "all") params.append("faculty", facultyFilter)
+    if (programSearch) params.append("program", programSearch)
+    if (dateFrom) params.append("date_from", dateFrom)
+    if (dateTo) params.append("date_to", dateTo)
+    if (entryFilter !== "all") {
+      params.append("is_direct_entry", entryFilter === "direct" ? "true" : "false")
+    }
+
+    return params
+  }, [
+    debouncedSearch, statusFilter, genderFilter, levelFilter, batchFilter,
+    campusFilter, facultyFilter, programSearch, dateFrom, dateTo, entryFilter,
+  ])
+
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const params = new URLSearchParams()
-
-      if (debouncedSearch) params.append("search", debouncedSearch)
-      if (statusFilter !== "all") params.append("status", statusFilter)
-      if (genderFilter !== "all") params.append("gender", genderFilter)
-      if (levelFilter !== "all") params.append("academic_level", levelFilter)
-      if (batchFilter !== "all") params.append("batch", batchFilter)
-      if (campusFilter !== "all") params.append("campus", campusFilter)
-      if (facultyFilter !== "all") params.append("faculty", facultyFilter)
-      if (programSearch) params.append("program", programSearch)
-      if (dateFrom) params.append("date_from", dateFrom)
-      if (dateTo) params.append("date_to", dateTo)
-      if (entryFilter !== "all") {
-        params.append("is_direct_entry", entryFilter === "direct" ? "true" : "false")
-      }
-
+      const params = buildFilterParams()
       params.append("page", String(page + 1))
       params.append("page_size", String(rowsPerPage))
 
-      const { data } = await AxiosInstance.get(`/api/admissions/all_applications_detail_report/?${params.toString()}`)
+      const statsParams = buildFilterParams()
 
+      const [listRes, statsRes] = await Promise.all([
+        AxiosInstance.get(`/api/admissions/all_applications_detail_report/?${params.toString()}`),
+        AxiosInstance.get(`/api/admissions/all_applications_detail_report_stats/?${statsParams.toString()}`),
+      ])
+
+      const { data } = listRes
       setApplicants(data.results || [])
       setTotalCount(data.count || 0)
+
+      const stats = statsRes.data || {}
+      setReportStats({
+        total: Number(stats.total ?? 0),
+        submitted: Number(stats.submitted ?? 0),
+        admitted: Number(stats.admitted ?? 0),
+        rejected: Number(stats.rejected ?? 0),
+        direct: Number(stats.direct ?? 0),
+      })
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to load applicants")
     } finally {
       setLoading(false)
       setSearching(false)
     }
-  }, [
-    AxiosInstance, page, rowsPerPage, debouncedSearch, statusFilter, genderFilter,
-    levelFilter, batchFilter, campusFilter, facultyFilter, programSearch, dateFrom, dateTo, entryFilter
-  ])
+  }, [AxiosInstance, page, rowsPerPage, buildFilterParams])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  const stats = useMemo(() => ({
-    total: totalCount,
-    submitted: applicants.filter(a => a.status === "submitted" || a.status === "under_review").length,
-    admitted: applicants.filter(a => a.status === "Admitted" || a.status === "admitted").length,
-    rejected: applicants.filter(a => a.status === "rejected").length,
-    direct: applicants.filter(a => a.is_direct_entry).length,
-  }), [applicants, totalCount])
+  const stats = reportStats
 
    const getProgramsArray = (programs: any): string[] => {
     if (!programs) return []
