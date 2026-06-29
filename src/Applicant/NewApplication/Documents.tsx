@@ -15,6 +15,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
 } from "@mui/icons-material"
+import type { ApplicantCategory } from "../../constants/applicantCategory"
 
 interface SubjectResult {
   id: string
@@ -31,7 +32,10 @@ interface FormData {
   dateOfBirth: string
   title:string
   gender: string
+  applicantCategory: ApplicantCategory | ""
   nationality: string
+  nin?: string
+  passportNumber?: string
   phone: number
   email: string
   address: string
@@ -39,6 +43,10 @@ interface FormData {
   nextOfKinContact: string
   application_fee_paid:boolean
   nextOfKinRelationship: string
+  disabled?: string
+  isRefugee?: string
+  refugeeStatusProof: File | null
+  refugeeStatusProofUrl: string | null
   campus: string
   programs: number[]
   academic_level: string
