@@ -11,8 +11,11 @@ import {
   Typography,
   Divider,
   FormHelperText,
+  Paper,
+  Chip,
+  CircularProgress,
 } from "@mui/material"
-import { CheckCircle as CheckCircleIcon } from "@mui/icons-material"
+import { CheckCircle as CheckCircleIcon, CloudUpload as CloudUploadIcon } from "@mui/icons-material"
 import type { SelectChangeEvent } from "@mui/material/Select"
 import ReactSelect from "react-select"
 import countryList from "react-select-country-list"
@@ -20,6 +23,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
 import dayjs from "dayjs"
+import { isLocalCountryOption, isLocalNationality, type ApplicantCategory } from "../../constants/applicantCategory"
 
 interface PersonalInfoProps {
   formData: {
@@ -29,10 +33,14 @@ interface PersonalInfoProps {
     dateOfBirth: string
     title: string;
     gender: string
+    applicantCategory?: ApplicantCategory | ""
     nationality: string
     nin?: string
     passportNumber?: string
     disabled?: string
+    isRefugee?: string
+    refugeeStatusProof?: File | null
+    refugeeStatusProofUrl?: string | null
     phone: number | string
     email: string
     address: string
@@ -44,6 +52,10 @@ interface PersonalInfoProps {
   setFormData: React.Dispatch<React.SetStateAction<any>>
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   handleChange: (event: SelectChangeEvent<string>) => void
+  handleFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  isUploading?: boolean
+  docType?: string | null
+  compressingField?: string | null
 }
 
 const PersonalInfo: React.FC<PersonalInfoProps> = ({
@@ -51,9 +63,19 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
   setFormData,
   handleInputChange,
   handleChange,
-  formErrors
+  formErrors,
+  handleFileChange,
+  isUploading = false,
+  docType = null,
+  compressingField = null,
 }) => {
   const options = useMemo(() => countryList().getData(), [])
+  const countryOptions = useMemo(() => {
+    if (formData.applicantCategory === "local") {
+      return options.filter(isLocalCountryOption)
+    }
+    return options
+  }, [options, formData.applicantCategory])
   const [ninValidation, setNinValidation] = useState<{ message: string, color: 'success' | 'error' | undefined }>({ message: '', color: undefined });
 
   const isValidUgandaNIN = (nin: string): boolean => {
@@ -69,8 +91,28 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
     setNinValidation({ message: '', color: undefined });
   }
 
-  const selectedValue = options.find(option => option.label === formData.nationality) || null
-  const LOCAL_COUNTRIES = ["Uganda"];
+  const handleApplicantCategoryChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value as ApplicantCategory | ""
+    setFormData((prev: any) => {
+      const keepNationality =
+        value === "local"
+          ? isLocalNationality(prev.nationality)
+          : value === "international"
+            ? prev.nationality && !isLocalNationality(prev.nationality)
+            : false
+      return {
+        ...prev,
+        applicantCategory: value,
+        nationality: keepNationality ? prev.nationality : "",
+        nin: keepNationality ? prev.nin : "",
+        passportNumber: keepNationality ? prev.passportNumber : "",
+      }
+    })
+    setNinValidation({ message: '', color: undefined });
+  }
+
+  const selectedValue = countryOptions.find(option => option.label === formData.nationality) || null
+  const UGANDA_ONLY = ["Uganda"];
 
   // Custom handler for NIN input to add real-time validation
   const handleNinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +133,42 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
       setNinValidation({ message: '', color: undefined });
     }
   };
+
+  const handleRefugeeChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value
+    setFormData((prev: any) => ({
+      ...prev,
+      isRefugee: value,
+      ...(value !== "yes"
+        ? { refugeeStatusProof: null, refugeeStatusProofUrl: null }
+        : {}),
+    }))
+  }
+
+  const RefugeeProofChip = () => {
+    if (formData.refugeeStatusProof) {
+      return (
+        <Chip
+          label={formData.refugeeStatusProof.name}
+          onDelete={() => setFormData((prev: any) => ({ ...prev, refugeeStatusProof: null }))}
+          sx={{ mt: 2 }}
+          color="primary"
+        />
+      )
+    }
+    if (formData.refugeeStatusProofUrl) {
+      const filename = formData.refugeeStatusProofUrl.split("/").pop() || "document"
+      return (
+        <Chip
+          icon={<CheckCircleIcon />}
+          label={`Saved: ${filename}`}
+          onDelete={() => setFormData((prev: any) => ({ ...prev, refugeeStatusProofUrl: null }))}
+          sx={{ mt: 2, bgcolor: "#e8f5e9", color: "#2e7d32", "& .MuiChip-deleteIcon": { color: "#2e7d32" } }}
+        />
+      )
+    }
+    return null
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -202,13 +280,36 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <FormControl fullWidth required error={!!formErrors.applicantCategory}>
+              <InputLabel>Applicant type</InputLabel>
+              <Select
+                name="applicantCategory"
+                value={formData.applicantCategory || ""}
+                onChange={handleApplicantCategoryChange}
+                label="Applicant type"
+              >
+                <MenuItem value="local">Local</MenuItem>
+                <MenuItem value="international">International</MenuItem>
+              </Select>
+              <FormHelperText>
+                Local: Uganda, Kenya, or Tanzania. International: all other countries.
+              </FormHelperText>
+              {formErrors.applicantCategory && (
+                <FormHelperText error>{formErrors.applicantCategory}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FormControl fullWidth required error={!!formErrors.nationality}>
+              <InputLabel shrink sx={{ display: "none" }}>Country</InputLabel>
               <ReactSelect
-                options={options}
+                options={countryOptions}
                 value={selectedValue}
                 onChange={changeHandler}
-                placeholder="Search country..."
+                placeholder={formData.applicantCategory ? "Select country..." : "Select applicant type first"}
                 isClearable
+                isDisabled={!formData.applicantCategory}
                 styles={{
                   control: (base) => ({
                     ...base,
@@ -232,7 +333,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
             </FormControl>
           </Grid>
 
-          {selectedValue ? (LOCAL_COUNTRIES.includes(selectedValue?.label || "")
+          {selectedValue ? (UGANDA_ONLY.includes(selectedValue?.label || "")
             ? (
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
@@ -291,6 +392,87 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               )}
             </FormControl>
           </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <FormControl fullWidth required error={!!formErrors.isRefugee}>
+              <InputLabel>Are you a Refugee?</InputLabel>
+              <Select
+                name="isRefugee"
+                value={formData.isRefugee || ""}
+                onChange={handleRefugeeChange}
+                label="Are you a Refugee?"
+              >
+                <MenuItem value="yes">Yes</MenuItem>
+                <MenuItem value="no">No</MenuItem>
+              </Select>
+              {formErrors.isRefugee && (
+                <FormHelperText>{formErrors.isRefugee}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+
+          {formData.isRefugee === "yes" && (
+            <Grid size={{ xs: 12 }}>
+              <Paper
+                sx={{
+                  p: 3,
+                  bgcolor: "#f8fbff",
+                  border: formErrors.refugeeStatusProof ? "2px dashed #d32f2f" : "1px solid #e0eef7",
+                  borderRadius: 2,
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "#5ba3f5" }}>
+                  Refugee Status Proof
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+                  Upload official documentation confirming your refugee status (e.g. refugee ID, UNHCR letter, or equivalent). PDF or image formats accepted.
+                </Typography>
+                <Paper
+                  sx={{
+                    p: 3,
+                    textAlign: "center",
+                    border: formErrors.refugeeStatusProof ? "2px dashed #d32f2f" : "2px dashed #5ba3f5",
+                    borderRadius: 2,
+                    cursor: handleFileChange ? "pointer" : "default",
+                    transition: "all 0.3s",
+                    "&:hover": handleFileChange ? { bgcolor: "#f0f7ff", borderColor: "#3b82f6" } : {},
+                  }}
+                >
+                  <input
+                    type="file"
+                    name="refugeeStatusProof"
+                    onChange={handleFileChange}
+                    accept="image/jpeg,image/png,image/jpg,image/heic,application/pdf"
+                    style={{ display: "none" }}
+                    id="refugee-status-proof"
+                    disabled={!handleFileChange || isUploading}
+                  />
+                  <label htmlFor="refugee-status-proof" style={{ cursor: handleFileChange ? "pointer" : "default", display: "block" }}>
+                    <CloudUploadIcon sx={{ fontSize: 40, color: "#5ba3f5", mb: 1 }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      Click to upload refugee status proof
+                    </Typography>
+                    {compressingField === "refugeeStatusProof" ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : docType === "refugeeStatusProof" && isUploading ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <RefugeeProofChip />
+                    )}
+                  </label>
+                </Paper>
+                {formErrors.refugeeStatusProof && (
+                  <FormHelperText error sx={{ mt: 1 }}>
+                    {formErrors.refugeeStatusProof}
+                  </FormHelperText>
+                )}
+              </Paper>
+            </Grid>
+          )}
 
         </Grid>
       </Box>

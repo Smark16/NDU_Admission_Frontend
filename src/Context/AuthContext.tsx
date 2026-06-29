@@ -2,15 +2,14 @@ import { createContext, useState, useEffect, useCallback, useRef } from "react";
 import type { Dispatch, SetStateAction, ReactNode } from "react";
 import Swal from "sweetalert2";
 import { api } from "../../lib/api";
+import { getApiBaseURL } from "../../lib/apiBaseUrl";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/system";
 import { CircularProgress, Typography } from "@mui/material";
 
-// API base URL (mirrors UseAxios.ts logic so this stays consistent in any env)
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "") ||
-  "http://127.0.0.1:8000";
+// API base URL (shared with lib/api.ts and UseAxios.ts)
+const API_BASE_URL = getApiBaseURL();
 
 // Types
 type AuthTokens = { access: string; refresh: string };

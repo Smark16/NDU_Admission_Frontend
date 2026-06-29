@@ -4,9 +4,9 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
+import { getApiBaseURL } from "../../lib/apiBaseUrl";
 
-const configuredBaseURL = (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
-const baseURL = configuredBaseURL || "http://127.0.0.1:8000";
+const baseURL = getApiBaseURL();
 
 // use Axios
 const useAxios = () => {

@@ -47,6 +47,7 @@ import useAxios from "../../AxiosInstance/UseAxios"
 import useHook from "../../Hooks/useHook"
 import CustomButton from "../../ReUsables/custombutton"
 import PaymentModal from "../Dashboard/PaymentModal"
+import { isLocalNationality, feeTypeForCategory, type ApplicantCategory } from "../../constants/applicantCategory"
 
 const steps = [
   { label: "Personal Details", icon: PersonIcon },
@@ -103,6 +104,7 @@ interface FormData {
   middleName: string
   dateOfBirth: string
   gender: string
+  applicantCategory: ApplicantCategory | ""
   nationality: string
   nin?: string
   passportNumber?: string
@@ -119,6 +121,9 @@ interface FormData {
   oLevelIndexNumber: string
   oLevelSchool: string
   disabled?: string
+  isRefugee?: string
+  refugeeStatusProof: File | null
+  refugeeStatusProofUrl: string | null
   oLevelSubjects: SubjectResult[]
   aLevelYear: string
   aLevelIndexNumber: string
@@ -176,8 +181,12 @@ export default function NewApplicationForm() {
     dateOfBirth: "",
     title: "",
     gender: "",
+    applicantCategory: "",
     nationality: "",
     disabled: "",
+    isRefugee: "",
+    refugeeStatusProof: null,
+    refugeeStatusProofUrl: null,
     phone: loggeduser?.phone ?? 0,
     email: loggeduser?.email ?? '',
     address: "",
@@ -278,9 +287,26 @@ export default function NewApplicationForm() {
         if (!formData.lastName.trim()) errors.lastName = "Last name is required";
         if (!formData.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
         if (!formData.disabled) errors.disabled = "Please select if you are disabled or not";
+        if (!formData.isRefugee) errors.isRefugee = "Please indicate if you are a refugee";
+        if (formData.isRefugee === "yes" && !formData.refugeeStatusProof && !formData.refugeeStatusProofUrl) {
+          errors.refugeeStatusProof = "Refugee status proof is required";
+        }
         if (!formData.gender) errors.gender = "Please select gender";
         if (!formData.title) errors.title = "Please select a title";
-        if (!formData.nationality.trim()) errors.nationality = "Nationality is required";
+        if (!formData.applicantCategory) errors.applicantCategory = "Please select Local or International";
+        if (!formData.nationality.trim()) errors.nationality = "Country of nationality is required";
+        if (
+          formData.applicantCategory === "local" &&
+          !isLocalNationality(formData.nationality)
+        ) {
+          errors.nationality = "Local applicants must select Uganda, Kenya, or Tanzania";
+        }
+        if (
+          formData.applicantCategory === "international" &&
+          isLocalNationality(formData.nationality)
+        ) {
+          errors.nationality = "International applicants must select a country other than Uganda, Kenya, or Tanzania";
+        }
         if (!formData.phone || String(formData.phone).length < 9) errors.phone = "Valid phone required";
         if (!formData.email.includes("@")) errors.email = "Valid email required";
         if (!formData.nextOfKinName.trim()) errors.nextOfKinName = "next of kin name is required"
@@ -690,6 +716,7 @@ export default function NewApplicationForm() {
         draftPayload.append("dateOfBirth", formData.dateOfBirth || "");
         draftPayload.append("gender", formData.gender || "");
         draftPayload.append("nationality", formData.nationality || "");
+        draftPayload.append("applicantCategory", formData.applicantCategory || "");
         draftPayload.append("title", formData.title || "")
         draftPayload.append("nin", formData.nin || "");
         draftPayload.append("passportNumber", formData.passportNumber || "");
@@ -697,6 +724,7 @@ export default function NewApplicationForm() {
         draftPayload.append("email", formData.email || "");
         draftPayload.append("address", formData.address || "");
         draftPayload.append("disabled", formData.disabled || "");
+        draftPayload.append("isRefugee", formData.isRefugee || "no");
         draftPayload.append("nextOfKinName", formData.nextOfKinName || "");
         draftPayload.append("nextOfKinContact", formData.nextOfKinContact || "");
         draftPayload.append("nextOfKinRelationship", formData.nextOfKinRelationship || "");
@@ -796,10 +824,7 @@ export default function NewApplicationForm() {
     }
   };
 
-  // selected application amount
-  const LOCAL_COUNTRIES = ["Uganda", "Kenya", "Tanzania"];
-  const applicantType = LOCAL_COUNTRIES.includes(formData.nationality)
-    ? "Local" : "International";
+  const applicantType = feeTypeForCategory(formData.applicantCategory);
 
   const selectedFee = batch
     ? fees.find(
@@ -859,10 +884,12 @@ export default function NewApplicationForm() {
       formDataToSend.append("date_of_birth", formData.dateOfBirth);
       formDataToSend.append("gender", formData.gender);
       formDataToSend.append("nationality", formData.nationality);
+      formDataToSend.append("applicant_category", formData.applicantCategory || "local");
       formDataToSend.append("title", formData.title)
       formDataToSend.append("phone", String(formData.phone));
       formDataToSend.append("email", formData.email);
       formDataToSend.append("disabled", formData?.disabled || "no");
+      formDataToSend.append("is_refugee", formData.isRefugee === "yes" ? "true" : "false");
       formDataToSend.append("address", formData.address || "");
       formDataToSend.append("next_of_kin_name", formData.nextOfKinName || "");
       formDataToSend.append("next_of_kin_contact", formData.nextOfKinContact || "");
@@ -921,6 +948,14 @@ export default function NewApplicationForm() {
       // Passport photo
       if (!formData.passportPhotoUrl && formData.passportPhoto) {
         formDataToSend.append("passport_photo", formData.passportPhoto);
+      }
+
+      if (
+        formData.isRefugee === "yes" &&
+        !formData.refugeeStatusProofUrl &&
+        formData.refugeeStatusProof
+      ) {
+        formDataToSend.append("refugee_status_proof", formData.refugeeStatusProof);
       }
 
       // Documents (ONLY if not already saved in draft)
@@ -1021,6 +1056,7 @@ export default function NewApplicationForm() {
           dateOfBirth: draft.dateOfBirth || "",
           gender: draft.gender || "",
           nationality: draft.nationality || "",
+          applicantCategory: (draft.applicantCategory as ApplicantCategory) || "",
           nin: draft.nin || "",
           passportNumber: draft.passportNumber || "",
           title: draft.title || "",
@@ -1028,6 +1064,7 @@ export default function NewApplicationForm() {
           email: draft.email || prev.email,
           address: draft.address || "",
           disabled: draft.disabled || "",
+          isRefugee: draft.isRefugee || "",
           nextOfKinName: draft.nextOfKinName || "",
           nextOfKinContact: draft.nextOfKinContact || "",
           nextOfKinRelationship: draft.nextOfKinRelationship || "",
@@ -1068,6 +1105,7 @@ export default function NewApplicationForm() {
 
           // Document URLs
           passportPhotoUrl: draft.passportPhotoUrl || null,
+          refugeeStatusProofUrl: draft.refugeeStatusProofUrl || null,
           oLevelDocumentsUrl: draft.oLevelDocumentsUrl || null,
           aLevelDocumentsUrl: draft.aLevelDocumentsUrl || null,
           otherInstitutionDocumentsUrl: draft.otherInstitutionDocumentsUrl || null,
@@ -1083,6 +1121,7 @@ export default function NewApplicationForm() {
 
           // Reset File objects
           passportPhoto: null,
+          refugeeStatusProof: null,
           oLevelDocuments: null,
           aLevelDocuments: null,
           otherInstitutionDocuments: null,
@@ -1185,6 +1224,10 @@ export default function NewApplicationForm() {
         handleChange={handleChange}
         setFormData={setFormData}
         formErrors={formErrors}
+        handleFileChange={handleFileChange}
+        isUploading={isUploading}
+        docType={docType}
+        compressingField={compressingField}
       />
     </>
   )
@@ -1281,6 +1324,33 @@ export default function NewApplicationForm() {
               <strong>Phone:</strong> {formData.phone}
             </Typography>
           </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" sx={{ color: "#666" }}>
+              <strong>Applicant type:</strong> {formData.applicantCategory === "local" ? "Local" : formData.applicantCategory === "international" ? "International" : "Not specified"}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" sx={{ color: "#666" }}>
+              <strong>Country:</strong> {formData.nationality || "Not specified"}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" sx={{ color: "#666" }}>
+              <strong>Refugee status:</strong> {formData.isRefugee === "yes" ? "Yes" : formData.isRefugee === "no" ? "No" : "Not specified"}
+            </Typography>
+          </Grid>
+          {formData.isRefugee === "yes" && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <Typography variant="caption" sx={{ color: "#666" }}>
+                <strong>Refugee proof:</strong>{" "}
+                {formData.refugeeStatusProofUrl
+                  ? "Uploaded ✅"
+                  : formData.refugeeStatusProof
+                    ? formData.refugeeStatusProof.name
+                    : "Not uploaded"}
+              </Typography>
+            </Grid>
+          )}
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="caption" sx={{ color: "#666" }}>
               <strong>Campus:</strong> {selectedCampus ? selectedCampus.name : "Not selected"}
