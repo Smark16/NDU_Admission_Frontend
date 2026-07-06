@@ -367,9 +367,23 @@ import { useState, useEffect } from "react";
 import useAxios from "../../AxiosInstance/UseAxios";
 
 interface DocumentsSectionProps {
-  documents: any[];
-  application: any;           // Full application object
-  onUpdate?: () => void;
+  documents: DocumentItem[];
+  application: ApplicationLike | null;
+  onUpdate?: () => void | Promise<void>;
+}
+
+interface ApplicationLike {
+  id?: number;
+  status?: string;
+}
+
+interface DocumentItem {
+  id: number;
+  uploaded_at: string;
+  file?: string | File | null;
+  file_url?: string;
+  name?: string;
+  document_type?: string;
 }
 
 const DOCUMENT_TYPES = [
@@ -385,7 +399,7 @@ export default function DocumentsSection({
 }: DocumentsSectionProps) {
   const AxiosInstance = useAxios();
 
-  const [documents, setDocuments] = useState<any[]>(initialDocuments || []);
+  const [documents, setDocuments] = useState<DocumentItem[]>(initialDocuments || []);
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openReplaceModal, setOpenReplaceModal] = useState(false);
 
@@ -393,7 +407,7 @@ export default function DocumentsSection({
   const [uploadType, setUploadType] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
   const [replaceType, setReplaceType] = useState("");
   const [isReplacing, setIsReplacing] = useState(false);
@@ -413,13 +427,42 @@ export default function DocumentsSection({
     setToast({ open: true, message, severity });
   };
 
+  const errorDetail = (err: unknown, fallback: string) => {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "response" in err &&
+      typeof err.response === "object" &&
+      err.response !== null &&
+      "data" in err.response &&
+      typeof err.response.data === "object" &&
+      err.response.data !== null &&
+      "detail" in err.response.data &&
+      typeof err.response.data.detail === "string"
+    ) {
+      return err.response.data.detail;
+    }
+    return fallback;
+  };
+
+  const documentUrl = (doc: DocumentItem) => {
+    const raw = typeof doc.file_url === "string"
+      ? doc.file_url
+      : typeof doc.file === "string"
+        ? doc.file
+        : "";
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `${import.meta.env.VITE_API_BASE_URL}${raw}`;
+  };
+
   const handleOpenUpload = () => {
     setUploadFile(null);
     setUploadType("");
     setOpenUploadModal(true);
   };
 
-  const handleOpenReplace = (doc: any) => {
+  const handleOpenReplace = (doc: DocumentItem) => {
     setSelectedDoc(doc);
     setReplaceType(doc.document_type || "");
     setReplaceFile(null);
@@ -428,6 +471,10 @@ export default function DocumentsSection({
 
   // Upload New Document
   const handleUploadNew = async () => {
+    if (!application?.id) {
+      showToast("Application details are still loading. Please try again.", "error");
+      return;
+    }
     if (!uploadFile || !uploadType) {
       showToast("Please select a file and document type", "error");
       return;
@@ -441,14 +488,13 @@ export default function DocumentsSection({
     try {
       const res = await AxiosInstance.post(`/api/admissions/upload_document/${application.id}/`, formData);
       
-      // Immediate UI Update
       setDocuments(prev => [res.data, ...prev]);
       
       setOpenUploadModal(false);
       showToast("Document uploaded successfully!", "success");
-      onUpdate?.();
-    } catch (err: any) {
-      showToast(err?.response?.data?.detail || "Failed to upload document", "error");
+      await onUpdate?.();
+    } catch (err: unknown) {
+      showToast(errorDetail(err, "Failed to upload document"), "error");
     } finally {
       setIsUploading(false);
     }
@@ -467,20 +513,19 @@ export default function DocumentsSection({
     if (replaceType) formData.append("document_type", replaceType);
 
     try {
-      await AxiosInstance.patch(`/api/admissions/document/${selectedDoc.id}/update/`, formData);
+      const res = await AxiosInstance.patch(`/api/admissions/document/${selectedDoc.id}/update/`, formData);
       
-      // Immediate UI Update
       setDocuments(prev => prev.map(doc => 
         doc.id === selectedDoc.id 
-          ? { ...doc, name: replaceFile.name, document_type: replaceType || doc.document_type }
+          ? res.data
           : doc
       ));
 
       setOpenReplaceModal(false);
       showToast("Document replaced successfully!", "success");
-      onUpdate?.();
-    } catch (err: any) {
-      showToast(err?.response?.data?.detail || "Failed to replace document", "error");
+      await onUpdate?.();
+    } catch (err: unknown) {
+      showToast(errorDetail(err, "Failed to replace document"), "error");
     } finally {
       setIsReplacing(false);
     }
@@ -496,8 +541,8 @@ export default function DocumentsSection({
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
       
       showToast("Document deleted successfully", "success");
-      onUpdate?.();
-    } catch (err) {
+      await onUpdate?.();
+    } catch {
       showToast("Failed to delete document", "error");
     }
   };
@@ -528,7 +573,7 @@ export default function DocumentsSection({
       <CardContent>
         {documents.length > 0 ? (
           <Stack spacing={2}>
-            {documents.map((doc: any) => (
+            {documents.map((doc) => (
               <Paper
                 key={doc.id}
                 sx={{
@@ -558,7 +603,7 @@ export default function DocumentsSection({
                   </Box>
 
                   <Stack direction="row" spacing={1}>
-                    <IconButton color="primary" onClick={() => openInNewTab(`${import.meta.env.VITE_API_BASE_URL}${doc.file_url}`|| `${import.meta.env.VITE_API_BASE_URL}${doc.file}`)}>
+                    <IconButton color="primary" onClick={() => openInNewTab(documentUrl(doc))}>
                       <OpenInNewIcon />
                     </IconButton>
 

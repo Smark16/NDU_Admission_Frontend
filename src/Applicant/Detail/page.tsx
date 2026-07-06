@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ApplicationDetail from "./ApplicationDetail";
 import useAxios from "../../AxiosInstance/UseAxios";
 import { useParams } from "react-router-dom";
@@ -16,7 +16,7 @@ interface Reviewer {
 interface Application {
   id: number;
   first_name: string;
-  last_name: String;
+  last_name: string;
   date_of_birth: string;
   gender: "Male" | "Female" | "Other";
   nationality: string;
@@ -57,6 +57,12 @@ interface Result {
   subject: Subject | number;
 }
 
+interface ApiResult {
+  id: number;
+  grade: string;
+  subject: Subject | number;
+}
+
 interface Document {
   id: number;
   uploaded_at: string;
@@ -91,7 +97,7 @@ export default function Home() {
   const [program_choices, setProgramChoices] = useState<ProgramChoice[]>([])
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchDetail = async () => {
+  const fetchDetail = useCallback(async () => {
     // Check if ID is available before fetching
     if (!id) {
       setIsLoading(false);
@@ -101,16 +107,18 @@ export default function Home() {
     try {
       const response = await AxiosInstance.get(`/api/admissions/application_detail/${id}`)
 
-      const norm = (r: any): Result => ({
+      const norm = (r: ApiResult): Result => ({
         id: r.id,
         grade: r.grade,
         subject: typeof r.subject === "object" ? r.subject : { id: r.subject, name: "???" },
       });
 
+      const olevelData = (response.data.olevel_results ?? []) as ApiResult[];
+      const alevelData = (response.data.alevel_results ?? []) as ApiResult[];
 
       setApplication(response.data.application);
-      setOlevelResults((response.data.olevel_results ?? []).map(norm));
-      setAlevelResults((response.data.alevel_results ?? []).map(norm));
+      setOlevelResults(olevelData.map(norm));
+      setAlevelResults(alevelData.map(norm));
       setDocuments(response.data.documents);
       setQualifications(response.data.qualifications)
       setProgramChoices(response.data.program_choices)
@@ -122,14 +130,14 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [AxiosInstance, id]);
 
   useEffect(() => {
     fetchDetail();
-  }, [id]);
+  }, [fetchDetail]);
 
-  {
-    isLoading && !application && (
+  if (isLoading && !application) {
+    return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
         <CircularProgress />
       </Box>
@@ -146,6 +154,7 @@ export default function Home() {
         documents={documents}
         additionalQualifications={qualifications} 
         program_choices={program_choices}
+        onUpdate={fetchDetail}
       />
     </main>
   );

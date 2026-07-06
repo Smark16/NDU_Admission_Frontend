@@ -10,15 +10,32 @@ import ActionsSection from "./actions"
 import ProgramChoiceConfirmation from "./ProgramChoiceConfirmation"
 
 interface ApplicationDetailProps {
-  application: any
-  olevelresults: any[]
-  alevelresults: any[]
-  documents: any[]
-  program_choices: any[]
-  additionalQualifications:any[]
+  application: {
+    id: number
+    first_name?: string
+    last_name?: string
+    status?: string
+    batch?: { name?: string }
+  } | null
+  olevelresults: unknown[]
+  alevelresults: unknown[]
+  documents: Array<{
+    id: number
+    uploaded_at: string
+    file?: string | File | null
+    file_url?: string
+    name?: string
+    document_type?: string
+  }>
+  program_choices: unknown[]
+  additionalQualifications: unknown[]
+  onUpdate?: () => void | Promise<void>
 }
 
-export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents, program_choices, additionalQualifications }: ApplicationDetailProps) {
+export default function ApplicationDetail({ application, olevelresults,  alevelresults, documents, program_choices, additionalQualifications, onUpdate }: ApplicationDetailProps) {
+  if (!application) return null
+
+  const statusKey = application.status || ""
  
   const statusColors: Record<string, "success" | "error" | "info" | "warning"> = {
     accepted: "success",
@@ -29,7 +46,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
     draft: "warning",
   }
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "accepted":
         return "Approved"
@@ -51,8 +68,8 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
             </Typography>
           </Box>
           <Chip
-            label={getStatusLabel(application?.status)}
-            color={statusColors[application?.status] || "default"}
+            label={getStatusLabel(statusKey)}
+            color={statusColors[statusKey] || "default"}
             variant="filled"
             sx={{ fontWeight: 600 }}
           />
@@ -73,7 +90,7 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
             {application?.first_name} {application?.last_name}
           </Typography>
           <Typography variant="body1" color="textSecondary" sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}>
-            Application for <strong>{application?.batch.name}</strong>
+            Application for <strong>{application.batch?.name || "N/A"}</strong>
           </Typography>
         </Box>
 
@@ -82,11 +99,11 @@ export default function ApplicationDetail({ application, olevelresults,  alevelr
           {/* Main Content Area */}
           <Grid size={{xs:12, md:8}}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
-              <ProgramChoiceConfirmation applicationId={application?.id} />
+              <ProgramChoiceConfirmation applicationId={application.id} />
               <PersonalInfoSection application={application} />
               <AcademicInfoSection application={application} program_choices={program_choices} />
               <EducationalBackgroundSection alevelresults={alevelresults} olevelresults={olevelresults} application={application} additionalQualifications={additionalQualifications} />
-              <DocumentsSection documents={documents} application={application} />
+              <DocumentsSection documents={documents} application={application} onUpdate={onUpdate} />
               <PassportPhotoSection application={application} />
             </Box>
           </Grid>
