@@ -1,5 +1,6 @@
 import { useContext, useMemo } from "react";
-import {AuthContext} from '../Context/AuthContext';
+import type { Dispatch, SetStateAction } from "react";
+import { AuthContext, type DecodedUser } from "../Context/AuthContext";
 import axios from "axios";
 import dayjs from "dayjs";
 import { jwtDecode } from "jwt-decode";
@@ -7,6 +8,30 @@ import Swal from "sweetalert2";
 import { getApiBaseURL } from "../../lib/apiBaseUrl";
 
 const baseURL = getApiBaseURL();
+
+type AuthTokens = { access: string; refresh: string };
+
+async function syncSessionPermissions(
+  access: string,
+  setLoggedUser: Dispatch<SetStateAction<DecodedUser | null>>,
+) {
+  try {
+    const response = await axios.get(`${baseURL}/api/accounts/session`, {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    setLoggedUser((prev) => {
+      const decoded = jwtDecode<DecodedUser>(access);
+      return {
+        ...decoded,
+        ...(prev || {}),
+        ...response.data,
+        permissions: response.data?.permissions ?? prev?.permissions ?? [],
+      };
+    });
+  } catch {
+    /* keep previous permissions if session sync fails mid-refresh */
+  }
+}
 
 // use Axios
 const useAxios = () => {
@@ -23,35 +48,35 @@ const useAxios = () => {
   const axiosInstance = useMemo(() => {
     const instance = axios.create({
       baseURL,
-      headers: { Authorization: `Bearer ${authTokens?.access ?? ""}` }, // Use empty string if no token
+      headers: { Authorization: `Bearer ${authTokens?.access ?? ""}` },
     });
 
     instance.interceptors.request.use(async (req) => {
       if (!authTokens) return req;
 
-      const user = jwtDecode<any>(authTokens.access);
+      const user = jwtDecode<{ exp: number }>(authTokens.access);
       const isExpired = dayjs.unix(user.exp).diff(dayjs()) < 1;
 
       if (!isExpired) return req;
 
-      // Add this check
-    // if (!authTokens?.refresh) {
-    //   logout();
-    //   return Promise.reject(new Error("No refresh token"));
-    // }
-
       try {
-        // Refresh the token (must hit API baseURL, not the frontend origin)
         const response = await axios.post(`${baseURL}/api/token/refresh/`, {
           refresh: authTokens.refresh,
         });
 
-        const newTokens = response.data;
+        const newTokens = response.data as AuthTokens;
         localStorage.setItem("authtokens", JSON.stringify(newTokens));
         setAuthTokens(newTokens);
-        setLoggedUser(jwtDecode(newTokens.access));
+        // Preserve permissions until /session returns (JWT no longer embeds them).
+        setLoggedUser((prev) => {
+          const decoded = jwtDecode<DecodedUser>(newTokens.access);
+          return {
+            ...decoded,
+            permissions: prev?.permissions ?? decoded.permissions ?? [],
+          };
+        });
+        void syncSessionPermissions(newTokens.access, setLoggedUser);
 
-        // Update request header
         req.headers.Authorization = `Bearer ${newTokens.access}`;
         return req;
       } catch (error) {
