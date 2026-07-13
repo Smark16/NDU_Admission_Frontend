@@ -25,7 +25,11 @@ const AdminRoute = ({ children, permission, allowStaffNonApplicant }: AdminRoute
   const loggeduser = context?.loggeduser;
 
   if (!loggeduser) {
-    // Not logged in → redirect to login/home
+    return <Navigate to="/" replace />;
+  }
+
+  // Admissions portal is applicant-only; staff must use the ERP.
+  if (loggeduser.is_staff || loggeduser.is_student || loggeduser.is_lecturer) {
     return <Navigate to="/" replace />;
   }
 
@@ -38,8 +42,7 @@ const AdminRoute = ({ children, permission, allowStaffNonApplicant }: AdminRoute
   }
 
   if (!userHasPermission(loggeduser.permissions, permission)) {
-    // Has no permission → redirect somewhere safe
-    return <Navigate to="/admin/admission_dashboard" replace />;
+    return <Navigate to="/applicant/dashboard" replace />;
   }
 
   return <>{children}</>;

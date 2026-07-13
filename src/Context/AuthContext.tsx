@@ -7,11 +7,10 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/system";
 import { CircularProgress, Typography } from "@mui/material";
+import { admissionsPortalMismatchMessage } from "../config/portalSite";
 
-// API base URL (shared with lib/api.ts and UseAxios.ts)
 const API_BASE_URL = getApiBaseURL();
 
-// Types
 type AuthTokens = { access: string; refresh: string };
 export type DecodedUser = {
   user_id: number | string;
@@ -27,6 +26,8 @@ export type DecodedUser = {
   role: string;
   is_staff: boolean;
   is_applicant: boolean;
+  is_student?: boolean;
+  is_lecturer?: boolean;
   date_joined: string;
   jti: string;
   token_type: string;
@@ -62,6 +63,15 @@ async function fetchSessionUser(
     ...sessionRes.data,
     permissions: sessionRes.data?.permissions ?? [],
   };
+}
+
+function clearSession(
+  setAuthTokens: Dispatch<SetStateAction<AuthTokens | null>>,
+  setLoggedUser: Dispatch<SetStateAction<DecodedUser | null>>,
+) {
+  localStorage.removeItem("authtokens");
+  setAuthTokens(null);
+  setLoggedUser(null);
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -101,11 +111,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     Swal.fire({
       html: `
         <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">❌</span>
+          <span style="font-size:20px;">⚠️</span>
           <span style="font-size:0.92rem;font-weight:600;color:#fff;">${message}</span>
         </div>`,
       toast: true,
-      timer: 5000,
+      timer: 6000,
       position: "top-right",
       timerProgressBar: true,
       showConfirmButton: false,
@@ -122,38 +132,52 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setNoAccount("");
 
     try {
-      const response = await api.post("api/accounts/login", { username, password });
+      const response = await api.post("api/accounts/login", {
+        username,
+        password,
+        portal: "admissions",
+        portal_kind: "admissions",
+      });
 
       if (response.status === 200 || response.status === 201) {
         const data: AuthTokens = response.data;
+        const decoded = jwtDecode<DecodedUser>(data.access);
+
+        const mismatch = admissionsPortalMismatchMessage(decoded);
+        if (mismatch) {
+          clearSession(setAuthTokens, setLoggedUser);
+          setNoAccount(mismatch);
+          showErrorAlert(mismatch);
+          return;
+        }
+
         localStorage.setItem("authtokens", JSON.stringify(data));
         setAuthTokens(data);
 
-        const decoded = jwtDecode<DecodedUser>(data.access);
-        // Permissions are no longer in the JWT (nginx 431). Staff menus need /session.
         let user = decoded;
         try {
           user = await fetchSessionUser(data.access, decoded);
         } catch {
-          if (decoded.is_staff) {
-            localStorage.removeItem("authtokens");
-            setAuthTokens(null);
-            setLoggedUser(null);
-            const msg =
-              "Could not load your permissions from the server. Please try logging in again.";
-            setNoAccount(msg);
-            showErrorAlert(msg);
-            return;
-          }
+          /* applicants can proceed without session enrichment */
         }
+
+        const mismatchAfterSession = admissionsPortalMismatchMessage(user);
+        if (mismatchAfterSession) {
+          clearSession(setAuthTokens, setLoggedUser);
+          setNoAccount(mismatchAfterSession);
+          showErrorAlert(mismatchAfterSession);
+          return;
+        }
+
         setLoggedUser(user);
-
-        { user?.is_staff ? navigate('/admin/admission_dashboard') : navigate('/applicant/dashboard') }
-
+        navigate("/applicant/dashboard");
         showSuccessAlert("Login successful!");
       }
     } catch (err: any) {
-      const message = err.response?.data?.detail || "Invalid username or password";
+      const message =
+        err.response?.data?.detail ||
+        (typeof err.response?.data === "string" ? err.response.data : null) ||
+        "Invalid username or password";
       setNoAccount(message);
       showErrorAlert(message);
     } finally {
@@ -161,7 +185,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Decode token on mount and sync live permissions from the server.
   useEffect(() => {
     if (!authTokens?.access) {
       setLoading(false);
@@ -174,29 +197,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const decoded = jwtDecode<DecodedUser>(authTokens.access);
 
+        const mismatch = admissionsPortalMismatchMessage(decoded);
+        if (mismatch) {
+          if (cancelled) return;
+          clearSession(setAuthTokens, setLoggedUser);
+          showErrorAlert(mismatch);
+          navigate("/", { replace: true });
+          return;
+        }
+
         try {
           const user = await fetchSessionUser(authTokens.access, decoded);
           if (cancelled) return;
+          const sessionMismatch = admissionsPortalMismatchMessage(user);
+          if (sessionMismatch) {
+            clearSession(setAuthTokens, setLoggedUser);
+            showErrorAlert(sessionMismatch);
+            navigate("/", { replace: true });
+            return;
+          }
           setLoggedUser(user);
         } catch {
           if (cancelled) return;
-          if (decoded.is_staff) {
-            localStorage.removeItem("authtokens");
-            setAuthTokens(null);
-            setLoggedUser(null);
-            showErrorAlert(
-              "Could not load your permissions. Please log in again (role changes need a fresh session).",
-            );
-            navigate("/login", { replace: true });
-            return;
-          }
           setLoggedUser(decoded);
         }
 
         const lastPath = localStorage.getItem("lastPath");
-        if (lastPath) {
+        if (lastPath && !lastPath.startsWith("/admin")) {
           navigate(lastPath);
           localStorage.removeItem("lastPath");
+        } else if (lastPath?.startsWith("/admin")) {
+          localStorage.removeItem("lastPath");
+          navigate("/applicant/dashboard");
         }
       } catch {
         localStorage.removeItem("authtokens");
@@ -214,7 +246,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, [authTokens]);
 
-  // Manual logout — also used by the inactivity watcher below.
   const logoutUser = useCallback(
     (reason?: string) => {
       localStorage.removeItem("authtokens");
@@ -234,7 +265,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     [navigate]
   );
 
-  // ── Inactivity-based auto-logout ──────────────────────────────────────────
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleMsRef = useRef<number>(0);
 
@@ -308,14 +338,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     writeActivity();
 
-    const fallbackMinutes = loggeduser.is_staff ? 60 : 30;
     const applyMinutes = (minutes: number) => {
       if (!Number.isFinite(minutes) || minutes < 1) return;
       idleMsRef.current = Math.floor(minutes) * 60 * 1000;
       scheduleCheck();
     };
 
-    applyMinutes(fallbackMinutes);
+    applyMinutes(30);
 
     fetch(`${API_BASE_URL}/api/accounts/system_settings`, {
       headers: { Authorization: `Bearer ${authTokens.access}` },
@@ -323,10 +352,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       .then((r) => (r.ok ? r.json() : null))
       .then((data: any) => {
         if (!data) return;
-        const minutes = loggeduser.is_staff
-          ? Number(data.admin_session_timeout)
-          : Number(data.student_session_timeout);
-        applyMinutes(minutes);
+        applyMinutes(Number(data.student_session_timeout) || 30);
       })
       .catch(() => {
         /* keep fallback */
@@ -339,7 +365,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       window.removeEventListener("storage", onStorage);
     };
   }, [loggeduser, authTokens?.access, logoutUser]);
-
 
   const contextData: AuthContextType = {
     showSuccessAlert,
@@ -357,14 +382,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider value={contextData}>
-      {loading ? (<>
-        <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
-          <CircularProgress sx={{ color: "#7c1519" }} />
-          <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
-            loading...
-          </Typography>
-        </Box>
-      </>) : children}
+      {loading ? (
+        <>
+          <Box sx={{ p: 8, textAlign: "center", py: 12 }}>
+            <CircularProgress sx={{ color: "#7c1519" }} />
+            <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: "auto" }}>
+              loading...
+            </Typography>
+          </Box>
+        </>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };
