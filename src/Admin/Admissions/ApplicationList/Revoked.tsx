@@ -60,8 +60,19 @@ export default function RevokedList() {
       try {
         setLoading(true)
         setError(null)
-        const res = await AxiosInstance.get("/api/admissions/revoked_applications")
-        setApplications(normalizeList(res.data))
+        let list: Application[] = []
+        try {
+          const res = await AxiosInstance.get("/api/admissions/revoked_applications")
+          list = normalizeList(res.data)
+        } catch (primaryErr: any) {
+          // Older backends before revoked_applications — reuse applications report.
+          if (primaryErr?.response?.status !== 404) throw primaryErr
+          const res = await AxiosInstance.get(
+            "/api/admissions/all_applications_report/?status=revoked&page_size=200"
+          )
+          list = normalizeList(res.data)
+        }
+        setApplications(list)
       } catch (err: any) {
         setError(err.response?.data?.detail || "Failed to load revoked applications")
       } finally {
