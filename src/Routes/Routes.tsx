@@ -41,6 +41,7 @@ const Finance = lazy(() => import('../Admin/Finance/page'))
 const DirectApplicationForm = lazy(() => import('../Admin/Admissions/DirectApplication/page'))
 const DirectEntryList = lazy(() => import('../Admin/Admissions/DirectApplication/DirectEntryList'))
 const RejectedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Rejected'))
+const RevokedList = lazy(()=>import('../Admin/Admissions/ApplicationList/Revoked'))
 const AllApplicantsReport = lazy(() => import('../Admin/Reports/AllApplicants'))
 const ProspectiveStudents = lazy(() => import('../Admin/ProspectiveStudents/page'))
 const SystemUsageReport = lazy(() => import('../Admin/Reports/SystemUsage'))
@@ -189,6 +190,12 @@ function AppRoutes() {
                   }
                   
                   />
+
+                  <Route path='/revoked_students' element={
+                    <AdminRoute permission='admissions.view_application'>
+                       <Suspense fallback={<LoadingSpinner />}><RevokedList /></Suspense>
+                     </AdminRoute>
+                  } />
 
                     <Route path='/direct_application' element={
                      <AdminRoute permission='admissions.view_application'>

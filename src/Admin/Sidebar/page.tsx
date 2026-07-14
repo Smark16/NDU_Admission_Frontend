@@ -102,6 +102,14 @@ const navigationItems: NavItem[] = [
             allowStaffNonApplicant: true,
           },
           {
+            id: "revoked",
+            label: "Revoked Students",
+            icon: <CancelIcon sx={{size:"20"}} />,
+            path: "/admin/revoked_students",
+            requiredAnyPermissions: [...ADMISSION_QUEUE_ACCESS_PERMISSIONS],
+            allowStaffNonApplicant: true,
+          },
+          {
             id: "admitted",
             label: "Admitted Students",
             icon: <CheckCircle size={20} />,
