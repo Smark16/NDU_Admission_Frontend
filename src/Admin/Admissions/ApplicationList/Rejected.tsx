@@ -11,8 +11,9 @@ import {
   Visibility as VisibilityIcon,
   Cancel as CancelIcon,
   Campaign as CampaignIcon,
+  Restore as RestoreIcon,
 } from "@mui/icons-material"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import useAxios from "../../../AxiosInstance/UseAxios"
 import AnnouncementDialog from "../../../ReUsables/AnnouncementDialog"
 
@@ -32,10 +33,13 @@ const statusConfig: Record<Application["status"], { color: "error"; icon: React.
 
 export default function RejectedList() {
   const AxiosInstance = useAxios()
+  const navigate = useNavigate()
 
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [restoringId, setRestoringId] = useState<number | null>(null)
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -44,26 +48,47 @@ export default function RejectedList() {
   const [selected, setSelected] = useState<number[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setLoading(true); setError(null)
-        const res = await AxiosInstance.get("/api/admissions/rejected_applications")
-        const raw = res.data
-        const list: Application[] = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.results)
-            ? raw.results
-            : []
-        setApplications(list)
-      } catch (err: any) {
-        setError(err.response?.data?.detail || "Failed to load applications")
-      } finally {
-        setLoading(false)
-      }
+  const fetchApplications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await AxiosInstance.get("/api/admissions/rejected_applications")
+      const raw = res.data
+      const list: Application[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.results)
+          ? raw.results
+          : []
+      setApplications(list)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to load applications")
+    } finally {
+      setLoading(false)
     }
-    fetchApplications()
+  }
+
+  useEffect(() => {
+    void fetchApplications()
   }, [AxiosInstance])
+
+  const handleRestore = async (app: Application) => {
+    const ok = window.confirm(
+      `Restore ${app.first_name} ${app.last_name} to the submitted applications queue?`
+    )
+    if (!ok) return
+    try {
+      setRestoringId(app.id)
+      setError(null)
+      await AxiosInstance.post(`/api/admissions/restore_rejected_application/${app.id}`)
+      setApplications((prev) => prev.filter((a) => a.id !== app.id))
+      setSelected((prev) => prev.filter((id) => id !== app.id))
+      setSuccess(`${app.first_name} ${app.last_name} restored to the submitted queue.`)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to restore application")
+    } finally {
+      setRestoringId(null)
+    }
+  }
 
   const filteredApplications = useMemo(() => applications.filter(app =>
     `${app.first_name} ${app.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,7 +114,9 @@ export default function RejectedList() {
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ color: "#0D0060", fontWeight: "bold" }}>Rejected Applications</Typography>
-          <Typography variant="body2" color="text.secondary">Manage and review all rejected applications</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Review rejected applications — restore to reopen them in the submitted queue
+          </Typography>
         </Box>
         <Button
           variant="contained" startIcon={<CampaignIcon />}
@@ -127,9 +154,21 @@ export default function RejectedList() {
       {loading ? (
         <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>
       ) : (
         <>
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+              {success}
+              <Button
+                size="small"
+                sx={{ ml: 2, textTransform: "none" }}
+                onClick={() => navigate("/admin/application_list")}
+              >
+                Open applications
+              </Button>
+            </Alert>
+          )}
           <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 3, mb: 1 }}>
             <Table sx={{ minWidth: 750 }}>
               <TableHead sx={{ backgroundColor: "#f5f7fa" }}>
@@ -162,13 +201,30 @@ export default function RejectedList() {
                       </TableCell>
                       <TableCell>{formatDate(app.created_at)}</TableCell>
                       <TableCell align="center">
-                        <Button
-                          component={Link} to={`/admin/application_review/${app.id}`}
-                          variant="outlined" size="small" startIcon={<VisibilityIcon />}
-                          sx={{ textTransform: "none", borderColor: "#1976d2", color: "#1976d2", "&:hover": { bgcolor: "#1976d2", color: "white" } }}
-                        >
-                          View
-                        </Button>
+                        <Box sx={{ display: "flex", gap: 0.75, justifyContent: "center", flexWrap: "wrap" }}>
+                          <Button
+                            component={Link} to={`/admin/application_review/${app.id}`}
+                            variant="outlined" size="small" startIcon={<VisibilityIcon />}
+                            sx={{ textTransform: "none", borderColor: "#1976d2", color: "#1976d2", "&:hover": { bgcolor: "#1976d2", color: "white" } }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="success"
+                            startIcon={
+                              restoringId === app.id
+                                ? <CircularProgress size={14} color="inherit" />
+                                : <RestoreIcon />
+                            }
+                            disabled={restoringId === app.id}
+                            onClick={() => void handleRestore(app)}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Restore
+                          </Button>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))

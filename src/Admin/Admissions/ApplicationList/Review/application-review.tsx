@@ -38,6 +38,7 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
   HourglassEmpty as PendingIcon,
+  Restore as RestoreIcon,
 } from "@mui/icons-material"
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -150,6 +151,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [isPending, setIsPending] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
   // const [docLoading, setDocLoading] = useState(false)
   // const [selectedID, setSelectedID] = useState<number | null>(null)
   const [profileDownload, setProfileDownload] = useState(false)
@@ -364,6 +366,26 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } finally {
       setIsPending(false)
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  const handleRestoreRejected = async () => {
+    const ok = window.confirm(
+      "Restore this application to the submitted queue so it can be reviewed again?"
+    )
+    if (!ok) return
+    try {
+      setIsRestoring(true)
+      await AxiosInstance.post(`/api/admissions/restore_rejected_application/${application.id}`)
+      setCurrentStatus("submitted")
+      window.dispatchEvent(new CustomEvent("applicationStatusChanged", {
+        detail: { id: application.id, status: "submitted" },
+      }))
+      showNotification("Application restored to the submitted queue.", "success")
+    } catch (err: any) {
+      showNotification(err?.response?.data?.detail || "Failed to restore application", "error")
+    } finally {
+      setIsRestoring(false)
     }
   }
 
@@ -1129,7 +1151,22 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
                   {/* ── Rejected ── */}
                   {(currentStatus || "").toLowerCase() === "rejected" && (
-                    <Chip size="small" color="error" label="Application rejected" />
+                    <>
+                      <Chip size="small" color="error" label="Application rejected" />
+                      <Button
+                        variant="contained"
+                        size="small"
+                        color="success"
+                        startIcon={
+                          isRestoring ? <CircularProgress size={14} color="inherit" /> : <RestoreIcon />
+                        }
+                        disabled={isRestoring}
+                        onClick={() => void handleRestoreRejected()}
+                        sx={{ textTransform: "none" }}
+                      >
+                        Restore to queue
+                      </Button>
+                    </>
                   )}
 
                   {/* ── Approved (accepted) — ready for admission ── */}
